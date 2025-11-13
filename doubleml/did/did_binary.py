@@ -699,7 +699,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             g0_scoring,
             cv,
             optuna_settings,
-            learner_name="ml_g0",
+            learner_name="ml_g",
+            params_name="ml_g0",
         )
 
         x_d1 = x[mask_d1, :]
@@ -714,7 +715,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             g1_scoring,
             cv,
             optuna_settings,
-            learner_name="ml_g1",
+            learner_name="ml_g",
+            params_name="ml_g1",
         )
 
         m_tune_res = None
@@ -728,6 +730,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                 cv,
                 optuna_settings,
                 learner_name="ml_m",
+                params_name="ml_m",
             )
 
         if self.score == "observational":

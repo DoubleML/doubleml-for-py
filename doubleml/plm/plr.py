@@ -402,6 +402,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_l",
+            params_name="ml_l",
         )
         m_tune_res = _dml_tune_optuna(
             d,
@@ -412,6 +413,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_m",
+            params_name="ml_m",
         )
 
         results = {"ml_l": l_tune_res, "ml_m": m_tune_res}
@@ -434,6 +436,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 cv,
                 optuna_settings,
                 learner_name="ml_g",
+                params_name="ml_g",
             )
             results["ml_g"] = g_tune_res
 

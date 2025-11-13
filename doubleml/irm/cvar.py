@@ -446,6 +446,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_g",
+            params_name="ml_g",
         )
 
         m_tune_res = _dml_tune_optuna(
@@ -457,6 +458,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_m",
+            params_name="ml_m",
         )
         return {"ml_g": g_tune_res, "ml_m": m_tune_res}
 

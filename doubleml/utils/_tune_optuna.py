@@ -121,7 +121,7 @@ def _default_optuna_settings():
     return deepcopy(_OPTUNA_DEFAULT_SETTINGS)
 
 
-def _resolve_optuna_scoring(scoring_method, learner, learner_name):
+def _resolve_optuna_scoring(scoring_method, learner, params_name):
     """Resolve the scoring argument for an Optuna-tuned learner.
 
     Parameters
@@ -131,7 +131,7 @@ def _resolve_optuna_scoring(scoring_method, learner, learner_name):
         fallback selection.
     learner : estimator
         Estimator instance that will be tuned.
-    learner_name : str
+    params_name : str
         Identifier used for logging and error messages.
 
     Returns
@@ -144,27 +144,27 @@ def _resolve_optuna_scoring(scoring_method, learner, learner_name):
     """
 
     if scoring_method is not None:
-        message = f"Using provided scoring method: {scoring_method} for learner '{learner_name}'"
+        message = f"Using provided scoring method: {scoring_method} for learner '{params_name}'"
         return scoring_method, message
 
     if is_regressor(learner):
         message = (
             "No scoring method provided, using 'neg_root_mean_squared_error' (RMSE) "
-            f"for learner '{learner_name}'."
+            f"for learner '{params_name}'."
         )
         return "neg_root_mean_squared_error", message
 
     if is_classifier(learner):
         message = (
             f"No scoring method provided, using 'neg_log_loss' "
-            f"for learner '{learner_name}'."
+            f"for learner '{params_name}'."
         )
         return "neg_log_loss", message
 
 
     raise RuntimeError(
         f"No scoring method provided and estimator type could not be inferred. Please provide a scoring_method for learner "
-        f"'{learner_name}'."
+        f"'{params_name}'."
     )
 
 
@@ -211,7 +211,7 @@ def _check_tuning_inputs(
     param_grid_func,
     scoring_method,
     cv,
-    learner_name=None,
+    params_name,
 ):
     """Validate Optuna tuning inputs and normalize the cross-validation splitter.
 
@@ -229,8 +229,8 @@ def _check_tuning_inputs(
     Scoring argument after applying :func:`doubleml.utils._tune_optuna._resolve_optuna_scoring`.
     cv : int, cross-validation splitter or iterable
         Cross-validation definition provided by the caller.
-    learner_name : str or None
-        Optional name used to contextualise error messages.
+    params_name : str
+        Name of the nuisance parameter for logging purposes.
 
     Returns
     -------
@@ -239,28 +239,26 @@ def _check_tuning_inputs(
         :func:`sklearn.model_selection.cross_val_score`.
     """
 
-    learner_label = learner_name or learner.__class__.__name__
-
     if y.shape[0] != x.shape[0]:
-        raise ValueError(f"Features and target must contain the same number of observations for learner '{learner_label}'.")
+        raise ValueError(f"Features and target must contain the same number of observations for learner '{params_name}'.")
     if y.size == 0:
-        raise ValueError(f"Empty target passed to Optuna tuner for learner '{learner_label}'.")
+        raise ValueError(f"Empty target passed to Optuna tuner for learner '{params_name}'.")
 
     if param_grid_func is not None and not callable(param_grid_func):
         raise TypeError(
             "param_grid must be a callable function that takes a trial and returns a dict. "
-            f"Got {type(param_grid_func).__name__} for learner '{learner_label}'."
-        )
+            f"Got {type(param_grid_func).__name__} for learner '{params_name}'.")
+
 
     if scoring_method is not None and not callable(scoring_method) and not isinstance(scoring_method, str):
         if not isinstance(scoring_method, Iterable):
             raise TypeError(
                 "scoring_method must be None, a string, a callable, or an iterable accepted by scikit-learn. "
-                f"Got {type(scoring_method).__name__} for learner '{learner_label}'."
+                f"Got {type(scoring_method).__name__} for learner '{params_name}'."
             )
 
     if not hasattr(learner, "fit") or not hasattr(learner, "set_params"):
-        raise TypeError(f"Learner '{learner_label}' must implement fit and set_params to be tuned with Optuna.")
+        raise TypeError(f"Learner '{params_name}' must implement fit and set_params to be tuned with Optuna.")
 
     return resolve_optuna_cv(cv)
 
@@ -275,8 +273,6 @@ def _get_optuna_settings(optuna_settings, params_name=None):
         User-provided Optuna settings.
     params_name : str
         Name of the learner to check for specific setting, e.g. `ml_g0` or `ml_g1` for `DoubleMLIRM`.
-    default_learner_name : str or None
-        A default learner name to use as a fallback.
 
     Returns
     -------
@@ -448,6 +444,8 @@ def _dml_tune_optuna(
         :class:`sklearn.model_selection.KFold` with the specified number of splits and ``random_state=42`` is used.
     optuna_settings : dict or None
         Optuna-specific settings.
+    learner_name : str
+        Name of the learner for logging and identification.
     params_name : str or None
         Name of the nuisance parameter for settings selection.
 
@@ -468,33 +466,31 @@ def _dml_tune_optuna(
         param_grid_func,
         scoring_method,
         cv,
-        learner_name=params_name,
+        params_name=params_name,
     )
 
     if param_grid_func is None:
         estimator = clone(learner)
         best_params = estimator.get_params(deep=True)
         return DMLOptunaResult(
-            params_name=params_name,
             learner_name=learner_name,
-            estimator=estimator,
+            params_name=params_name,
+            best_estimator=estimator,
             best_params=best_params,
             best_score=np.nan,
             study=None,
-            trials_dataframe=None,
             tuned=False,
         )
 
-    settings = _get_optuna_settings(optuna_settings, params_name or learner_name)
-
+    settings = _get_optuna_settings(optuna_settings, params_name)
     # Set Optuna logging verbosity if specified
     verbosity = settings.get("verbosity")
     if verbosity is not None:
         optuna.logging.set_verbosity(verbosity)
 
     # Create the study
-    study = _create_study(settings, learner_name)
-    study.set_metric_names([f"{scoring_method}_{learner_name}"])
+    study = _create_study(settings, params_name)
+    study.set_metric_names([f"{scoring_method}_{params_name}"])
 
     # Create the objective function
     objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method)
@@ -528,19 +524,17 @@ def _dml_tune_optuna(
     best_params = dict(study.best_trial.params)
     best_score = study.best_value
 
-    # Cache trials dataframe (computed once and reused for all folds)
-    trials_df = study.trials_dataframe(attrs=("number", "value", "params", "state"))
-
     # Fit the best estimator on the full dataset once
     best_estimator = clone(learner).set_params(**best_params)
-    best_estimator.fit(x, y)
 
     return DMLOptunaResult(
-        estimator=best_estimator,
+        learner_name=learner_name,
+        params_name=params_name,
+        best_estimator=best_estimator,
         best_params=best_params,
         best_score=best_score,
+        scoring_method=scoring_method,
         study=study,
-        trials_dataframe=trials_df,
         tuned=True,
     )
 

@@ -629,7 +629,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             scoring_methods["ml_g0"],
             cv,
             optuna_settings,
-            learner_name="ml_g0",
+            learner_name="ml_g",
+            params_name="ml_g0",
         )
 
         x_z1 = x[mask_z1, :]
@@ -642,7 +643,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             scoring_methods["ml_g1"],
             cv,
             optuna_settings,
-            learner_name="ml_g1",
+            learner_name="ml_g",
+            params_name="ml_g1",
         )
 
         # Tune propensity score on full dataset
@@ -655,6 +657,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_m",
+            params_name="ml_m",
         )
 
         r0_tune_res = None
@@ -669,7 +672,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 scoring_methods["ml_r0"],
                 cv,
                 optuna_settings,
-                learner_name="ml_r0",
+                learner_name="ml_r",
+                params_name="ml_r0",
             )
 
         if self.subgroups["never_takers"]:
@@ -682,7 +686,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 scoring_methods["ml_r1"],
                 cv,
                 optuna_settings,
-                learner_name="ml_r1",
+                learner_name="ml_r",
+                params_name="ml_r1",
             )
 
         results = {

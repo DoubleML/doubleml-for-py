@@ -727,7 +727,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             scoring_methods["ml_m_z"],
             cv,
             optuna_settings,
-            learner_name="ml_m_z",
+            learner_name="ml_m",
+            params_name="ml_m_z",
         )
 
         mask_z0 = z == 0
@@ -744,7 +745,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             scoring_methods["ml_m_d_z0"],
             cv,
             optuna_settings,
-            learner_name="ml_m_d_z0",
+            learner_name="ml_m",
+            params_name="ml_m_d_z0",
         )
         g_du_z0_tune_res = _dml_tune_optuna(
             du_z0,
@@ -754,7 +756,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             scoring_methods["ml_g_du_z0"],
             cv,
             optuna_settings,
-            learner_name="ml_g_du_z0",
+            learner_name="ml_g",
+            params_name="ml_g_du_z0",
         )
 
         x_z1 = x[mask_z1, :]
@@ -768,7 +771,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             scoring_methods["ml_m_d_z1"],
             cv,
             optuna_settings,
-            learner_name="ml_m_d_z1",
+            learner_name="ml_m",
+            params_name="ml_m_d_z1",
         )
         g_du_z1_tune_res = _dml_tune_optuna(
             du_z1,
@@ -778,7 +782,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             scoring_methods["ml_g_du_z1"],
             cv,
             optuna_settings,
-            learner_name="ml_g_du_z1",
+            learner_name="ml_g",
+            params_name="ml_g_du_z1",
         )
 
         return {

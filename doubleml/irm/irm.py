@@ -529,7 +529,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             scoring_methods["ml_g0"],
             cv,
             optuna_settings,
-            learner_name="ml_g0",
+            learner_name="ml_g",
+            params_name="ml_g0",
         )
 
         x_d1 = x[mask_d1, :]
@@ -542,7 +543,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             scoring_methods["ml_g1"],
             cv,
             optuna_settings,
-            learner_name="ml_g1",
+            learner_name="ml_g",
+            params_name="ml_g1",
         )
 
         # Tune propensity score on full dataset
@@ -555,6 +557,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_m",
+            params_name="ml_m",
         )
         return {"ml_g0": g0_tune_res, "ml_g1": g1_tune_res, "ml_m": m_tune_res}
 

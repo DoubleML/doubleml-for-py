@@ -465,7 +465,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             scoring_methods["ml_g0"],
             cv,
             optuna_settings,
-            learner_name="ml_g0",
+            learner_name="ml_g",
+            params_name="ml_g0",
         )
 
         x_d1 = x[mask_d1, :]
@@ -478,7 +479,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             scoring_methods["ml_g1"],
             cv,
             optuna_settings,
-            learner_name="ml_g1",
+            learner_name="ml_g",
+            params_name="ml_g1",
         )
 
         # Tune propensity score on full dataset for observational score
@@ -493,6 +495,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                 cv,
                 optuna_settings,
                 learner_name="ml_m",
+                params_name="ml_m",
             )
 
         if self.score == "observational":

@@ -812,6 +812,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_l",
+            params_name="ml_l",
         )
 
         if self._dml_data.n_instr > 1:
@@ -828,7 +829,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     scoring_key,
                     cv,
                     optuna_settings,
-                    learner_name=f"ml_m_{instr_var}",
+                    learner_name="ml_m",
+                    params_name=f"ml_m_{instr_var}",
                 )
             x_m_features = x  # keep reference for later when constructing params
             z_vector = None
@@ -843,6 +845,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 cv,
                 optuna_settings,
                 learner_name="ml_m",
+                params_name="ml_m",
             )
 
         r_tune_res = _dml_tune_optuna(
@@ -854,6 +857,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_r",
+            params_name="ml_r",
         )
 
         results = {"ml_l": l_tune_res, "ml_r": r_tune_res}
@@ -880,6 +884,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     cv,
                     optuna_settings,
                     learner_name="ml_g",
+                    params_name="ml_g",
                 )
 
                 results["ml_g"] = g_tune_res
@@ -909,6 +914,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_r",
+            params_name="ml_r",
         )
         return {"ml_r": m_tune_res}
 
@@ -937,6 +943,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_l",
+            params_name="ml_l",
         )
 
         m_tune_res = _dml_tune_optuna(
@@ -948,6 +955,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_m",
+            params_name="ml_m",
         )
 
         pseudo_target = m_tune_res.predict(xz)
@@ -960,6 +968,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_r",
+            params_name="ml_r",
         )
         return {"ml_l": l_tune_res, "ml_m": m_tune_res, "ml_r": r_tune_res}
 

@@ -489,7 +489,8 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             g_lvl0_scoring,
             cv,
             optuna_settings,
-            learner_name="ml_g_d_lvl0",
+            learner_name="ml_g",
+            params_name="ml_g_d_lvl0",
         )
 
         x_lvl1 = x[mask_lvl1, :]
@@ -504,7 +505,8 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             g_lvl1_scoring,
             cv,
             optuna_settings,
-            learner_name="ml_g_d_lvl1",
+            learner_name="ml_g",
+            params_name="ml_g_d_lvl1",
         )
 
         m_tune_res = _dml_tune_optuna(
@@ -516,6 +518,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             cv,
             optuna_settings,
             learner_name="ml_m",
+            params_name="ml_m",
         )
 
         return {

@@ -700,9 +700,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         for key, mask in masks.items():
             x_subset = x[mask, :]
             y_subset = y[mask]
-            learner_key = f"ml_g_{key}"
-            param_grid = optuna_params[learner_key]
-            scoring = scoring_methods[learner_key]
+            params_key = f"ml_g_{key}"
+            param_grid = optuna_params[params_key]
+            scoring = scoring_methods[params_key]
             g_tune_results[key] = _dml_tune_optuna(
                 y_subset,
                 x_subset,
@@ -711,7 +711,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 scoring,
                 cv,
                 optuna_settings,
-                learner_name=learner_key,
+                learner_name="ml_g",
+                params_name=params_key,
             )
 
         m_tune_res = None
@@ -725,6 +726,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 cv,
                 optuna_settings,
                 learner_name="ml_m",
+                params_name="ml_m",
             )
 
         results = {f"ml_g_{key}": res_obj for key, res_obj in g_tune_results.items()}
