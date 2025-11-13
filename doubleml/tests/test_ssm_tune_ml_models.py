@@ -17,19 +17,29 @@ from .test_dml_tune_optuna import (
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_ssm_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3149)
-    dml_data = make_ssm_data(n_obs=100, dim_x=12, mar=True)
+    dml_data = make_ssm_data(n_obs=500, dim_x=10, mar=True)
 
-    ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
-    ml_pi = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
-    ml_m = DecisionTreeClassifier(random_state=987, max_depth=5, min_samples_leaf=4)
+    ml_g = DecisionTreeRegressor(random_state=321)
+    ml_pi = DecisionTreeClassifier(random_state=654)
+    ml_m = DecisionTreeClassifier(random_state=987)
 
-    dml_ssm = dml.DoubleMLSSM(dml_data, ml_g, ml_pi, ml_m, n_folds=2, score="missing-at-random")
+    dml_ssm = dml.DoubleMLSSM(dml_data, ml_g=ml_g, ml_pi=ml_pi, ml_m=ml_m, n_folds=2)
+    dml_ssm.fit()
+    untuned_score = dml_ssm.evaluate_learners()
 
     optuna_params = _build_param_space(dml_ssm, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    tune_res = dml_ssm.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings, return_tune_res=True)
+    tune_res = dml_ssm.tune_ml_models(
+        ml_param_space=optuna_params, optuna_settings=optuna_settings, set_as_params=True, return_tune_res=True
+    )
+
+    dml_ssm.fit()
+    tuned_score = dml_ssm.evaluate_learners()
 
     for learner_name in dml_ssm.params_names:
         tuned_params = tune_res[0][learner_name].best_params_
         _assert_tree_params(tuned_params)
+
+        # ensure tuning improved RMSE
+        assert tuned_score[learner_name] < untuned_score[learner_name]

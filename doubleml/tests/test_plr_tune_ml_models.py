@@ -16,12 +16,15 @@ from .test_dml_tune_optuna import (
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3141)
-    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
+    alpha = 0.5
+    dml_data = make_plr_CCDDHNR2018(n_obs=500, dim_x=5, alpha=alpha)
 
-    ml_l = DecisionTreeRegressor(random_state=123, max_depth=5, min_samples_leaf=4)
-    ml_m = DecisionTreeRegressor(random_state=456, max_depth=5, min_samples_leaf=4)
+    ml_l = DecisionTreeRegressor(random_state=123, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
+    ml_m = DecisionTreeRegressor(random_state=456, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
 
     dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, score="partialling out")
+    dml_plr.fit()
+    untuned_score = dml_plr.evaluate_learners()
 
     optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
 
@@ -30,6 +33,9 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
         optuna_settings=_basic_optuna_settings({"sampler": optuna_sampler}),
         return_tune_res=True,
     )
+
+    dml_plr.fit()
+    tuned_score = dml_plr.evaluate_learners()
 
     tuned_params_l = tune_res[0]["ml_l"].best_params_
     tuned_params_m = tune_res[0]["ml_m"].best_params_
@@ -44,3 +50,7 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     assert tune_res[0]["ml_l"].best_params_["max_depth"] == tuned_params_l["max_depth"]
     assert hasattr(tune_res[0]["ml_m"], "best_params_")
     assert tune_res[0]["ml_m"].best_params_["max_depth"] == tuned_params_m["max_depth"]
+
+    # ensure tuning improved RMSE
+    assert tuned_score["ml_l"] < untuned_score["ml_l"]
+    assert tuned_score["ml_m"] < untuned_score["ml_m"]

@@ -1,4 +1,7 @@
+import logging
+
 import numpy as np
+import optuna
 import pytest
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
@@ -19,24 +22,33 @@ from .test_dml_tune_optuna import (
 def test_doubleml_did_cs_optuna_tune(sampler_name, optuna_sampler, score):
     np.random.seed(3151)
     dml_data = make_did_SZ2020(
-        n_obs=100,
+        n_obs=500,
         dgp_type=2,
         cross_sectional_data=True,
         return_type="DoubleMLDIDData",
     )
 
-    ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
+    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
     if score == "observational":
-        ml_m = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
+        ml_m = DecisionTreeClassifier(random_state=654, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
         dml_did_cs = dml.DoubleMLDIDCS(dml_data, ml_g, ml_m, score=score, n_folds=2)
     else:
         dml_did_cs = dml.DoubleMLDIDCS(dml_data, ml_g, score=score, n_folds=2)
+    dml_did_cs.fit()
+    untuned_score = dml_did_cs.evaluate_learners()
 
     optuna_params = _build_param_space(dml_did_cs, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
     tune_res = dml_did_cs.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings, return_tune_res=True)
 
+    dml_did_cs.fit()
+    tuned_score = dml_did_cs.evaluate_learners()
+
     for learner_name in dml_did_cs.params_names:
         tuned_params = tune_res[0][learner_name].best_params_
         _assert_tree_params(tuned_params)
+
+        # ensure tuning improved RMSE
+        assert tuned_score[learner_name] < untuned_score[learner_name]
+

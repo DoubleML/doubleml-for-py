@@ -20,7 +20,7 @@ from .test_dml_tune_optuna import (
 def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3152)
     df_panel = make_did_CS2021(
-        n_obs=100,
+        n_obs=1000,
         dgp_type=1,
         include_never_treated=True,
         time_type="float",
@@ -38,8 +38,8 @@ def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler):
 
     g_value, t_value_pre, t_value_eval = _select_binary_periods(panel_data)
 
-    ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
-    ml_m = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
+    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
+    ml_m = DecisionTreeClassifier(random_state=654, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
 
     dml_did_binary = DoubleMLDIDBinary(
         obj_dml_data=panel_data,
@@ -51,12 +51,22 @@ def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler):
         score="observational",
         n_folds=2,
     )
+    dml_did_binary.fit()
+    untuned_score = dml_did_binary.evaluate_learners()
 
     optuna_params = _build_param_space(dml_did_binary, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    tune_res = dml_did_binary.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings, return_tune_res=True)
+    tune_res = dml_did_binary.tune_ml_models(
+        ml_param_space=optuna_params, optuna_settings=optuna_settings, return_tune_res=True
+    )
+
+    dml_did_binary.fit()
+    tuned_score = dml_did_binary.evaluate_learners()
 
     for learner_name in dml_did_binary.params_names:
         tuned_params = tune_res[0][learner_name].best_params_
         _assert_tree_params(tuned_params)
+
+        # ensure tuning improved RMSE
+        assert tuned_score[learner_name] < untuned_score[learner_name]

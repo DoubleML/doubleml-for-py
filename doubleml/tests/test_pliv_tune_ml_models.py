@@ -19,19 +19,27 @@ def test_doubleml_pliv_optuna_tune(sampler_name, optuna_sampler):
     """Test PLIV with ml_l, ml_m, ml_r nuisance models."""
 
     np.random.seed(3144)
-    dml_data = make_pliv_CHS2015(n_obs=100, dim_x=15, dim_z=3)
+    dml_data = make_pliv_CHS2015(n_obs=500, dim_x=15, dim_z=3)
 
-    ml_l = DecisionTreeRegressor(random_state=123, max_depth=5, min_samples_leaf=4)
-    ml_m = DecisionTreeRegressor(random_state=456, max_depth=5, min_samples_leaf=4)
-    ml_r = DecisionTreeRegressor(random_state=789, max_depth=5, min_samples_leaf=4)
+    ml_l = DecisionTreeRegressor(random_state=123, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
+    ml_m = DecisionTreeRegressor(random_state=456, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
+    ml_r = DecisionTreeRegressor(random_state=789, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
 
     dml_pliv = dml.DoubleMLPLIV(dml_data, ml_l, ml_m, ml_r, n_folds=2)
+    dml_pliv.fit()
+    untuned_score = dml_pliv.evaluate_learners()
 
     optuna_params = _build_param_space(dml_pliv, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
     tune_res = dml_pliv.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings, return_tune_res=True)
 
+    dml_pliv.fit()
+    tuned_score = dml_pliv.evaluate_learners()
+
     for learner_name in dml_pliv.params_names:
         tuned_params = tune_res[0][learner_name].best_params_
         _assert_tree_params(tuned_params)
+
+        # ensure tuning improved RMSE
+        assert tuned_score[learner_name] < untuned_score[learner_name]

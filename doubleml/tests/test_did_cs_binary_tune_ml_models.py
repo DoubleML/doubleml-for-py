@@ -20,7 +20,7 @@ from .test_dml_tune_optuna import (
 def test_doubleml_did_cs_binary_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3153)
     df_panel = make_did_cs_CS2021(
-        n_obs=100,
+        n_obs=500,
         dgp_type=2,
         include_never_treated=True,
         lambda_t=0.6,
@@ -34,11 +34,12 @@ def test_doubleml_did_cs_binary_optuna_tune(sampler_name, optuna_sampler):
         t_col="t",
         x_cols=["Z1", "Z2", "Z3", "Z4"],
     )
-
+    print(df_panel.head())
+    theta = df_panel["y1"].mean()
     g_value, t_value_pre, t_value_eval = _select_binary_periods(panel_data)
 
-    ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
-    ml_m = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
+    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1, min_samples_leaf=500)
+    ml_m = DecisionTreeClassifier(random_state=654, max_depth=1, min_samples_leaf=500)
 
     dml_did_cs_binary = DoubleMLDIDCSBinary(
         obj_dml_data=panel_data,
@@ -50,12 +51,27 @@ def test_doubleml_did_cs_binary_optuna_tune(sampler_name, optuna_sampler):
         score="observational",
         n_folds=2,
     )
+    dml_did_cs_binary.fit()
+    untuned_score = dml_did_cs_binary.evaluate_learners()
+    untuned_bias = np.abs(dml_did_cs_binary.coef - theta)
 
     optuna_params = _build_param_space(dml_did_cs_binary, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    tune_res = dml_did_cs_binary.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings, return_tune_res=True)
+    tune_res = dml_did_cs_binary.tune_ml_models(
+        ml_param_space=optuna_params, optuna_settings=optuna_settings, return_tune_res=True
+    )
+
+    dml_did_cs_binary.fit()
+    tuned_score = dml_did_cs_binary.evaluate_learners()
+    tuned_bias = np.abs(dml_did_cs_binary.coef - theta)
 
     for learner_name in dml_did_cs_binary.params_names:
         tuned_params = tune_res[0][learner_name].best_params_
         _assert_tree_params(tuned_params)
+
+        # ensure tuning improved RMSE
+        assert tuned_score[learner_name] < untuned_score[learner_name]
+
+    # ensure tuning improved bias
+    assert tuned_bias <= untuned_bias
