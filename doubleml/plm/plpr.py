@@ -10,7 +10,6 @@ from ..double_ml import DoubleML
 from ..double_ml_score_mixins import LinearScoreMixin
 from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
 from ..utils._estimation import _dml_cv_predict, _dml_tune
-from ..utils.resampling import DoubleMLClusterResampling
 
 
 class DoubleMLPLPR(LinearScoreMixin, DoubleML):
@@ -86,17 +85,32 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         approach="fd_exact",
         draw_sample_splitting=True,
     ):
-        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
-
-        self._check_data(self._dml_data)
-        # TODO: assert cluster?
-        valid_scores = ["IV-type", "partialling out"]
-        _check_score(self.score, valid_scores, allow_callable=True)
+        self._check_data(obj_dml_data)
+        self._original_dml_data = obj_dml_data
 
         valid_approach = ["cre_general", "cre_normal", "fd_exact", "wg_approx"]
         self._check_approach(approach, valid_approach)
         self._approach = approach
 
+        # pass transformed data as DoubleMLPanelData to init
+        self._data_transform, self._transform_cols = self._transform_data()
+        obj_dml_data_transform = DoubleMLPanelData(
+            self._data_transform,
+            y_col=self._transform_cols["y_col"],
+            d_cols=self._transform_cols["d_cols"],
+            t_col=self._original_dml_data._t_col,
+            id_col=self._original_dml_data._id_col,
+            x_cols=self._transform_cols["x_cols"],
+            z_cols=self._original_dml_data._z_cols,
+            static_panel=True,
+            use_other_treat_as_covariate=self._original_dml_data._use_other_treat_as_covariate,
+            force_all_x_finite=self._original_dml_data._force_all_x_finite,
+        )
+        super().__init__(obj_dml_data_transform, n_folds, n_rep, score, draw_sample_splitting)
+
+        valid_scores = ["IV-type", "partialling out"]
+        _check_score(self.score, valid_scores, allow_callable=True)
+        # TODO: update learner checks
         _ = self._check_learner(ml_l, "ml_l", regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
         self._learner = {"ml_l": ml_l, "ml_m": ml_m}
@@ -135,42 +149,27 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = False
         self._external_predictions_implemented = True
 
-        # get transformed data depending on approach
-        (
-            self._data_transform,
-            self._transform_col_names,
-        ) = self._transform_data(self._approach)
-        # save transformed data parts for ML estimation
-        # TODO: check d_cols dimension issue, for now as for panel data only one treatment allowed currently
-        self._y_data_transform = self.data_transform.loc[:, self.transform_col_names["y_col"]].values
-        self._d_data_transform = self.data_transform.loc[:, self.transform_col_names["d_cols"]].values.flatten()
-        self._x_data_transform = self.data_transform.loc[:, self.transform_col_names["x_cols"]].values
-
-        # TODO: for fd_exact, n_obs changes, smpls originally drawn are not working anymore
-        self._n_obs_transform = self._data_transform.shape[0]
-        self._initialize_fd_model()
-
     def _format_score_info_str(self):
         score_approach_info = f"Score function: {str(self.score)}\n" f"Static panel model approach: {str(self.approach)}"
         return score_approach_info
 
     def _format_additional_info_str(self):
         """
-        Includes information on the transformed features based on the estimation approach.
+        Includes information on the original data before transformation.
         """
-        data_transform_summary = (
-            f"Post Transformation Data Summary:\n\n"
-            f"Outcome variable: {self.transform_col_names['y_col']}\n"
-            f"Treatment variable(s): {self.transform_col_names['d_cols']}\n"
-            f"Covariates: {self.transform_col_names['x_cols']}\n"
-            f"No. Observations: {self._n_obs_transform}\n"
+        data_original_summary = (
+            f"Original Data Summary Pre-transformation:\n\n"
+            f"Outcome variable: {self._original_dml_data.y_col}\n"
+            f"Treatment variable(s): {self._original_dml_data.d_cols}\n"
+            f"Covariates: {self._original_dml_data.x_cols}\n"
+            f"No. Observations: {self._original_dml_data.n_obs}\n"
         )
-        return data_transform_summary
+        return data_original_summary
 
     @property
     def approach(self):
         """
-        The score function.
+        The static panel approach.
         """
         return self._approach
 
@@ -182,18 +181,11 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         return self._data_transform
 
     @property
-    def transform_col_names(self):
+    def transform_cols(self):
         """
         The column names of the transformed static panel data.
         """
-        return self._transform_col_names
-
-    @property
-    def n_obs_transform(self):
-        """
-        The number of observations after data transformation.
-        """
-        return self._n_obs_transform
+        return self._transform_cols
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
@@ -220,21 +212,21 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             raise TypeError(f"approach should be a string. {str(approach)} was passed.")
         return
 
-    def _transform_data(self, approach):
-        df = self._dml_data.data.copy()
+    def _transform_data(self):
+        df = self._original_dml_data.data.copy()
 
-        y_col = self._dml_data.y_col
-        d_cols = self._dml_data.d_cols
-        x_cols = self._dml_data.x_cols
-        t_col = self._dml_data.t_col
-        id_col = self._dml_data.id_col
+        y_col = self._original_dml_data.y_col
+        d_cols = self._original_dml_data.d_cols
+        x_cols = self._original_dml_data.x_cols
+        t_col = self._original_dml_data.t_col
+        id_col = self._original_dml_data.id_col
 
-        if approach in ["cre_general", "cre_normal"]:
+        if self._approach in ["cre_general", "cre_normal"]:
             df_id_means = df[[id_col] + x_cols].groupby(id_col).transform("mean")
             df_means = df_id_means.add_suffix("_mean")
             data = pd.concat([df, df_means], axis=1)
-            col_names = {"y_col": y_col, "d_cols": d_cols, "x_cols": x_cols + [f"{x}_mean" for x in x_cols]}
-        elif approach == "fd_exact":
+            cols = {"y_col": y_col, "d_cols": d_cols, "x_cols": x_cols + [f"{x}_mean" for x in x_cols]}
+        elif self._approach == "fd_exact":
             # TODO: potential issues with unbalanced panels/missing periods, right now the
             # last available is used for the lag and first difference. Maybe reindex to a complete time grid per id.
             df = df.sort_values([id_col, t_col])
@@ -247,12 +239,12 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             df_fd = df_fd.rename(columns=cols_rename_dict)
             # drop rows for first period
             data = df_fd.dropna(subset=[x_cols[0] + "_lag"]).reset_index(drop=True)
-            col_names = {
+            cols = {
                 "y_col": f"{y_col}_diff",
                 "d_cols": [f"{d}_diff" for d in d_cols],
                 "x_cols": x_cols + [f"{x}_lag" for x in x_cols],
             }
-        elif approach == "wg_approx":
+        elif self._approach == "wg_approx":
             cols_to_demean = [y_col] + d_cols + x_cols
             # compute group and grand means for within means
             group_means = df.groupby(id_col)[cols_to_demean].transform("mean")
@@ -260,42 +252,17 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             within_means = df[cols_to_demean] - group_means + grand_means
             within_means = within_means.add_suffix("_demean")
             data = pd.concat([df[[id_col, t_col]], within_means], axis=1)
-            col_names = {
+            cols = {
                 "y_col": f"{y_col}_demean",
                 "d_cols": [f"{d}_demean" for d in d_cols],
                 "x_cols": [f"{x}_demean" for x in x_cols],
             }
 
-        return data, col_names
-
-    def _initialize_fd_model(self):
-        if self._approach == "fd_exact":
-            self._smpls = None
-            self._smpls_cluster = None
-            # TODO: currently overwrites data property _cluster_vars, but then the data object can't be reused with other approaches. 
-            # When using a new model specific _cluster_vars_fd, like
-            # self._cluster_vars_fd = self._data_transform.loc[:, self._dml_data.cluster_cols].values
-            # _se_causal_pars() does not run anymore as it uses self._dml_data.cluster_vars, where n_obs dimension does not match 
-            # dimension of psi arrays.
-            # overwrite _se_causal_pars?
-            self._dml_data._cluster_vars = self._data_transform.loc[:, self._dml_data.cluster_cols]
-
-            # initialize model again
-            self._score_dim = (self._data_transform.shape[0], self.n_rep, self._dml_data.n_coefs)
-            self._initialize_dml_model()
-            # draw smpls for first difference transformed data
-            obj_dml_resampling = DoubleMLClusterResampling(
-                n_folds=self._n_folds_per_cluster,
-                n_rep=self.n_rep,
-                n_obs=self._n_obs_transform,
-                n_cluster_vars=self._dml_data.n_cluster_vars,
-                cluster_vars=self._dml_data.cluster_vars,
-            )
-            self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
+        return data, cols
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._x_data_transform, self._y_data_transform, force_all_finite=False)
-        x, d = check_X_y(x, self._d_data_transform, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
         m_external = external_predictions["ml_m"] is not None
         l_external = external_predictions["ml_l"] is not None
         if "ml_g" in self._learner:
@@ -413,7 +380,15 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         pass
 
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        # TODO: include mean_x for cre approach
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
