@@ -261,7 +261,7 @@ def _get_optuna_settings(optuna_settings, params_name=None):
     learner_or_params_keys = set(optuna_settings.keys()) - set(base_settings.keys())
 
     # Find matching learner-specific settings, handles the case to match ml_g to ml_g0, ml_g1, etc.
-    if params_name in any(learner_or_params_keys):
+    if any(params_name in key for key in learner_or_params_keys):
         for k in learner_or_params_keys:
             if params_name in k and params_name != k:
                 learner_specific_settings = optuna_settings[k]
