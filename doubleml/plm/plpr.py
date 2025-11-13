@@ -148,6 +148,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         self._initialize_ml_nuisance_params()
         self._sensitivity_implemented = False
         self._external_predictions_implemented = True
+        self._set_d_mean()
 
     def _format_score_info_str(self):
         score_approach_info = f"Score function: {str(self.score)}\n" f"Static panel model approach: {str(self.approach)}"
@@ -213,7 +214,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         return
 
     def _transform_data(self):
-        df = self._original_dml_data.data.copy()
+        df = self._original_dml_data.data
 
         y_col = self._original_dml_data.y_col
         d_cols = self._original_dml_data.d_cols
@@ -229,7 +230,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         elif self._approach == "fd_exact":
             # TODO: potential issues with unbalanced panels/missing periods, right now the
             # last available is used for the lag and first difference. Maybe reindex to a complete time grid per id.
-            df = df.sort_values([id_col, t_col])
+            df = df.sort_values([id_col, t_col]).copy()
             shifted = df[[id_col] + x_cols].groupby(id_col).shift(1).add_suffix("_lag")
             first_diff = df[[id_col] + [y_col] + d_cols].groupby(id_col).diff().add_suffix("_diff")
             df_fd = pd.concat([df, shifted], axis=1)
@@ -259,6 +260,17 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             }
 
         return data, cols
+
+    def _set_d_mean(self):
+        if self._approach == "cre_normal":
+            data = self._original_dml_data.data
+            d_cols = self._original_dml_data.d_cols
+            id_col = self._original_dml_data.id_col
+            help_d_mean = data.loc[:, [id_col] + d_cols]
+            d_mean = help_d_mean.groupby(id_col).transform("mean").values
+            self._d_mean = d_mean
+        else:
+            self._d_mean = None
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
@@ -292,16 +304,15 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         if m_external:
             m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
         else:
-            # TODO: update this section
-            # cre using m_d + x for m_hat, otherwise only x
             if self._approach == "cre_normal":
-                help_d_mean = pd.DataFrame({"id": self._dml_data.id_var, "d": d})
-                d_mean = help_d_mean.groupby(["id"]).transform("mean").values
-                x = np.column_stack((x, d_mean))
+                d_mean = self._d_mean[:, self._i_treat]
+                x_m = np.column_stack((x, d_mean))
+            else:
+                x_m = x
 
             m_hat = _dml_cv_predict(
                 self._learner["ml_m"],
-                x,
+                x_m,
                 d,
                 smpls=smpls,
                 n_jobs=n_jobs_cv,
@@ -311,6 +322,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             )
 
             # general cre adjustment
+            # TODO: update this section
             if self._approach == "cre_general":
                 help_data = pd.DataFrame({"id": self._dml_data.id_var, "m_hat": m_hat["preds"], "d": d})
                 group_means = help_data.groupby(["id"])[["m_hat", "d"]].transform("mean")
@@ -380,7 +392,6 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         pass
 
     def _nuisance_tuning(
-        # TODO: include mean_x for cre approach
         self,
         smpls,
         param_grids,
@@ -409,9 +420,15 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
         )
+        if self._approach == "cre_normal":
+            d_mean = self._d_mean[:, self._i_treat]
+            x_m = np.column_stack((x, d_mean))
+        else:
+            x_m = x
+
         m_tune_res = _dml_tune(
             d,
-            x,
+            x_m,
             train_inds,
             self._learner["ml_m"],
             param_grids["ml_m"],
