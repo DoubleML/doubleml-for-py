@@ -1,7 +1,4 @@
-import logging
-
 import numpy as np
-import optuna
 import pytest
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
@@ -51,4 +48,3 @@ def test_doubleml_did_cs_optuna_tune(sampler_name, optuna_sampler, score):
 
         # ensure tuning improved RMSE
         assert tuned_score[learner_name] < untuned_score[learner_name]
-

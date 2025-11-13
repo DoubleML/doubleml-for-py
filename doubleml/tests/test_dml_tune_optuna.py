@@ -38,6 +38,7 @@ def _assert_tree_params(param_dict, depth_range=(2, 10), leaf_range=(2, 100), le
     assert leaf_range[0] <= param_dict["min_samples_leaf"] <= leaf_range[1]
     assert leaf_nodes_range[0] <= param_dict["max_leaf_nodes"] <= leaf_nodes_range[1]
 
+
 def _build_param_space(dml_obj, param_fn):
     """Build parameter grid using the actual params_names from the DML object."""
     param_grid = {learner_name: param_fn for learner_name in dml_obj.params_names}

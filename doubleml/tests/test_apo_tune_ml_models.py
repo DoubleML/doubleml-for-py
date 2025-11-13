@@ -41,4 +41,3 @@ def test_doubleml_apo_optuna_tune(sampler_name, optuna_sampler):
 
         # ensure tuning improved RMSE
         assert tuned_score[learner_name] < untuned_score[learner_name]
-

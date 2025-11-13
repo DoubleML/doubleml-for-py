@@ -148,19 +148,12 @@ def _resolve_optuna_scoring(scoring_method, learner, params_name):
         return scoring_method, message
 
     if is_regressor(learner):
-        message = (
-            "No scoring method provided, using 'neg_root_mean_squared_error' (RMSE) "
-            f"for learner '{params_name}'."
-        )
+        message = "No scoring method provided, using 'neg_root_mean_squared_error' (RMSE) " f"for learner '{params_name}'."
         return "neg_root_mean_squared_error", message
 
     if is_classifier(learner):
-        message = (
-            f"No scoring method provided, using 'neg_log_loss' "
-            f"for learner '{params_name}'."
-        )
+        message = f"No scoring method provided, using 'neg_log_loss' " f"for learner '{params_name}'."
         return "neg_log_loss", message
-
 
     raise RuntimeError(
         f"No scoring method provided and estimator type could not be inferred. Please provide a scoring_method for learner "
@@ -247,8 +240,8 @@ def _check_tuning_inputs(
     if param_grid_func is not None and not callable(param_grid_func):
         raise TypeError(
             "param_grid must be a callable function that takes a trial and returns a dict. "
-            f"Got {type(param_grid_func).__name__} for learner '{params_name}'.")
-
+            f"Got {type(param_grid_func).__name__} for learner '{params_name}'."
+        )
 
     if scoring_method is not None and not callable(scoring_method) and not isinstance(scoring_method, str):
         if not isinstance(scoring_method, Iterable):

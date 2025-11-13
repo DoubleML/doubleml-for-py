@@ -1,5 +1,4 @@
 import numpy as np
-import optuna
 import pytest
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
