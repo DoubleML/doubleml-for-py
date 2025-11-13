@@ -2,6 +2,7 @@
 The :mod:`doubleml.utils` module includes various utilities.
 """
 
+from ._tune_optuna import DMLOptunaResult
 from .blp import DoubleMLBLP
 from .dummy_learners import DMLDummyClassifier, DMLDummyRegressor
 from .gain_statistics import gain_statistics
@@ -13,6 +14,7 @@ from .resampling import DoubleMLClusterResampling, DoubleMLResampling
 __all__ = [
     "DMLDummyRegressor",
     "DMLDummyClassifier",
+    "DMLOptunaResult",
     "DoubleMLResampling",
     "DoubleMLClusterResampling",
     "DoubleMLBLP",

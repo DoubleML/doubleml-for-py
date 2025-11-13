@@ -20,9 +20,12 @@ Example:
 import logging
 from collections.abc import Iterable
 from copy import deepcopy
+from dataclasses import dataclass
+from pprint import pformat
 
 import numpy as np
 import optuna
+import pandas as pd
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import BaseCrossValidator, KFold, cross_val_score
 
@@ -43,6 +46,72 @@ _OPTUNA_DEFAULT_SETTINGS = {
     "n_jobs_optuna": None,
     "verbosity": None,
 }
+
+
+@dataclass
+class DMLOptunaResult:
+    """
+    Container for Optuna search results.
+    Attributes
+    ----------
+    learner_name : str
+        Name of the learner passed (e.g., 'ml_g').
+    params_name : str
+        Name of the nuisance parameter being tuned (e.g., 'ml_g0').
+    best_estimator : object
+        The estimator instance with the best found hyperparameters set (not fitted).
+    best_params : dict
+        The best hyperparameters found during tuning.
+    best_score : float
+        The best average cross-validation score achieved during tuning.
+    scoring_method : str or callable
+        The scoring method used during tuning.
+    study : optuna.study.Study
+        The Optuna study object containing the tuning history.
+    tuned : bool
+        Indicates whether tuning was performed (True) or skipped (False).
+    """
+
+    learner_name: str
+    params_name: str
+    best_estimator: object
+    best_params: dict
+    best_score: float
+    scoring_method: str | callable
+    study: optuna.study.Study
+    tuned: bool
+
+    def __str__(self):
+        core_summary = self._core_summary_str()
+        params_summary = self._best_params_str()
+        res = (
+            "================== DMLOptunaResult ==================\n"
+            + core_summary
+            + "\n------------------ Best parameters    ------------------\n"
+            + params_summary
+        )
+        return res
+
+    def _core_summary_str(self):
+        scoring_repr = (
+            self.scoring_method.__name__
+            if callable(self.scoring_method) and hasattr(self.scoring_method, "__name__")
+            else str(self.scoring_method)
+        )
+        summary = (
+            f"Learner name: {self.learner_name}\n"
+            f"Params name: {self.params_name}\n"
+            f"Tuned: {self.tuned}\n"
+            f"Best score: {self.best_score}\n"
+            f"Scoring method: {scoring_repr}\n"
+        )
+        return summary
+
+    def _best_params_str(self):
+        if not self.best_params:
+            return "No best parameters available.\n"
+        formatted = pformat(self.best_params, sort_dicts=True, compact=True)
+        return f"{formatted}\n"
 
 
 OPTUNA_GLOBAL_SETTING_KEYS = frozenset(_OPTUNA_DEFAULT_SETTINGS.keys())
@@ -97,29 +166,6 @@ def _resolve_optuna_scoring(scoring_method, learner, learner_name):
         f"No scoring method provided and estimator type could not be inferred. Please provide a scoring_method for learner "
         f"'{learner_name}'."
     )
-
-
-class _OptunaSearchResult:
-    """Container for Optuna search results."""
-
-    def __init__(self, estimator, best_params, best_score, study, trials_dataframe, tuned=True):
-        self.best_estimator_ = estimator
-        self.best_params_ = best_params
-        self.best_score_ = best_score
-        self.study_ = study
-        self.trials_dataframe_ = trials_dataframe
-        self.tuned_ = tuned
-
-    def predict(self, X):
-        return self.best_estimator_.predict(X)
-
-    def predict_proba(self, X):
-        if not hasattr(self.best_estimator_, "predict_proba"):
-            raise AttributeError("The wrapped estimator does not support predict_proba().")
-        return self.best_estimator_.predict_proba(X)
-
-    def score(self, X, y):
-        return self.best_estimator_.score(X, y)
 
 
 def resolve_optuna_cv(cv):
@@ -374,7 +420,8 @@ def _dml_tune_optuna(
     scoring_method,
     cv,
     optuna_settings,
-    learner_name=None,
+    learner_name,
+    params_name,
 ):
     """
     Tune hyperparameters using Optuna on the whole dataset with cross-validation.
@@ -401,16 +448,16 @@ def _dml_tune_optuna(
         :class:`sklearn.model_selection.KFold` with the specified number of splits and ``random_state=42`` is used.
     optuna_settings : dict or None
         Optuna-specific settings.
-    learner_name : str or None
-        Name of the learner for settings selection.
+    params_name : str or None
+        Name of the nuisance parameter for settings selection.
 
     Returns
     -------
-    _OptunaSearchResult
-        A tuning result containing the fitted estimator with the optimal parameters.
+    DMLOptunaResult
+        A tuning result containing the optuna.Study object and further information.
     """
-    learner_name = learner_name or learner.__class__.__name__
-    scoring_method, scoring_message = _resolve_optuna_scoring(scoring_method, learner, learner_name)
+
+    scoring_method, scoring_message = _resolve_optuna_scoring(scoring_method, learner, params_name)
     if scoring_message:
         logger.info(scoring_message)
 
@@ -421,13 +468,15 @@ def _dml_tune_optuna(
         param_grid_func,
         scoring_method,
         cv,
-        learner_name=learner_name,
+        learner_name=params_name,
     )
 
     if param_grid_func is None:
         estimator = clone(learner)
         best_params = estimator.get_params(deep=True)
-        return _OptunaSearchResult(
+        return DMLOptunaResult(
+            params_name=params_name,
+            learner_name=learner_name,
             estimator=estimator,
             best_params=best_params,
             best_score=np.nan,
@@ -436,7 +485,7 @@ def _dml_tune_optuna(
             tuned=False,
         )
 
-    settings = _get_optuna_settings(optuna_settings, learner_name)
+    settings = _get_optuna_settings(optuna_settings, params_name or learner_name)
 
     # Set Optuna logging verbosity if specified
     verbosity = settings.get("verbosity")
