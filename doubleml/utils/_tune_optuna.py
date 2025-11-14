@@ -286,25 +286,17 @@ def _get_optuna_settings(optuna_settings, params_name):
 
     # Find matching learner-specific settings, handles the case to match ml_g to ml_g0, ml_g1, etc.
     learner_specific_settings = {}
-    prefix_matches = [key for key in learner_or_params_keys if key != params_name and params_name.startswith(key)]
-    if prefix_matches:
-        learner_key = max(prefix_matches, key=len)
-        learner_specific_settings = optuna_settings[learner_key]
-        if not isinstance(learner_specific_settings, dict):
-            raise TypeError(f"Optuna settings for '{learner_key}' must be a dict.")
+    for k in learner_or_params_keys:
+        if k in params_name and params_name != k:
+            learner_specific_settings = optuna_settings[k]
 
     # set params specific settings
     params_specific_settings = {}
     if params_name in learner_or_params_keys:
         params_specific_settings = optuna_settings[params_name]
-        if not isinstance(params_specific_settings, dict):
-            raise TypeError(f"Optuna settings for '{params_name}' must be a dict.")
 
     # Merge settings: defaults < base < learner-specific < params_specific
-    resolved = default_settings.copy()
-    resolved |= base_settings
-    resolved |= learner_specific_settings
-    resolved |= params_specific_settings
+    resolved = default_settings.copy() | base_settings | learner_specific_settings | params_specific_settings
 
     # Validate types
     if not isinstance(resolved["study_kwargs"], dict):
