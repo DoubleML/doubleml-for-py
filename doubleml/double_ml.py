@@ -1095,7 +1095,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         """
         # Validation
 
-        requested_learners, expanded_param_space = self._validate_optuna_param_space(ml_param_space)
+        expanded_param_space = self._validate_optuna_param_space(ml_param_space)
         scoring_methods = self._resolve_scoring_methods(scoring_methods)
         cv_splitter = resolve_optuna_cv(cv)
         self._validate_optuna_setting_keys(optuna_settings)
@@ -1123,11 +1123,9 @@ class DoubleML(SampleSplittingMixin, ABC):
                 optuna_settings,
             )
 
-            filtered_results = {key: value for key, value in res.items() if key in requested_learners}
-            tuning_res[i_d] = filtered_results
-
+            tuning_res[i_d] = res
             if set_as_params:
-                for nuisance_model, tuned_result in filtered_results.items():
+                for nuisance_model, tuned_result in res.items():
                     if tuned_result is None:
                         params_to_set = None
                     else:
@@ -1220,7 +1218,6 @@ class DoubleML(SampleSplittingMixin, ABC):
                 + valid_keys_msg
                 + "."
             )
-        requested_learners = set(ml_param_space.keys())
         final_param_space = {k: None for k in self.params_names}
 
         # Validate that all parameter spaces are callables
@@ -1242,7 +1239,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         for param_key in [pk for pk in self.params_names if pk in ml_param_space.keys()]:
             final_param_space[param_key] = ml_param_space[param_key]
 
-        return requested_learners, final_param_space
+        return final_param_space
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         """
