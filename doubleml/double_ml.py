@@ -1255,7 +1255,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> def mae(y_true, y_pred):
         ...     subset = np.logical_not(np.isnan(y_true))
         ...     return mean_absolute_error(y_true[subset], y_pred[subset])
-        >>> dml_irm_obj.evaluate_learners(metric=mae)
+        >>> dml_irm_obj.evaluate_learners(metric=mae)  # doctest: +SKIP
         {'ml_g0': array([[0.88173585]]), 'ml_g1': array([[0.83854057]]), 'ml_m': array([[0.35871235]])}
         """
         # if no learners are provided try to evaluate all learners

@@ -61,7 +61,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
     >>> ml_M = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
     >>> obj_dml_data = make_lplr_LZZ2020(alpha=0.5, n_obs=500, dim_x=20)
     >>> dml_lplr_obj = dml.DoubleMLLPLR(obj_dml_data, ml_M, ml_t, ml_m)
-    >>> dml_lplr_obj.fit().summary                                                                      # doctest: +SKIP
+    >>> dml_lplr_obj.fit().summary  # doctest: +SKIP
            coef   std err         t     P>|t|     2.5 %    97.5 %
     d  0.661166  0.172672  3.829038  0.000129  0.322736  0.999596
 

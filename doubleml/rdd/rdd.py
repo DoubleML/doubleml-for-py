@@ -91,6 +91,7 @@ class RDFlex:
     >>> ml_g = RandomForestRegressor()
     >>> ml_m = RandomForestClassifier()
     >>> rdflex_obj = dml.rdd.RDFlex(obj_dml_data, ml_g, ml_m, fuzzy=True)
+    >>> print(rdflex_obj.fit())  # doctest: +SKIP
     """
 
     def __init__(
