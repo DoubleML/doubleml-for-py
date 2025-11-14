@@ -744,7 +744,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         """
         Hyperparameter-tuning for DoubleML models.
 
-        .. deprecated::
+        .. deprecated::  0.13.0
            The ``tune`` method using grid/randomized search is maintained for backward compatibility.
            For more efficient hyperparameter optimization, use :meth:`tune_ml_models` with Optuna,
            which provides Bayesian optimization and better performance.
