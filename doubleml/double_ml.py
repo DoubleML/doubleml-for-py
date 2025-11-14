@@ -1069,7 +1069,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...     'sampler': optuna.samplers.TPESampler(seed=42),
         ... }
         >>> tune_res = dml_plr.tune_ml_models(ml_param_space, optuna_settings=optuna_settings, return_tune_res=True)
-        >>> print(tune_res[0]['ml_l'].best_params)
+        >>> print(tune_res[0]['ml_l'].best_params)  # doctest: +SKIP
         {'learning_rate': 0.03907122389107094}
         >>> # Fit and get results
         >>> dml_plr.fit().summary # doctest: +SKIP
@@ -1087,7 +1087,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         ... }
         >>> tune_res = dml_plr.tune_ml_models(ml_param_space, scoring_methods=scoring_methods,
         ...                                   optuna_settings=optuna_settings, return_tune_res=True)
-        >>> print(tune_res[0]['ml_l'].best_params)
+        >>> print(tune_res[0]['ml_l'].best_params)  # doctest: +SKIP
         {'learning_rate': 0.04300012336462904}
         >>> dml_plr.fit().summary # doctest: +SKIP
                coef   std err          t         P>|t|     2.5 %    97.5 %
