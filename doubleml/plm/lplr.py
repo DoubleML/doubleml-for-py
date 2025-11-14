@@ -169,8 +169,8 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             raise TypeError("The outcome variable y must be binary with values 0 and 1.")
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         x_d_concat = np.hstack((d.reshape(-1, 1), x))
         m_external = external_predictions["ml_m"] is not None
         M_external = external_predictions["ml_M"] is not None
