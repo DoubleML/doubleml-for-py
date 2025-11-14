@@ -52,6 +52,7 @@ _OPTUNA_DEFAULT_SETTINGS = {
 class DMLOptunaResult:
     """
     Container for Optuna search results.
+
     Attributes
     ----------
     learner_name : str
