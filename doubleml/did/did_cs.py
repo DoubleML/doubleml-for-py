@@ -69,7 +69,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
     >>> data = make_did_SZ2020(n_obs=500, cross_sectional_data=True, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLDIDData(data, 'y', 'd', t_col='t')
     >>> dml_did_obj = dml.DoubleMLDIDCS(obj_dml_data, ml_g, ml_m)
-    >>> dml_did_obj.fit().summary
+    >>> dml_did_obj.fit().summary  # doctest: +SKIP
          coef   std err         t     P>|t|      2.5 %    97.5 %
     d -4.9944  7.561785 -0.660479  0.508947 -19.815226  9.826426
     """

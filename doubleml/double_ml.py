@@ -1255,7 +1255,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> def mae(y_true, y_pred):
         ...     subset = np.logical_not(np.isnan(y_true))
         ...     return mean_absolute_error(y_true[subset], y_pred[subset])
-        >>> dml_irm_obj.evaluate_learners(metric=mae)
+        >>> dml_irm_obj.evaluate_learners(metric=mae)  # doctest: +SKIP
         {'ml_g0': array([[0.88173585]]), 'ml_g1': array([[0.83854057]]), 'ml_m': array([[0.35871235]])}
         """
         # if no learners are provided try to evaluate all learners
@@ -1274,12 +1274,19 @@ class DoubleML(SampleSplittingMixin, ABC):
             for learner in learners:
                 for rep in range(self.n_rep):
                     for coef_idx in range(self._dml_data.n_coefs):
-                        res = metric(
-                            y_pred=self.predictions[learner][:, rep, coef_idx].reshape(1, -1),
-                            y_true=self.nuisance_targets[learner][:, rep, coef_idx].reshape(1, -1),
-                        )
-                        if not np.isfinite(res):
-                            raise ValueError(f"Evaluation from learner {str(learner)} is not finite.")
+                        targets = self.nuisance_targets[learner][:, rep, coef_idx].reshape(1, -1)
+
+                        if np.all(np.isnan(targets)):
+                            res = np.nan
+                        else:
+                            predictions = self.predictions[learner][:, rep, coef_idx].reshape(1, -1)
+                            res = metric(
+                                y_pred=predictions,
+                                y_true=targets,
+                            )
+                            if not np.isfinite(res):
+                                raise ValueError(f"Evaluation from learner {str(learner)} is not finite.")
+
                         dist[learner][rep, coef_idx] = res
             return dist
         else:

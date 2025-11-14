@@ -61,7 +61,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
     >>> ml_M = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
     >>> obj_dml_data = make_lplr_LZZ2020(alpha=0.5, n_obs=500, dim_x=20)
     >>> dml_lplr_obj = dml.DoubleMLLPLR(obj_dml_data, ml_M, ml_t, ml_m)
-    >>> dml_lplr_obj.fit().summary                                                                      # doctest: +SKIP
+    >>> dml_lplr_obj.fit().summary  # doctest: +SKIP
            coef   std err         t     P>|t|     2.5 %    97.5 %
     d  0.661166  0.172672  3.829038  0.000129  0.322736  0.999596
 
@@ -169,8 +169,8 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             raise TypeError("The outcome variable y must be binary with values 0 and 1.")
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         x_d_concat = np.hstack((d.reshape(-1, 1), x))
         m_external = external_predictions["ml_m"] is not None
         M_external = external_predictions["ml_M"] is not None
