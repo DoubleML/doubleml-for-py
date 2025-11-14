@@ -113,6 +113,12 @@ def check_basic_predictions_and_targets(dml_obj, n_obs, n_treat, n_rep):
         assert isinstance(dml_obj.nuisance_loss[key], np.ndarray)
         assert dml_obj.nuisance_loss[key].shape == (n_rep, n_treat)
 
+    learner_eval = dml_obj.evaluate_learners()
+    assert isinstance(learner_eval, dict)
+    for key in expected_keys:
+        assert key in learner_eval
+        assert isinstance(learner_eval[key], np.ndarray)
+        assert learner_eval[key].shape == (n_rep, n_treat)
     return
 
 

@@ -1274,12 +1274,19 @@ class DoubleML(SampleSplittingMixin, ABC):
             for learner in learners:
                 for rep in range(self.n_rep):
                     for coef_idx in range(self._dml_data.n_coefs):
-                        res = metric(
-                            y_pred=self.predictions[learner][:, rep, coef_idx].reshape(1, -1),
-                            y_true=self.nuisance_targets[learner][:, rep, coef_idx].reshape(1, -1),
-                        )
-                        if not np.isfinite(res):
-                            raise ValueError(f"Evaluation from learner {str(learner)} is not finite.")
+                        targets = self.nuisance_targets[learner][:, rep, coef_idx].reshape(1, -1)
+
+                        if np.all(np.isnan(targets)):
+                            res = np.nan
+                        else:
+                            predictions = self.predictions[learner][:, rep, coef_idx].reshape(1, -1)
+                            res = metric(
+                                y_pred=predictions,
+                                y_true=targets,
+                            )
+                            if not np.isfinite(res):
+                                raise ValueError(f"Evaluation from learner {str(learner)} is not finite.")
+
                         dist[learner][rep, coef_idx] = res
             return dist
         else:
