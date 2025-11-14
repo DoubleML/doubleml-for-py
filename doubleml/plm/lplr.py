@@ -457,6 +457,9 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         a_best_params = [xx.best_params_ for xx in a_tune_res]
 
         # Create targets for tuning ml_t
+        # Unlike for inference in _nuisance_est, we do not use the double cross-fitting here and use a single model for
+        # predicting M_hat
+        # This presents a small risk of bias in the targets, but enables tuning without tune_on_folds=True
 
         M_hat = np.full_like(y, np.nan)
         for idx, (train_index, _) in enumerate(smpls):
