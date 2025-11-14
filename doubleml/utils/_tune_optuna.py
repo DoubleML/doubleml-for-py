@@ -52,24 +52,50 @@ _OPTUNA_DEFAULT_SETTINGS = {
 class DMLOptunaResult:
     """
     Container for Optuna search results.
-    Attributes
+
+    This dataclass holds the results of Optuna-based hyperparameter tuning,
+    including the best estimator, parameters, score, and the complete study history.
+
+    Parameters
     ----------
     learner_name : str
         Name of the learner passed (e.g., 'ml_g').
+
     params_name : str
         Name of the nuisance parameter being tuned (e.g., 'ml_g0').
+
     best_estimator : object
         The estimator instance with the best found hyperparameters set (not fitted).
+
     best_params : dict
         The best hyperparameters found during tuning.
+
     best_score : float
         The best average cross-validation score achieved during tuning.
+
     scoring_method : str or callable
         The scoring method used during tuning.
+
     study : optuna.study.Study
         The Optuna study object containing the tuning history.
+
     tuned : bool
         Indicates whether tuning was performed (True) or skipped (False).
+
+    Examples
+    --------
+    >>> from doubleml.utils import DMLOptunaResult
+    >>> # After running Optuna tuning
+    >>> result = DMLOptunaResult(
+    ...     learner_name='ml_g',
+    ...     params_name='ml_g0',
+    ...     best_estimator=estimator,
+    ...     best_params={'max_depth': 5},
+    ...     best_score=0.85,
+    ...     scoring_method='neg_mean_squared_error',
+    ...     study=study,
+    ...     tuned=True
+    ... )
     """
 
     learner_name: str
