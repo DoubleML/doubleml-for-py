@@ -7,22 +7,22 @@ import doubleml as dml
 from doubleml.plm.datasets import make_lplr_LZZ2020
 
 
-@pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42)])
+@pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42, max_depth=2, n_estimators=10)])
 def learner_M(request):
     return request.param
 
 
-@pytest.fixture(scope="module", params=[RandomForestRegressor(random_state=42)])
+@pytest.fixture(scope="module", params=[RandomForestRegressor(random_state=42, max_depth=2, n_estimators=10)])
 def learner_t(request):
     return request.param
 
 
-@pytest.fixture(scope="module", params=[RandomForestRegressor(random_state=42)])
+@pytest.fixture(scope="module", params=[RandomForestRegressor(random_state=42, max_depth=2, n_estimators=10)])
 def learner_m(request):
     return request.param
 
 
-@pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42)])
+@pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42, max_depth=2, n_estimators=10)])
 def learner_m_classifier(request):
     return request.param
 
@@ -33,7 +33,6 @@ def score(request):
 
 
 @pytest.fixture(scope="module", params=["continuous", "binary", "binary_unbalanced"])
-# TODO: Error for continuous treatment?
 def treatment(request):
     return request.param
 

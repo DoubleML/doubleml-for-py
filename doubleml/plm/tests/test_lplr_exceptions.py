@@ -14,9 +14,9 @@ n = 100
 # create test data and basic learners
 dml_data = make_lplr_LZZ2020(alpha=0.5, n_obs=n, dim_x=20)
 dml_data_binary = make_lplr_LZZ2020(alpha=0.5, n_obs=n, treatment="binary", dim_x=20)
-ml_M = RandomForestClassifier()
-ml_t = RandomForestRegressor()
-ml_m = RandomForestRegressor()
+ml_M = RandomForestClassifier(max_depth=2, n_estimators=10)
+ml_t = RandomForestRegressor(max_depth=2, n_estimators=10)
+ml_m = RandomForestRegressor(max_depth=2, n_estimators=10)
 dml_lplr = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m)
 dml_lplr_instrument = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, score="instrument")
 

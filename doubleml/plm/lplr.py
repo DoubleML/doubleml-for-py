@@ -13,6 +13,7 @@ from doubleml.utils._checks import _check_finite_predictions, _check_is_propensi
 from doubleml.utils._estimation import (
     _dml_cv_predict,
     _dml_tune,
+    _double_dml_cv_predict,
 )
 
 
@@ -104,10 +105,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
         self._learner = {"ml_m": ml_m, "ml_t": ml_t, "ml_M": ml_M}
-        # replace aggregated inner names with per-inner-fold names
-        inner_M_names = [f"ml_M_inner_{i}" for i in range(self.n_folds_inner)]
-        inner_a_names = [f"ml_a_inner_{i}" for i in range(self.n_folds_inner)]
-        self._predictions_names = ["ml_r", "ml_m", "ml_a", "ml_t", "ml_M"] + inner_M_names + inner_a_names
 
         if ml_a is not None:
             ml_a_is_classifier = self._check_learner(ml_a, "ml_a", regressor=True, classifier=True)
@@ -162,55 +159,14 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         self._sensitivity_implemented = False
 
     def _initialize_ml_nuisance_params(self):
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
+        inner_M_names = [f"ml_M_inner_{i}" for i in range(self.n_folds)]
+        inner_a_names = [f"ml_a_inner_{i}" for i in range(self.n_folds)]
+        params_names = ["ml_m", "ml_a", "ml_t", "ml_M"] + inner_M_names + inner_a_names
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in params_names}
 
     def _check_data(self, obj_dml_data):
         if not np.array_equal(np.unique(obj_dml_data.y), [0, 1]):
             raise TypeError("The outcome variable y must be binary with values 0 and 1.")
-
-    def _double_dml_cv_predict(
-        self,
-        estimator,
-        estimator_name,
-        x,
-        y,
-        smpls=None,
-        smpls_inner=None,
-        n_jobs=None,
-        est_params=None,
-        method="predict",
-        sample_weights=None,
-    ):
-        res = {}
-        res["preds"] = np.zeros(y.shape, dtype=float)
-        res["preds_inner"] = []
-        res["targets_inner"] = []
-        res["models"] = []
-        for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
-            res_inner = _dml_cv_predict(
-                estimator,
-                x,
-                y,
-                smpls=smpls_double_split,
-                n_jobs=n_jobs,
-                est_params=est_params,
-                method=method,
-                return_models=True,
-                sample_weights=sample_weights,
-            )
-            _check_finite_predictions(res_inner["preds"], estimator, estimator_name, smpls_double_split)
-
-            res["preds_inner"].append(res_inner["preds"])
-            res["targets_inner"].append(res_inner["targets"])
-            for model in res_inner["models"]:
-                res["models"].append(model)
-                if method == "predict_proba":
-                    res["preds"][smpls_single_split[1]] += model.predict_proba(x[smpls_single_split[1]])[:, 1]
-                else:
-                    res["preds"][smpls_single_split[1]] += model.predict(x[smpls_single_split[1]])
-        res["preds"] /= len(smpls)
-        res["targets"] = np.copy(y)
-        return res
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
@@ -234,9 +190,14 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                     f"have to be provided (missing: {', '.join([str(i) for i in missing])})."
                 )
             M_hat_inner = [external_predictions[f"ml_M_inner_{i}"] for i in range(self.n_folds_inner)]
-            M_hat = {"preds": external_predictions["ml_M"], "preds_inner": M_hat_inner, "targets": None, "models": None}
+            M_hat = {
+                "preds": external_predictions["ml_M"],
+                "preds_inner": M_hat_inner,
+                "targets": self._dml_data.y,
+                "models": None,
+            }
         else:
-            M_hat = self._double_dml_cv_predict(
+            M_hat = _double_dml_cv_predict(
                 self._learner["ml_M"],
                 "ml_M",
                 x_d_concat,
@@ -250,7 +211,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         # nuisance m
         if m_external:
-            m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
+            m_hat = {"preds": external_predictions["ml_m"], "targets": self._dml_data.d, "models": None}
         else:
             if self.score == "instrument":
                 weights = M_hat["preds"] * (1 - M_hat["preds"])
@@ -303,9 +264,14 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                     f"have to be provided (missing: {', '.join([str(i) for i in missing])})."
                 )
             a_hat_inner = [external_predictions[f"ml_a_inner_{i}"] for i in range(self.n_folds_inner)]
-            a_hat = {"preds": external_predictions["ml_a"], "preds_inner": a_hat_inner, "targets": None, "models": None}
+            a_hat = {
+                "preds": external_predictions["ml_a"],
+                "preds_inner": a_hat_inner,
+                "targets": self._dml_data.d,
+                "models": None,
+            }
         else:
-            a_hat = self._double_dml_cv_predict(
+            a_hat = _double_dml_cv_predict(
                 self._learner["ml_a"],
                 "ml_a",
                 x,
@@ -404,13 +370,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         return psi_elements, preds
 
-    @property
-    def predictions_names(self):
-        """
-        The names of predictions for the nuisance functions.
-        """
-        return self._predictions_names
-
     def _score_elements(self, y, d, r_hat, m_hat):
         # compute residual
         d_tilde = d - m_hat
@@ -438,8 +397,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        if self._i_rep is None:
-            raise ValueError("tune_on_folds must be True as targets have to be created for ml_t on folds.")
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
         x_d_concat = np.hstack((d.reshape(-1, 1), x))
@@ -500,34 +457,16 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         a_best_params = [xx.best_params_ for xx in a_tune_res]
 
         # Create targets for tuning ml_t
-        M_hat = self._double_dml_cv_predict(
-            self._learner["ml_M"],
-            "ml_M",
-            x_d_concat,
-            y,
-            smpls=smpls,
-            smpls_inner=self._DoubleML__smpls__inner,
-            n_jobs=n_jobs_cv,
-            est_params=M_best_params,
-            method=self._predict_method["ml_M"],
-        )
 
-        W_inner = []
-        for i, (train, _) in enumerate(smpls):
-            M_iteration = M_hat["preds_inner"][i][train]
-            M_iteration = np.clip(M_iteration, 1e-8, 1 - 1e-8)
-            w = scipy.special.logit(M_iteration)
-            W_inner.append(w)
+        M_hat = np.full_like(y, np.nan)
+        for idx, (train_index, _) in enumerate(smpls):
+            M_hat[train_index] = M_tune_res[idx].predict_proba(x_d_concat[train_index, :])[:, 1]
 
-        # Reshape W_inner into full-length arrays per fold: fill train indices, others are NaN
-        W_targets = []
-        for i, train in enumerate(train_inds):
-            wt = np.full(x.shape[0], np.nan, dtype=float)
-            wt[train] = W_inner[i]
-            W_targets.append(wt)
+        M_hat = np.clip(M_hat, 1e-8, 1 - 1e-8)
+        W_hat = scipy.special.logit(M_hat)
 
         t_tune_res = _dml_tune(
-            W_inner,
+            W_hat,
             x,
             train_inds,
             self._learner["ml_t"],
@@ -537,7 +476,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            fold_specific_target=True,
         )
         t_best_params = [xx.best_params_ for xx in t_tune_res]
 

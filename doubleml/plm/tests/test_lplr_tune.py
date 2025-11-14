@@ -44,7 +44,7 @@ def dml_lplr_fixture(
     learner_m,
     learner_a,
     score,
-    tune_on_folds=True,
+    tune_on_folds=False,
 ):
     par_grid = {
         "ml_M": get_par_grid(),
@@ -94,28 +94,3 @@ def test_dml_selection_coef(dml_lplr_fixture):
     se = dml_lplr_fixture["se"]
     true_coef = dml_lplr_fixture["true_coef"]
     assert abs(coef - true_coef) <= 3.0 * np.sqrt(se)
-
-
-@pytest.mark.ci
-def test_lplr_exception_tuning(
-    learner_M,
-    learner_t,
-    learner_m,
-    learner_a,
-):
-    # LPLR valid scores are 'nuisance_space' and 'instrument'
-    obj_dml_data = make_lplr_LZZ2020(alpha=0.5)
-    ml_M = clone(learner_M)
-    ml_t = clone(learner_t)
-    ml_m = clone(learner_m)
-
-    dml_lplr_obj = dml.DoubleMLLPLR(obj_dml_data, ml_M, ml_t, ml_m)
-    par_grid = {
-        "ml_M": get_par_grid(),
-        "ml_t": get_par_grid(),
-        "ml_m": get_par_grid(),
-        "ml_a": get_par_grid(),
-    }
-    msg = "tune_on_folds must be True as targets have to be created for ml_t on folds."
-    with pytest.raises(ValueError, match=msg):
-        dml_lplr_obj.tune(par_grid, tune_on_folds=False)

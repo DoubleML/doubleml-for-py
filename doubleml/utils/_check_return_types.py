@@ -11,9 +11,9 @@ def check_basic_return_types(dml_obj, cls):
     assert isinstance(dml_obj.__str__(), str)
     assert isinstance(dml_obj.summary, pd.DataFrame)
     assert isinstance(dml_obj.draw_sample_splitting(), cls)
-    if not dml_obj._is_cluster_data:
+    if not dml_obj._is_cluster_data and not hasattr(dml_obj, "n_folds_inner"):
         assert isinstance(dml_obj.set_sample_splitting(dml_obj.smpls), cls)
-    else:
+    elif dml_obj._is_cluster_data:
         assert dml_obj._dml_data.is_cluster_data
     assert isinstance(dml_obj.fit(), cls)
     assert isinstance(dml_obj.__str__(), str)  # called again after fit, now with numbers

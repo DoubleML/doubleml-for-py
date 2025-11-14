@@ -9,7 +9,7 @@ from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV, cro
 from sklearn.preprocessing import LabelEncoder
 from statsmodels.nonparametric.kde import KDEUnivariate
 
-from ._checks import _check_is_partition
+from ._checks import _check_finite_predictions, _check_is_partition
 
 
 def _assure_2d_array(x):
@@ -184,6 +184,50 @@ def _dml_cv_predict(
                 raise RuntimeError("export of fitted models failed")
             res["models"] = [xx[0] for xx in fitted_models]
 
+    return res
+
+
+def _double_dml_cv_predict(
+    estimator,
+    estimator_name,
+    x,
+    y,
+    smpls=None,
+    smpls_inner=None,
+    n_jobs=None,
+    est_params=None,
+    method="predict",
+    sample_weights=None,
+):
+    res = {}
+    res["preds"] = np.zeros(y.shape, dtype=float)
+    res["preds_inner"] = []
+    res["targets_inner"] = []
+    res["models"] = []
+    for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
+        res_inner = _dml_cv_predict(
+            estimator,
+            x,
+            y,
+            smpls=smpls_double_split,
+            n_jobs=n_jobs,
+            est_params=est_params,
+            method=method,
+            return_models=True,
+            sample_weights=sample_weights,
+        )
+        _check_finite_predictions(res_inner["preds"], estimator, estimator_name, smpls_double_split)
+
+        res["preds_inner"].append(res_inner["preds"])
+        res["targets_inner"].append(res_inner["targets"])
+        for model in res_inner["models"]:
+            res["models"].append(model)
+            if method == "predict_proba":
+                res["preds"][smpls_single_split[1]] += model.predict_proba(x[smpls_single_split[1]])[:, 1]
+            else:
+                res["preds"][smpls_single_split[1]] += model.predict(x[smpls_single_split[1]])
+    res["preds"] /= len(smpls)
+    res["targets"] = np.copy(y)
     return res
 
 

@@ -259,13 +259,6 @@ class DoubleML(SampleSplittingMixin, ABC):
         return self._learner
 
     @property
-    def predictions_names(self):
-        """
-        The names of predictions for the nuisance functions.
-        """
-        return list(self.params_names)
-
-    @property
     def learner_names(self):
         """
         The names of the learners.
@@ -1088,7 +1081,7 @@ class DoubleML(SampleSplittingMixin, ABC):
             _check_external_predictions(
                 external_predictions=external_predictions,
                 valid_treatments=self._dml_data.d_cols,
-                valid_learners=self.predictions_names,
+                valid_learners=self.params_names,
                 n_obs=self.n_obs,
                 n_rep=self.n_rep,
             )
@@ -1111,7 +1104,7 @@ class DoubleML(SampleSplittingMixin, ABC):
     def _fit_nuisance_and_score_elements(self, n_jobs_cv, store_predictions, external_predictions, store_models):
         ext_prediction_dict = _set_external_predictions(
             external_predictions,
-            learners=self.predictions_names,
+            learners=self.params_names,
             treatment=self._dml_data.d_cols[self._i_treat],
             i_rep=self._i_rep,
         )
@@ -1178,8 +1171,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         self._all_se = np.full((n_thetas, n_rep), np.nan)
 
     def _initialize_predictions_and_targets(self):
-        self._predictions = {learner: np.full(self._score_dim, np.nan) for learner in self.predictions_names}
-        self._nuisance_targets = {learner: np.full(self._score_dim, np.nan) for learner in self.predictions_names}
+        self._predictions = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
+        self._nuisance_targets = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
 
     def _initialize_nuisance_loss(self):
         self._nuisance_loss = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names}
@@ -1190,7 +1183,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         }
 
     def _store_predictions_and_targets(self, preds, targets):
-        for learner in self.predictions_names:
+        for learner in self.params_names:
             self._predictions[learner][:, self._i_rep, self._i_treat] = preds[learner]
             self._nuisance_targets[learner][:, self._i_rep, self._i_treat] = targets[learner]
 
