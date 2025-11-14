@@ -1196,6 +1196,10 @@ class DoubleML(SampleSplittingMixin, ABC):
                 + "."
             )
 
+        for key in allowed_learner_keys:
+            if key in optuna_settings and not isinstance(optuna_settings[key], dict):
+                raise TypeError(f"Optuna settings for '{key}' must be a dict.")
+
     def _validate_optuna_param_space(self, ml_param_space):
         """Validate learner keys provided in the Optuna parameter space dictionary."""
 
