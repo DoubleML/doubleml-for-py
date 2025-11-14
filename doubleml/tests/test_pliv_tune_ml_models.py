@@ -32,7 +32,8 @@ def test_doubleml_pliv_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = _build_param_space(dml_pliv, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    tune_res = dml_pliv.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings, return_tune_res=True)
+    optuna_settings["n_trials"] = 10
+    tune_res = dml_pliv.tune_ml_models(ml_param_space=optuna_params, set_as_params=True, optuna_settings=optuna_settings, return_tune_res=True)
 
     dml_pliv.fit()
     tuned_score = dml_pliv.evaluate_learners()

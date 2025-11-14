@@ -12,7 +12,10 @@ from doubleml.utils._tune_optuna import _resolve_optuna_scoring
 
 
 def _basic_optuna_settings(additional=None):
-    base_settings = {"n_trials": 10, "sampler": optuna.samplers.RandomSampler(seed=3141)}
+    base_settings = {"n_trials": 5,
+                     "sampler": optuna.samplers.TPESampler(seed=3141),
+                     "verbosity": optuna.logging.INFO,
+                     "show_progress_bar": False}
     if additional is not None:
         base_settings.update(additional)
     return base_settings
@@ -26,13 +29,12 @@ _SAMPLER_CASES = [
 
 def _small_tree_params(trial):
     return {
-        "max_depth": trial.suggest_int("max_depth", 2, 10),
+        "max_depth": trial.suggest_int("max_depth", 1, 10),
         "min_samples_leaf": trial.suggest_int("min_samples_leaf", 2, 100),
-        "max_leaf_nodes": trial.suggest_int("max_leaf_nodes", 2, 10),
+        "max_leaf_nodes": trial.suggest_int("max_leaf_nodes", 2, 20),
     }
 
-
-def _assert_tree_params(param_dict, depth_range=(2, 10), leaf_range=(2, 100), leaf_nodes_range=(2, 10)):
+def _assert_tree_params(param_dict, depth_range=(1, 10), leaf_range=(2, 100), leaf_nodes_range=(2, 20)):
     assert set(param_dict.keys()) == {"max_depth", "min_samples_leaf", "max_leaf_nodes"}
     assert depth_range[0] <= param_dict["max_depth"] <= depth_range[1]
     assert leaf_range[0] <= param_dict["min_samples_leaf"] <= leaf_range[1]
