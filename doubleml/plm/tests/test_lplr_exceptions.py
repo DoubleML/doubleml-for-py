@@ -70,7 +70,7 @@ def test_lplr_exception_resampling():
 
 @pytest.mark.ci
 def test_lplr_exception_get_params():
-    msg = "Invalid nuisance learner ml_x. Valid nuisance learner ml_m or ml_t or ml_M or ml_a."
+    msg = r"Invalid nuisance learner ml_x. Valid nuisance learner ml_m or ml_a or ml_t or ml_M.*"
     with pytest.raises(ValueError, match=msg):
         dml_lplr.get_params("ml_x")
 
@@ -147,7 +147,7 @@ def test_lplr_exception_confint():
 @pytest.mark.ci
 def test_lplr_exception_set_ml_nuisance_params():
     # invalid learner name
-    msg = "Invalid nuisance learner g. Valid nuisance learner ml_m or ml_t or ml_M or ml_a."
+    msg = "Invalid nuisance learner g. Valid nuisance learner ml_m or ml_a or ml_t or ml_M.*"
     with pytest.raises(ValueError, match=msg):
         dml_lplr.set_ml_nuisance_params("g", "d", {"alpha": 0.1})
     # invalid treatment variable
@@ -246,13 +246,13 @@ def test_lplr_exception_and_warning_learner():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPLR(dml_data, Lasso(), ml_t, ml_m)
     msg = (
-        r"The ml_m learner RandomForestRegressor\(\) was identified as regressor but at least one treatment "
+        r"The ml_m learner RandomForestRegressor\(.*\) was identified as regressor but at least one treatment "
         r"variable is binary with values 0 and 1."
     )
     with pytest.warns(match=msg):
         _ = DoubleMLLPLR(dml_data_binary, ml_M, ml_t, ml_m)
     msg = (
-        r"The ml_a learner RandomForestRegressor\(\) was identified as regressor but at least one treatment "
+        r"The ml_a learner RandomForestRegressor\(.*\) was identified as regressor but at least one treatment "
         r"variable is binary with values 0 and 1."
     )
     with pytest.warns(match=msg):
@@ -314,7 +314,8 @@ def test_double_ml_exception_evaluate_learner():
         dml_lplr_obj.evaluate_learners(metric="mse")
 
     msg = (
-        r"The learners have to be a subset of \['ml_m', 'ml_t', 'ml_M', 'ml_a'\]\. " r"Learners \['ml_mu', 'ml_p'\] provided."
+        r"The learners have to be a subset of \['ml_m', 'ml_a', 'ml_t', 'ml_M'.*\]\. "
+        r"Learners \['ml_mu', 'ml_p'\] provided."
     )
     with pytest.raises(ValueError, match=msg):
         dml_lplr_obj.evaluate_learners(learners=["ml_mu", "ml_p"])
