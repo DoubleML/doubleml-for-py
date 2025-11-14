@@ -1098,7 +1098,7 @@ class DoubleMLAPOS(SampleSplittingMixin):
             "cv": cv,
             "set_as_params": set_as_params,
             "return_tune_res": return_tune_res,
-            "optuna_settings": optuna_settings
+            "optuna_settings": optuna_settings,
         }
 
         tune_res = [] if return_tune_res else None

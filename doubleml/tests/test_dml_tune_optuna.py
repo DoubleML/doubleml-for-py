@@ -196,7 +196,6 @@ def test_doubleml_optuna_cv_variants():
     assert none_m_params is not None
 
 
-
 def test_doubleml_optuna_partial_tuning_single_learner():
     np.random.seed(3143)
     dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
@@ -390,6 +389,7 @@ def test_doubleml_optuna_invalid_settings_key_raises():
 
     with pytest.raises(ValueError, match="ml_l"):
         dml_irm.tune_ml_models(ml_param_space=optuna_params, optuna_settings=invalid_settings)
+
 
 def test_optuna_settings_hierarchy_overrides():
     np.random.seed(3160)

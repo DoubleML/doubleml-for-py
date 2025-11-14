@@ -259,7 +259,7 @@ def _check_tuning_inputs(
     """
 
     if y.shape[0] != x.shape[0]:
-        raise ValueError(f"Features and target must contain the same number of observations for learner '{params_name}'.") 
+        raise ValueError(f"Features and target must contain the same number of observations for learner '{params_name}'.")
     if y.size == 0:
         raise ValueError(f"Empty target passed to Optuna tuner for learner '{params_name}'.")
 
