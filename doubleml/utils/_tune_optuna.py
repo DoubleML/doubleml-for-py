@@ -181,7 +181,7 @@ def _resolve_optuna_scoring(scoring_method, learner, params_name):
         message = f"No scoring method provided, using 'neg_log_loss' " f"for learner '{params_name}'."
         return "neg_log_loss", message
 
-    raise RuntimeError(
+    raise ValueError(
         f"No scoring method provided and estimator type could not be inferred. Please provide a scoring_method for learner "
         f"'{params_name}'."
     )
@@ -259,7 +259,7 @@ def _check_tuning_inputs(
     """
 
     if y.shape[0] != x.shape[0]:
-        raise ValueError(f"Features and target must contain the same number of observations for learner '{params_name}'.")
+        raise ValueError(f"Features and target must contain the same number of observations for learner '{params_name}'.") 
     if y.size == 0:
         raise ValueError(f"Empty target passed to Optuna tuner for learner '{params_name}'.")
 
@@ -270,11 +270,10 @@ def _check_tuning_inputs(
         )
 
     if scoring_method is not None and not callable(scoring_method) and not isinstance(scoring_method, str):
-        if not isinstance(scoring_method, Iterable):
-            raise TypeError(
-                "scoring_method must be None, a string, a callable, or an iterable accepted by scikit-learn. "
-                f"Got {type(scoring_method).__name__} for learner '{params_name}'."
-            )
+        raise TypeError(
+            "scoring_method must be None, a string, a callable, accepted by scikit-learn. "
+            f"Got {type(scoring_method).__name__} for learner '{params_name}'."
+        )
 
     if not hasattr(learner, "fit") or not hasattr(learner, "set_params"):
         raise TypeError(f"Learner '{params_name}' must implement fit and set_params to be tuned with Optuna.")

@@ -8,14 +8,16 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 import doubleml as dml
 from doubleml.irm.datasets import make_irm_data
 from doubleml.plm.datasets import make_plr_CCDDHNR2018
-from doubleml.utils._tune_optuna import _resolve_optuna_scoring
+from doubleml.utils._tune_optuna import DMLOptunaResult, _resolve_optuna_scoring
 
 
 def _basic_optuna_settings(additional=None):
-    base_settings = {"n_trials": 5,
-                     "sampler": optuna.samplers.TPESampler(seed=3141),
-                     "verbosity": optuna.logging.INFO,
-                     "show_progress_bar": False}
+    base_settings = {
+        "n_trials": 5,
+        "sampler": optuna.samplers.TPESampler(seed=3141),
+        "verbosity": optuna.logging.WARNING,
+        "show_progress_bar": False,
+    }
     if additional is not None:
         base_settings.update(additional)
     return base_settings
@@ -33,6 +35,7 @@ def _small_tree_params(trial):
         "min_samples_leaf": trial.suggest_int("min_samples_leaf", 2, 100),
         "max_leaf_nodes": trial.suggest_int("max_leaf_nodes", 2, 20),
     }
+
 
 def _assert_tree_params(param_dict, depth_range=(1, 10), leaf_range=(2, 100), leaf_nodes_range=(2, 20)):
     assert set(param_dict.keys()) == {"max_depth", "min_samples_leaf", "max_leaf_nodes"}
@@ -92,41 +95,106 @@ def test_doubleml_optuna_cv_variants():
     np.random.seed(3142)
     dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
 
-    ml_l_int = DecisionTreeRegressor(random_state=10, max_depth=5, min_samples_leaf=4)
-    ml_m_int = DecisionTreeRegressor(random_state=11, max_depth=5, min_samples_leaf=4)
-    dml_plr_int = dml.DoubleMLPLR(dml_data, ml_l_int, ml_m_int, n_folds=2, score="partialling out")
+    ml_l = DecisionTreeRegressor(random_state=10, max_depth=5, min_samples_leaf=4)
+    ml_m = DecisionTreeRegressor(random_state=11, max_depth=5, min_samples_leaf=4)
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, score="partialling out")
 
     optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
 
-    dml_plr_int.tune_ml_models(
+    dml_plr.tune_ml_models(
         ml_param_space=optuna_params,
         cv=3,
         optuna_settings=_basic_optuna_settings(),
     )
 
-    int_l_params = dml_plr_int.get_params("ml_l")["d"][0][0]
-    int_m_params = dml_plr_int.get_params("ml_m")["d"][0][0]
+    int_l_params = dml_plr.get_params("ml_l")["d"][0][0]
+    int_m_params = dml_plr.get_params("ml_m")["d"][0][0]
 
     assert int_l_params is not None
     assert int_m_params is not None
 
-    ml_l_split = DecisionTreeRegressor(random_state=12, max_depth=5, min_samples_leaf=4)
-    ml_m_split = DecisionTreeRegressor(random_state=13, max_depth=5, min_samples_leaf=4)
-    dml_plr_split = dml.DoubleMLPLR(dml_data, ml_l_split, ml_m_split, n_folds=2, score="partialling out")
-
     cv_splitter = KFold(n_splits=3, shuffle=True, random_state=3142)
 
-    dml_plr_split.tune_ml_models(
+    dml_plr.tune_ml_models(
         ml_param_space=optuna_params,
         cv=cv_splitter,
         optuna_settings=_basic_optuna_settings(),
     )
 
-    split_l_params = dml_plr_split.get_params("ml_l")["d"][0][0]
-    split_m_params = dml_plr_split.get_params("ml_m")["d"][0][0]
+    split_l_params = dml_plr.get_params("ml_l")["d"][0][0]
+    split_m_params = dml_plr.get_params("ml_m")["d"][0][0]
 
     assert split_l_params is not None
     assert split_m_params is not None
+
+    class SimpleSplitter:
+        def __init__(self, n_splits=3):
+            self._kfold = KFold(n_splits=n_splits, shuffle=True, random_state=3142)
+            self._n_splits = n_splits
+
+        def split(self, X, y=None, groups=None):
+            return self._kfold.split(X, y, groups)
+
+        def get_n_splits(self, X=None, y=None, groups=None):
+            return self._n_splits
+
+    custom_cv = SimpleSplitter(n_splits=3)
+
+    dml_plr.tune_ml_models(
+        ml_param_space=optuna_params,
+        cv=custom_cv,
+        optuna_settings=_basic_optuna_settings({"n_trials": 2}),
+    )
+
+    custom_l_params = dml_plr.get_params("ml_l")["d"][0][0]
+    custom_m_params = dml_plr.get_params("ml_m")["d"][0][0]
+
+    assert custom_l_params is not None
+    assert custom_m_params is not None
+
+    base_iter_kfold = KFold(n_splits=3, shuffle=True, random_state=3142)
+    cv_iterable = list(base_iter_kfold.split(np.arange(dml_data.n_obs)))
+
+    dml_plr.tune_ml_models(
+        ml_param_space=optuna_params,
+        cv=cv_iterable,
+        optuna_settings=_basic_optuna_settings({"n_trials": 2}),
+    )
+
+    iterable_l_params = dml_plr.get_params("ml_l")["d"][0][0]
+    iterable_m_params = dml_plr.get_params("ml_m")["d"][0][0]
+
+    assert iterable_l_params is not None
+    assert iterable_m_params is not None
+
+    explicit_cv_iterable = [
+        (list(train_idx), list(test_idx)) for train_idx, test_idx in base_iter_kfold.split(np.arange(dml_data.n_obs))
+    ]
+
+    dml_plr.tune_ml_models(
+        ml_param_space=optuna_params,
+        cv=explicit_cv_iterable,
+        optuna_settings=_basic_optuna_settings({"n_trials": 2}),
+    )
+
+    explicit_l_params = dml_plr.get_params("ml_l")["d"][0][0]
+    explicit_m_params = dml_plr.get_params("ml_m")["d"][0][0]
+
+    assert explicit_l_params is not None
+    assert explicit_m_params is not None
+
+    cv = None
+    dml_plr.tune_ml_models(
+        ml_param_space=optuna_params,
+        cv=cv,
+        optuna_settings=_basic_optuna_settings({"n_trials": 2}),
+    )
+    none_l_params = dml_plr.get_params("ml_l")["d"][0][0]
+    none_m_params = dml_plr.get_params("ml_m")["d"][0][0]
+
+    assert none_l_params is not None
+    assert none_m_params is not None
+
 
 
 def test_doubleml_optuna_partial_tuning_single_learner():
@@ -146,18 +214,16 @@ def test_doubleml_optuna_partial_tuning_single_learner():
         return_tune_res=True,
     )
 
-    tuned_l = dml_plr.get_params("ml_l")["d"][0][0]
-    untouched_m = dml_plr.get_params("ml_m")["d"][0]
+    res_ml_m = tune_res[0]["ml_m"]
+    res_ml_l = tune_res[0]["ml_l"]
 
-    assert tuned_l is not None
-    assert untouched_m is None
+    assert res_ml_m.tuned is False
+    assert res_ml_m.best_estimator.get_params() == ml_m.get_params()  # assert default params kept
+    assert res_ml_l.tuned is True
+    _assert_tree_params(res_ml_l.best_params)  # assert tuned params valid
 
     assert isinstance(tune_res[0], dict)
-    assert set(tune_res[0].keys()) == {"ml_l"}
-    l_tune = tune_res[0]["ml_l"]
-    assert hasattr(l_tune, "tuned")
-    assert l_tune.tuned is True
-    assert "ml_m" not in tune_res[0]
+    assert set(tune_res[0].keys()) == {"ml_l", "ml_m"}
 
 
 def test_doubleml_optuna_sets_params_for_all_folds():
@@ -227,6 +293,89 @@ def test_doubleml_optuna_fit_uses_tuned_params():
                 assert ml_m_model.get_params()[key] == value
 
 
+def test_dml_optuna_result_str_representation():
+    def custom_scorer(**args):
+        return 0.0
+
+    primary_result = DMLOptunaResult(
+        learner_name="ml_l",
+        params_name="ml_l",
+        best_estimator=LinearRegression(),
+        best_params={"alpha": 1, "depth": 3},
+        best_score=0.123,
+        scoring_method="neg_mean_squared_error",
+        study=None,
+        tuned=True,
+    )
+
+    primary_str = str(primary_result)
+    assert primary_str.startswith("================== DMLOptunaResult")
+    assert "Learner name: ml_l" in primary_str
+    assert "Best score: 0.123" in primary_str
+    assert "Scoring method: neg_mean_squared_error" in primary_str
+    assert "'alpha': 1" in primary_str
+    assert "'depth': 3" in primary_str
+
+    empty_params_result = DMLOptunaResult(
+        learner_name="ml_m",
+        params_name="ml_m",
+        best_estimator=LinearRegression(),
+        best_params={},
+        best_score=-0.5,
+        scoring_method=custom_scorer,
+        study=None,
+        tuned=False,
+    )
+
+    empty_str = str(empty_params_result)
+    assert "Learner name: ml_m" in empty_str
+    assert "Scoring method: custom_scorer" in empty_str
+    assert "No best parameters available." in empty_str
+
+
+def test_doubleml_optuna_scoring_method_variants():
+    np.random.seed(3156)
+    dml_data = make_plr_CCDDHNR2018(n_obs=120, dim_x=5)
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
+
+    ml_l_string = DecisionTreeRegressor(random_state=501)
+    ml_m_default = DecisionTreeRegressor(random_state=502)
+    dml_plr_string = dml.DoubleMLPLR(dml_data, ml_l_string, ml_m_default, n_folds=2)
+
+    scoring_methods_string = {"ml_l": "neg_mean_squared_error"}
+
+    tune_res_string = dml_plr_string.tune_ml_models(
+        ml_param_space=optuna_params,
+        scoring_methods=scoring_methods_string,
+        optuna_settings=_basic_optuna_settings({"n_trials": 2}),
+        return_tune_res=True,
+    )
+
+    assert tune_res_string[0]["ml_l"].scoring_method == "neg_mean_squared_error"
+    assert tune_res_string[0]["ml_m"].scoring_method == "neg_root_mean_squared_error"
+
+    def neg_mae_scorer(estimator, x, y):
+        preds = estimator.predict(x)
+        return -np.mean(np.abs(y - preds))
+
+    ml_l_callable = DecisionTreeRegressor(random_state=601)
+    ml_m_callable = DecisionTreeRegressor(random_state=602)
+    dml_plr_callable = dml.DoubleMLPLR(dml_data, ml_l_callable, ml_m_callable, n_folds=2)
+
+    scoring_methods_callable = {"ml_l": neg_mae_scorer, "ml_m": neg_mae_scorer}
+
+    tune_res_callable = dml_plr_callable.tune_ml_models(
+        ml_param_space=optuna_params,
+        scoring_methods=scoring_methods_callable,
+        optuna_settings=_basic_optuna_settings({"n_trials": 2}),
+        return_tune_res=True,
+    )
+
+    assert tune_res_callable[0]["ml_l"].scoring_method is neg_mae_scorer
+    assert tune_res_callable[0]["ml_m"].scoring_method is neg_mae_scorer
+
+
 def test_doubleml_optuna_invalid_settings_key_raises():
     np.random.seed(3155)
     dml_data = make_irm_data(n_obs=100, dim_x=5)
@@ -241,6 +390,46 @@ def test_doubleml_optuna_invalid_settings_key_raises():
 
     with pytest.raises(ValueError, match="ml_l"):
         dml_irm.tune_ml_models(ml_param_space=optuna_params, optuna_settings=invalid_settings)
+
+def test_optuna_settings_hierarchy_overrides():
+    np.random.seed(3160)
+    dml_data = make_irm_data(n_obs=80, dim_x=5)
+
+    ml_g = DecisionTreeRegressor(random_state=123)
+    ml_m = DecisionTreeClassifier(random_state=456)
+    dml_irm = dml.DoubleMLIRM(dml_data, ml_g, ml_m, n_folds=2, n_rep=1)
+
+    optuna_params = {"ml_g": _small_tree_params, "ml_g1": _small_tree_params, "ml_m": _small_tree_params}
+    scoring_methods = {
+        "ml_g0": "neg_mean_squared_error",
+        "ml_g1": "neg_mean_squared_error",
+        "ml_m": "roc_auc",
+    }
+
+    optuna_settings = {
+        "n_trials": 4,
+        "direction": "maximize",
+        "show_progress_bar": False,
+        "ml_g": {"n_trials": 2},
+        "ml_g1": {"n_trials": 3},
+    }
+
+    tune_res = dml_irm.tune_ml_models(
+        ml_param_space=optuna_params,
+        optuna_settings=optuna_settings,
+        scoring_methods=scoring_methods,
+        cv=3,
+        return_tune_res=True,
+    )
+
+    result_map = tune_res[0]
+
+    def _completed_trials(study):
+        return sum(trial.state == optuna.trial.TrialState.COMPLETE for trial in study.trials)
+
+    assert _completed_trials(result_map["ml_g0"].study) == 2
+    assert _completed_trials(result_map["ml_g1"].study) == 3
+    assert _completed_trials(result_map["ml_m"].study) == 4
 
 
 def test_optuna_logging_integration():
@@ -373,3 +562,33 @@ def test_optuna_logging_explicit_verbosity():
     # Verify tuning worked
     tuned_l = dml_plr.get_params("ml_l")["d"][0][0]
     assert tuned_l is not None
+
+
+def test_doubleml_optuna_respects_provided_study_instances():
+    np.random.seed(3157)
+    dml_data = make_plr_CCDDHNR2018(n_obs=80, dim_x=4)
+
+    ml_l = DecisionTreeRegressor(random_state=555, max_depth=3, min_samples_leaf=3)
+    ml_m = DecisionTreeRegressor(random_state=556, max_depth=3, min_samples_leaf=3)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2)
+
+    study_l = optuna.create_study(direction="maximize")
+    study_m = optuna.create_study(direction="maximize")
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
+    optuna_settings = {
+        "n_trials": 1,
+        "show_progress_bar": False,
+        "ml_l": {"study": study_l},
+        "ml_m": {"study": study_m},
+    }
+
+    tune_res = dml_plr.tune_ml_models(
+        ml_param_space=optuna_params,
+        optuna_settings=optuna_settings,
+        return_tune_res=True,
+    )
+
+    assert tune_res[0]["ml_l"].study is study_l
+    assert tune_res[0]["ml_m"].study is study_m

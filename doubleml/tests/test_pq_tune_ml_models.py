@@ -19,8 +19,8 @@ def test_doubleml_pq_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3147)
     dml_data = make_irm_data(n_obs=500, dim_x=10)
 
-    ml_g = DecisionTreeClassifier(random_state=321, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
-    ml_m = DecisionTreeClassifier(random_state=654, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
+    ml_g = DecisionTreeClassifier(random_state=321)
+    ml_m = DecisionTreeClassifier(random_state=654)
 
     dml_pq = dml.DoubleMLPQ(dml_data, ml_g=ml_g, ml_m=ml_m, n_folds=2)
     dml_pq.fit()

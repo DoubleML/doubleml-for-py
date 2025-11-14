@@ -30,7 +30,9 @@ def test_doubleml_lpq_optuna_tune(sampler_name, optuna_sampler):
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
     optuna_settings["n_trials"] = 10
-    tune_res = dml_lpq.tune_ml_models(ml_param_space=optuna_params, set_as_params=True, optuna_settings=optuna_settings, return_tune_res=True)
+    tune_res = dml_lpq.tune_ml_models(
+        ml_param_space=optuna_params, set_as_params=True, optuna_settings=optuna_settings, return_tune_res=True
+    )
 
     dml_lpq.fit()
     tuned_score = dml_lpq.nuisance_loss

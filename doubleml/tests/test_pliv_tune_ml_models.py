@@ -21,9 +21,9 @@ def test_doubleml_pliv_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3144)
     dml_data = make_pliv_CHS2015(n_obs=500, dim_x=15, dim_z=3)
 
-    ml_l = DecisionTreeRegressor(random_state=123, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
-    ml_m = DecisionTreeRegressor(random_state=456, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
-    ml_r = DecisionTreeRegressor(random_state=789, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
+    ml_l = DecisionTreeRegressor(random_state=123)
+    ml_m = DecisionTreeRegressor(random_state=456)
+    ml_r = DecisionTreeRegressor(random_state=789)
 
     dml_pliv = dml.DoubleMLPLIV(dml_data, ml_l, ml_m, ml_r, n_folds=2)
     dml_pliv.fit()
@@ -33,7 +33,9 @@ def test_doubleml_pliv_optuna_tune(sampler_name, optuna_sampler):
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
     optuna_settings["n_trials"] = 10
-    tune_res = dml_pliv.tune_ml_models(ml_param_space=optuna_params, set_as_params=True, optuna_settings=optuna_settings, return_tune_res=True)
+    tune_res = dml_pliv.tune_ml_models(
+        ml_param_space=optuna_params, set_as_params=True, optuna_settings=optuna_settings, return_tune_res=True
+    )
 
     dml_pliv.fit()
     tuned_score = dml_pliv.evaluate_learners()

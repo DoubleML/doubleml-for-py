@@ -19,8 +19,8 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     alpha = 0.5
     dml_data = make_plr_CCDDHNR2018(n_obs=500, dim_x=5, alpha=alpha)
 
-    ml_l = DecisionTreeRegressor(random_state=123, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
-    ml_m = DecisionTreeRegressor(random_state=456, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
+    ml_l = DecisionTreeRegressor(random_state=123)
+    ml_m = DecisionTreeRegressor(random_state=456)
 
     dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, score="partialling out")
     dml_plr.fit()
