@@ -243,7 +243,7 @@ TUNE_ML_MODELS_DOC = """
         >>> # Initialize model
         >>> dml_plr = DoubleMLPLR(
         ...    dml_data,
-        ...    LGBMRegressorn(n_estimators=50, verbose=-1, random_state=42),
+        ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42),
         ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42)
         ... )
         >>> # Define parameter grid functions
