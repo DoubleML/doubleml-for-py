@@ -546,8 +546,6 @@ class DoubleMLQTE(SampleSplittingMixin):
         return_tune_res=False,
         optuna_settings=None,
     ):
-        """Hyperparameter tuning for the nuisance learners via Optuna."""
-
         tuning_kwargs = {
             "ml_param_space": ml_param_space,
             "scoring_methods": scoring_methods,
