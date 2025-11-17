@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV, cross_val_predict
 from sklearn.utils import check_X_y
 
 from doubleml.data.base_data import DoubleMLData
@@ -868,9 +868,11 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         else:
             results["ml_m"] = m_tune_res
             if "ml_g" in self._learner:
-                l_hat = l_tune_res.best_estimator.predict(x)
-                m_hat = m_tune_res.best_estimator.predict(x_m_features)
-                r_hat = r_tune_res.best_estimator.predict(x)
+                l_hat = cross_val_predict(l_tune_res.best_estimator, x, y, cv=cv, method=self._predict_method["ml_l"])
+                m_hat = cross_val_predict(
+                    m_tune_res.best_estimator, x_m_features, z_vector, cv=cv, method=self._predict_method["ml_m"]
+                )
+                r_hat = cross_val_predict(r_tune_res.best_estimator, x, cv=cv, method=self._predict_method["ml_r"])
                 psi_a = -np.multiply(d - r_hat, z_vector - m_hat)
                 psi_b = np.multiply(z_vector - m_hat, y - l_hat)
                 theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)

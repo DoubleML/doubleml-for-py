@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
+from sklearn.model_selection import cross_val_predict
 from sklearn.utils import check_X_y
 
 from doubleml.data.base_data import DoubleMLData
@@ -421,8 +422,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         # an ML model for g is obtained for the IV-type score and callable scores
         if "ml_g" in self._learner:
             # construct an initial theta estimate from the tuned models using the partialling out score
-            l_hat = l_tune_res.best_estimator.predict(x)
-            m_hat = m_tune_res.best_estimator.predict(x)
+            # use cross-fitting for tuning ml_g
+            l_hat = cross_val_predict(l_tune_res.best_estimator, x, y, cv=cv, method=self._predict_method["ml_l"])
+            m_hat = cross_val_predict(m_tune_res.best_estimator, x, d, cv=cv, method=self._predict_method["ml_m"])
             psi_a = -np.multiply(d - m_hat, d - m_hat)
             psi_b = np.multiply(d - m_hat, y - l_hat)
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
