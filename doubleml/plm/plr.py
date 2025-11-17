@@ -421,8 +421,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         # an ML model for g is obtained for the IV-type score and callable scores
         if "ml_g" in self._learner:
             # construct an initial theta estimate from the tuned models using the partialling out score
-            l_hat = l_tune_res.predict(x)
-            m_hat = m_tune_res.predict(x)
+            l_hat = l_tune_res.best_estimator.predict(x)
+            m_hat = m_tune_res.best_estimator.predict(x)
             psi_a = -np.multiply(d - m_hat, d - m_hat)
             psi_b = np.multiply(d - m_hat, y - l_hat)
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)

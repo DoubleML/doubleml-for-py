@@ -54,3 +54,29 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     # ensure tuning improved RMSE
     assert tuned_score["ml_l"] < untuned_score["ml_l"]
     assert tuned_score["ml_m"] < untuned_score["ml_m"]
+
+
+def test_doubleml_plr_optuna_tune_with_ml_g():
+    np.random.seed(3150)
+    dml_data = make_plr_CCDDHNR2018(n_obs=200, dim_x=5, alpha=0.5)
+
+    ml_l = DecisionTreeRegressor(random_state=11)
+    ml_m = DecisionTreeRegressor(random_state=12)
+    ml_g = DecisionTreeRegressor(random_state=13)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, ml_g, n_folds=2, score="IV-type")
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params, "ml_g": _small_tree_params}
+
+    tune_res = dml_plr.tune_ml_models(
+        ml_param_space=optuna_params,
+        optuna_settings=_basic_optuna_settings({"n_trials": 1}),
+        return_tune_res=True,
+    )
+
+    assert "ml_g" in tune_res[0]
+    ml_g_res = tune_res[0]["ml_g"]
+    assert ml_g_res.best_params is not None
+
+    preds = ml_g_res.best_estimator.predict(dml_data.x)
+    assert preds.shape[0] == dml_data.n_obs

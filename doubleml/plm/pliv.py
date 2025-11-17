@@ -868,9 +868,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         else:
             results["ml_m"] = m_tune_res
             if "ml_g" in self._learner:
-                l_hat = l_tune_res.predict(x)
-                m_hat = m_tune_res.predict(x_m_features)
-                r_hat = r_tune_res.predict(x)
+                l_hat = l_tune_res.best_estimator.predict(x)
+                m_hat = m_tune_res.best_estimator.predict(x_m_features)
+                r_hat = r_tune_res.best_estimator.predict(x)
                 psi_a = -np.multiply(d - r_hat, z_vector - m_hat)
                 psi_b = np.multiply(z_vector - m_hat, y - l_hat)
                 theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
@@ -957,7 +957,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             params_name="ml_m",
         )
 
-        pseudo_target = m_tune_res.predict(xz)
+        pseudo_target = m_tune_res.best_estimator.predict(xz)
         r_tune_res = _dml_tune_optuna(
             pseudo_target,
             x,

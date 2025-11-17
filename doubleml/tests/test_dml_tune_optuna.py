@@ -8,7 +8,13 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 import doubleml as dml
 from doubleml.irm.datasets import make_irm_data
 from doubleml.plm.datasets import make_plr_CCDDHNR2018
-from doubleml.utils._tune_optuna import DMLOptunaResult, _resolve_optuna_scoring
+from doubleml.utils._tune_optuna import (
+    DMLOptunaResult,
+    _create_study,
+    _dml_tune_optuna,
+    _resolve_optuna_scoring,
+    resolve_optuna_cv,
+)
 
 
 def _basic_optuna_settings(additional=None):
@@ -89,6 +95,13 @@ def test_resolve_optuna_scoring_lightgbm_regressor_default():
     scoring, message = _resolve_optuna_scoring(None, learner, "ml_l")
     assert scoring == "neg_root_mean_squared_error"
     assert "neg_root_mean_squared_error" in message
+
+
+def test_resolve_optuna_cv_sets_random_state():
+    cv = resolve_optuna_cv(3)
+    assert isinstance(cv, KFold)
+    assert cv.shuffle is True
+    assert cv.random_state == 42
 
 
 def test_doubleml_optuna_cv_variants():
@@ -194,6 +207,77 @@ def test_doubleml_optuna_cv_variants():
 
     assert none_l_params is not None
     assert none_m_params is not None
+
+
+def test_dml_optuna_result_predicts_after_tuning():
+    rng = np.random.default_rng(3145)
+    x = rng.normal(size=(40, 3))
+    y = x[:, 0] - 0.5 * x[:, 1] + rng.normal(size=40)
+
+    learner = DecisionTreeRegressor(random_state=101)
+
+    tune_res = _dml_tune_optuna(
+        y,
+        x,
+        learner,
+        _small_tree_params,
+        None,
+        cv=3,
+        optuna_settings=_basic_optuna_settings({"n_trials": 1}),
+        learner_name="ml_l",
+        params_name="ml_l",
+    )
+
+    preds = tune_res.best_estimator.predict(x)
+    assert preds.shape == (40,)
+
+
+def test_dml_optuna_result_predicts_without_param_grid():
+    rng = np.random.default_rng(3146)
+    x = rng.normal(size=(30, 2))
+    y = x[:, 0] + rng.normal(size=30)
+
+    learner = DecisionTreeRegressor(random_state=202)
+
+    tune_res = _dml_tune_optuna(
+        y,
+        x,
+        learner,
+        None,
+        None,
+        cv=3,
+        optuna_settings=None,
+        learner_name="ml_l",
+        params_name="ml_l",
+    )
+
+    preds = tune_res.best_estimator.predict(x)
+    assert preds.shape == (30,)
+
+
+def test_create_study_respects_user_study_name(monkeypatch):
+    captured_kwargs = {}
+
+    def fake_create_study(**kwargs):
+        captured_kwargs.update(kwargs)
+
+        class _DummyStudy:
+            pass
+
+        return _DummyStudy()
+
+    monkeypatch.setattr(optuna, "create_study", fake_create_study)
+
+    settings = {
+        "study": None,
+        "study_kwargs": {"study_name": "custom-study", "direction": "maximize"},
+        "direction": "maximize",
+        "sampler": None,
+    }
+
+    _create_study(settings, "ml_l")
+
+    assert captured_kwargs["study_name"] == "custom-study"
 
 
 def test_doubleml_optuna_partial_tuning_single_learner():

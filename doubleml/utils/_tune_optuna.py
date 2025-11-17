@@ -31,6 +31,8 @@ from sklearn.model_selection import BaseCrossValidator, KFold, cross_val_score
 
 logger = logging.getLogger(__name__)
 
+_OPTUNA_KFOLD_RANDOM_STATE = 42
+
 _OPTUNA_DEFAULT_SETTINGS = {
     "n_trials": 100,
     "timeout": None,
@@ -65,7 +67,8 @@ class DMLOptunaResult:
         Name of the nuisance parameter being tuned (e.g., 'ml_g0').
 
     best_estimator : object
-        The estimator instance with the best found hyperparameters set (not fitted).
+        The estimator instance with the best found hyperparameters set and fitted on the
+        full dataset used during tuning.
 
     best_params : dict
         The best hyperparameters found during tuning.
@@ -353,7 +356,7 @@ def resolve_optuna_cv(cv):
     if isinstance(cv, int):
         if cv < 2:
             raise ValueError(f"The number of folds used for tuning must be at least two. {cv} was passed.")
-        return KFold(n_splits=cv, shuffle=True)
+        return KFold(n_splits=cv, shuffle=True, random_state=_OPTUNA_KFOLD_RANDOM_STATE)
 
     if isinstance(cv, BaseCrossValidator):
         return cv
@@ -521,8 +524,9 @@ def _create_study(settings, learner_name):
     if settings.get("sampler") is not None:
         study_kwargs["sampler"] = settings["sampler"]
         logger.info(f"Using sampler {settings['sampler'].__class__.__name__} for learner '{learner_name}'.")
+    study_kwargs.setdefault("study_name", f"tune_{learner_name}")
 
-    return optuna.create_study(**study_kwargs, study_name=f"tune_{learner_name}")
+    return optuna.create_study(**study_kwargs)
 
 
 def _create_objective(param_grid_func, learner, x, y, cv, scoring_method):
@@ -645,6 +649,7 @@ def _dml_tune_optuna(
 
     if param_grid_func is None:
         estimator = clone(learner)
+        estimator.fit(x, y)
         best_params = estimator.get_params(deep=True)
         return DMLOptunaResult(
             learner_name=learner_name,
@@ -701,6 +706,7 @@ def _dml_tune_optuna(
 
     # Fit the best estimator on the full dataset once
     best_estimator = clone(learner).set_params(**best_params)
+    best_estimator.fit(x, y)
 
     return DMLOptunaResult(
         learner_name=learner_name,
