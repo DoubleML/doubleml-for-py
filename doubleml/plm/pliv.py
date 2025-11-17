@@ -694,7 +694,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             scoring_methods = {"ml_r": None}
 
         train_inds = [train_index for (train_index, _) in smpls]
-        m_tune_res = _dml_tune(
+        r_tune_res = _dml_tune(
             d,
             xz,
             train_inds,
@@ -707,11 +707,11 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_iter_randomized_search,
         )
 
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        r_best_params = [xx.best_params_ for xx in r_tune_res]
 
-        params = {"ml_r": m_best_params}
+        params = {"ml_r": r_best_params}
 
-        tune_res = {"r_tune": m_tune_res}
+        tune_res = {"r_tune": r_tune_res}
 
         res = {"params": params, "tune_res": tune_res}
 
@@ -906,7 +906,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if scoring_methods is None:
             scoring_methods = {"ml_r": None}
 
-        m_tune_res = _dml_tune_optuna(
+        r_tune_res = _dml_tune_optuna(
             d,
             xz,
             self._learner["ml_r"],
@@ -917,7 +917,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             learner_name="ml_r",
             params_name="ml_r",
         )
-        return {"ml_r": m_tune_res}
+        return {"ml_r": r_tune_res}
 
     def _nuisance_tuning_optuna_partial_xz(
         self,
@@ -958,9 +958,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             params_name="ml_m",
         )
 
-        pseudo_target = m_tune_res.best_estimator.predict(xz)
+        m_hat = cross_val_predict(m_tune_res.best_estimator, xz, d, cv=cv, method=self._predict_method["ml_m"])
         r_tune_res = _dml_tune_optuna(
-            pseudo_target,
+            m_hat,
             x,
             self._learner["ml_r"],
             optuna_params["ml_r"],
