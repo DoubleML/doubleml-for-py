@@ -258,7 +258,7 @@ TUNE_ML_MODELS_DOC = """
         >>> ml_param_space = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
         >>> # Tune with TPE sampler
         >>> optuna_settings = {
-        ...     'n_trials': 20,
+        ...     'n_trials': 5,
         ...     'sampler': optuna.samplers.TPESampler(seed=42),
         ... }
         >>> tune_res = dml_plr.tune_ml_models(ml_param_space, optuna_settings=optuna_settings, return_tune_res=True)
