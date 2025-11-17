@@ -142,6 +142,163 @@ class DMLOptunaResult:
 
 OPTUNA_GLOBAL_SETTING_KEYS = frozenset(_OPTUNA_DEFAULT_SETTINGS.keys())
 
+TUNE_ML_MODELS_DOC = """
+        Hyperparameter-tuning for DoubleML models using Optuna.
+
+        The hyperparameter-tuning is performed using Optuna's Bayesian optimization.
+        Unlike grid/randomized search, Optuna tuning is performed once on the whole dataset
+        using cross-validation, and the same optimal hyperparameters are used for all folds.
+
+        Parameters
+        ----------
+        ml_param_space : dict
+            A dict with a parameter grid function for each nuisance model / learner
+            (see attribute ``params_names``).
+
+            Each parameter grid must be specified as a callable function that takes an Optuna trial
+            and returns a dictionary of hyperparameters.
+
+            For PLR models, keys should be: ``'ml_l'``, ``'ml_m'`` (and optionally ``'ml_g'`` for IV-type score).
+            For IRM models, keys should be: ``'ml_g0'``, ``'ml_g1'``, ``'ml_m'``.
+
+            Example:
+
+            .. code-block:: python
+
+                def ml_l_params(trial):
+                    return {
+                        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+                        'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
+                        'num_leaves': trial.suggest_int('num_leaves', 20, 256),
+                        'min_child_samples': trial.suggest_int('min_child_samples', 5, 100),
+                    }
+
+                ml_param_space = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
+
+            Note: Optuna tuning is performed globally (not fold-specific) to ensure consistent
+            hyperparameters across all folds.
+
+        scoring_methods : None or dict
+            The scoring method used to evaluate the predictions. The scoring method must be set per
+            nuisance model via a dict (see attribute ``params_names`` for the keys).
+            If None, the estimator's score method is used.
+            Default is ``None``.
+
+        cv : int, cross-validation splitter, or iterable of (train_indices, test_indices)
+            Cross-validation strategy used for Optuna-based tuning. If an integer is provided, a shuffled
+            :class:`sklearn.model_selection.KFold` with the specified number of splits and ``random_state=42`` is used.
+            Custom splitters must implement ``split`` (and ideally ``get_n_splits``), or be an iterable yielding
+            ``(train_indices, test_indices)`` pairs. Default is ``5``.
+
+        set_as_params : bool
+            Indicates whether the hyperparameters should be set in order to be used when :meth:`fit` is called.
+            Default is ``True``.
+
+        return_tune_res : bool
+            Indicates whether detailed tuning results should be returned.
+            Default is ``False``.
+
+        optuna_settings : None or dict
+            Optional configuration passed to the Optuna tuner. Supports global settings
+            as well as learner-specific overrides (using the keys from ``ml_param_space``).
+            The dictionary can contain entries corresponding to Optuna's study and optimize
+            configuration such as:
+
+            - ``n_trials`` (int): Number of optimization trials (default: 100)
+            - ``timeout`` (float): Time limit in seconds for the study (default: None)
+            - ``direction`` (str): Optimization direction, 'maximize' or 'minimize'.
+              For sklearn scorers, use 'maximize' for negative metrics like 'neg_mean_squared_error'
+              (since -0.1 > -0.2 means better performance). Can be set globally or per learner.
+              (default: 'maximize')
+            - ``sampler`` (optuna.samplers.BaseSampler): Optuna sampler instance (default: None, uses TPE)
+            - ``callbacks`` (list): List of callback functions (default: None)
+            - ``show_progress_bar`` (bool): Show progress bar during optimization (default: False)
+            - ``n_jobs_optuna`` (int): Number of parallel trials (default: None)
+            - ``verbosity`` (int): Optuna logging verbosity level (default: None)
+            - ``study`` (optuna.study.Study): Pre-created study instance (default: None)
+            - ``study_kwargs`` (dict): Additional kwargs for study creation (default: {})
+            - ``optimize_kwargs`` (dict): Additional kwargs for study.optimize() (default: {})
+
+            To set direction per learner (similar to ``scoring_methods``):
+
+            .. code-block:: python
+
+                optuna_settings = {
+                    'n_trials': 50,
+                    'direction': 'maximize',  # Global default
+                    'ml_g0': {'direction': 'maximize'},  # Per-learner override
+                    'ml_m': {'n_trials': 100, 'direction': 'maximize'}
+                }
+
+            Defaults to ``None``.
+
+        Returns
+        -------
+        self : object
+            Returned if ``return_tune_res`` is ``False``.
+
+        tune_res: list
+            A list containing detailed tuning results and the proposed hyperparameters.
+            Returned if ``return_tune_res`` is ``True``.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from doubleml import DoubleMLData, DoubleMLPLR
+        >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
+        >>> from lightgbm import LGBMRegressor
+        >>> import optuna
+        >>> # Generate data
+        >>> np.random.seed(42)
+        >>> data = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, return_type='DataFrame')
+        >>> dml_data = DoubleMLData(data, 'y', 'd')
+        >>> # Initialize model
+        >>> dml_plr = DoubleMLPLR(
+        ...    dml_data,
+        ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42),
+        ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42)
+        ... )
+        >>> # Define parameter grid functions
+        >>> def ml_l_params(trial):
+        ...     return {
+        ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+        ...     }
+        >>> def ml_m_params(trial):
+        ...     return {
+        ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+        ...     }
+        >>> ml_param_space = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
+        >>> # Tune with TPE sampler
+        >>> optuna_settings = {
+        ...     'n_trials': 20,
+        ...     'sampler': optuna.samplers.TPESampler(seed=42),
+        ... }
+        >>> tune_res = dml_plr.tune_ml_models(ml_param_space, optuna_settings=optuna_settings, return_tune_res=True)
+        >>> print(tune_res[0]['ml_l'].best_params)  # doctest: +SKIP
+        {'learning_rate': 0.03907122389107094}
+        >>> # Fit and get results
+        >>> dml_plr.fit().summary # doctest: +SKIP
+              coef   std err          t         P>|t|     2.5 %    97.5 %
+        d  0.57436  0.045206  12.705519  5.510257e-37  0.485759  0.662961
+        >>> # Example with scoring methods and directions
+        >>> scoring_methods = {
+        ...     'ml_l': 'neg_mean_squared_error',  # Negative metric
+        ...     'ml_m': 'neg_mean_squared_error'
+        ... }
+        >>> optuna_settings = {
+        ...     'n_trials': 50,
+        ...     'direction': 'maximize',  # Maximize negative MSE (minimize MSE)
+        ...     'sampler': optuna.samplers.TPESampler(seed=42),
+        ... }
+        >>> tune_res = dml_plr.tune_ml_models(ml_param_space, scoring_methods=scoring_methods,
+        ...                                   optuna_settings=optuna_settings, return_tune_res=True)
+        >>> print(tune_res[0]['ml_l'].best_params)  # doctest: +SKIP
+        {'learning_rate': 0.04300012336462904}
+        >>> dml_plr.fit().summary # doctest: +SKIP
+               coef   std err          t         P>|t|     2.5 %    97.5 %
+        d  0.574796  0.045062  12.755721  2.896820e-37  0.486476  0.663115
+        """
+
 
 def _default_optuna_settings():
     return deepcopy(_OPTUNA_DEFAULT_SETTINGS)
@@ -555,161 +712,3 @@ def _dml_tune_optuna(
         study=study,
         tuned=True,
     )
-
-
-TUNE_ML_MODELS_DOC = """
-        Hyperparameter-tuning for DoubleML models using Optuna.
-
-        The hyperparameter-tuning is performed using Optuna's Bayesian optimization.
-        Unlike grid/randomized search, Optuna tuning is performed once on the whole dataset
-        using cross-validation, and the same optimal hyperparameters are used for all folds.
-
-        Parameters
-        ----------
-        ml_param_space : dict
-            A dict with a parameter grid function for each nuisance model / learner
-            (see attribute ``params_names``).
-
-            Each parameter grid must be specified as a callable function that takes an Optuna trial
-            and returns a dictionary of hyperparameters.
-
-            For PLR models, keys should be: ``'ml_l'``, ``'ml_m'`` (and optionally ``'ml_g'`` for IV-type score).
-            For IRM models, keys should be: ``'ml_g0'``, ``'ml_g1'``, ``'ml_m'``.
-
-            Example:
-
-            .. code-block:: python
-
-                def ml_l_params(trial):
-                    return {
-                        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-                        'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
-                        'num_leaves': trial.suggest_int('num_leaves', 20, 256),
-                        'min_child_samples': trial.suggest_int('min_child_samples', 5, 100),
-                    }
-
-                ml_param_space = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
-
-            Note: Optuna tuning is performed globally (not fold-specific) to ensure consistent
-            hyperparameters across all folds.
-
-        scoring_methods : None or dict
-            The scoring method used to evaluate the predictions. The scoring method must be set per
-            nuisance model via a dict (see attribute ``params_names`` for the keys).
-            If None, the estimator's score method is used.
-            Default is ``None``.
-
-        cv : int, cross-validation splitter, or iterable of (train_indices, test_indices)
-            Cross-validation strategy used for Optuna-based tuning. If an integer is provided, a shuffled
-            :class:`sklearn.model_selection.KFold` with the specified number of splits and ``random_state=42`` is used.
-            Custom splitters must implement ``split`` (and ideally ``get_n_splits``), or be an iterable yielding
-            ``(train_indices, test_indices)`` pairs. Default is ``5``.
-
-        set_as_params : bool
-            Indicates whether the hyperparameters should be set in order to be used when :meth:`fit` is called.
-            Default is ``True``.
-
-        return_tune_res : bool
-            Indicates whether detailed tuning results should be returned.
-            Default is ``False``.
-
-        optuna_settings : None or dict
-            Optional configuration passed to the Optuna tuner. Supports global settings
-            as well as learner-specific overrides (using the keys from ``ml_param_space``).
-            The dictionary can contain entries corresponding to Optuna's study and optimize
-            configuration such as:
-
-            - ``n_trials`` (int): Number of optimization trials (default: 100)
-            - ``timeout`` (float): Time limit in seconds for the study (default: None)
-            - ``direction`` (str): Optimization direction, 'maximize' or 'minimize'.
-              For sklearn scorers, use 'maximize' for negative metrics like 'neg_mean_squared_error'
-              (since -0.1 > -0.2 means better performance). Can be set globally or per learner.
-              (default: 'maximize')
-            - ``sampler`` (optuna.samplers.BaseSampler): Optuna sampler instance (default: None, uses TPE)
-            - ``callbacks`` (list): List of callback functions (default: None)
-            - ``show_progress_bar`` (bool): Show progress bar during optimization (default: False)
-            - ``n_jobs_optuna`` (int): Number of parallel trials (default: None)
-            - ``verbosity`` (int): Optuna logging verbosity level (default: None)
-            - ``study`` (optuna.study.Study): Pre-created study instance (default: None)
-            - ``study_kwargs`` (dict): Additional kwargs for study creation (default: {})
-            - ``optimize_kwargs`` (dict): Additional kwargs for study.optimize() (default: {})
-
-            To set direction per learner (similar to ``scoring_methods``):
-
-            .. code-block:: python
-
-                optuna_settings = {
-                    'n_trials': 50,
-                    'direction': 'maximize',  # Global default
-                    'ml_g0': {'direction': 'maximize'},  # Per-learner override
-                    'ml_m': {'n_trials': 100, 'direction': 'maximize'}
-                }
-
-            Defaults to ``None``.
-
-        Returns
-        -------
-        self : object
-            Returned if ``return_tune_res`` is ``False``.
-
-        tune_res: list
-            A list containing detailed tuning results and the proposed hyperparameters.
-            Returned if ``return_tune_res`` is ``True``.
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> from doubleml import DoubleMLData, DoubleMLPLR
-        >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
-        >>> from lightgbm import LGBMRegressor
-        >>> import optuna
-        >>> # Generate data
-        >>> np.random.seed(42)
-        >>> data = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, return_type='DataFrame')
-        >>> dml_data = DoubleMLData(data, 'y', 'd')
-        >>> # Initialize model
-        >>> dml_plr = DoubleMLPLR(
-        ...    dml_data,
-        ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42),
-        ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42)
-        ... )
-        >>> # Define parameter grid functions
-        >>> def ml_l_params(trial):
-        ...     return {
-        ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-        ...     }
-        >>> def ml_m_params(trial):
-        ...     return {
-        ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-        ...     }
-        >>> ml_param_space = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
-        >>> # Tune with TPE sampler
-        >>> optuna_settings = {
-        ...     'n_trials': 20,
-        ...     'sampler': optuna.samplers.TPESampler(seed=42),
-        ... }
-        >>> tune_res = dml_plr.tune_ml_models(ml_param_space, optuna_settings=optuna_settings, return_tune_res=True)
-        >>> print(tune_res[0]['ml_l'].best_params)  # doctest: +SKIP
-        {'learning_rate': 0.03907122389107094}
-        >>> # Fit and get results
-        >>> dml_plr.fit().summary # doctest: +SKIP
-              coef   std err          t         P>|t|     2.5 %    97.5 %
-        d  0.57436  0.045206  12.705519  5.510257e-37  0.485759  0.662961
-        >>> # Example with scoring methods and directions
-        >>> scoring_methods = {
-        ...     'ml_l': 'neg_mean_squared_error',  # Negative metric
-        ...     'ml_m': 'neg_mean_squared_error'
-        ... }
-        >>> optuna_settings = {
-        ...     'n_trials': 50,
-        ...     'direction': 'maximize',  # Maximize negative MSE (minimize MSE)
-        ...     'sampler': optuna.samplers.TPESampler(seed=42),
-        ... }
-        >>> tune_res = dml_plr.tune_ml_models(ml_param_space, scoring_methods=scoring_methods,
-        ...                                   optuna_settings=optuna_settings, return_tune_res=True)
-        >>> print(tune_res[0]['ml_l'].best_params)  # doctest: +SKIP
-        {'learning_rate': 0.04300012336462904}
-        >>> dml_plr.fit().summary # doctest: +SKIP
-               coef   std err          t         P>|t|     2.5 %    97.5 %
-        d  0.574796  0.045062  12.755721  2.896820e-37  0.486476  0.663115
-        """
