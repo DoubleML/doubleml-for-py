@@ -84,21 +84,6 @@ class DMLOptunaResult:
 
     tuned : bool
         Indicates whether tuning was performed (True) or skipped (False).
-
-    Examples
-    --------
-    >>> from doubleml.utils import DMLOptunaResult
-    >>> # After running Optuna tuning
-    >>> result = DMLOptunaResult(
-    ...     learner_name='ml_g',
-    ...     params_name='ml_g0',
-    ...     best_estimator=estimator,
-    ...     best_params={'max_depth': 5},
-    ...     best_score=0.85,
-    ...     scoring_method='neg_mean_squared_error',
-    ...     study=study,
-    ...     tuned=True
-    ... )
     """
 
     learner_name: str
