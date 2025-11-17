@@ -958,9 +958,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             params_name="ml_m",
         )
 
-        pseudo_target = m_tune_res.best_estimator.predict(xz)
+        m_hat = cross_val_predict(m_tune_res.best_estimator, xz, d, cv=cv, method=self._predict_method["ml_m"])
         r_tune_res = _dml_tune_optuna(
-            pseudo_target,
+            m_hat,
             x,
             self._learner["ml_r"],
             optuna_params["ml_r"],
