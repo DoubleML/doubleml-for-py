@@ -32,7 +32,7 @@ def _basic_optuna_settings(additional=None):
 _SAMPLER_CASES = [
     ("random", optuna.samplers.RandomSampler(seed=3141)),
     ("tpe", optuna.samplers.TPESampler(seed=3141)),
-]
+]  # noqa: F401  # pylint: disable=unused-variable,unused-import
 
 
 def _small_tree_params(trial):
