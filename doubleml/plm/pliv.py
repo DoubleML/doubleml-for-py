@@ -924,7 +924,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         cv,
         optuna_settings,
     ):
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
