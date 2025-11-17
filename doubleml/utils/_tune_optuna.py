@@ -196,7 +196,7 @@ def resolve_optuna_cv(cv):
     if isinstance(cv, int):
         if cv < 2:
             raise ValueError(f"The number of folds used for tuning must be at least two. {cv} was passed.")
-        return KFold(n_splits=cv, shuffle=True, random_state=42)
+        return KFold(n_splits=cv, shuffle=True)
 
     if isinstance(cv, BaseCrossValidator):
         return cv
