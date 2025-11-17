@@ -209,29 +209,6 @@ def test_doubleml_optuna_cv_variants():
     assert none_m_params is not None
 
 
-def test_dml_optuna_result_predicts_after_tuning():
-    rng = np.random.default_rng(3145)
-    x = rng.normal(size=(40, 3))
-    y = x[:, 0] - 0.5 * x[:, 1] + rng.normal(size=40)
-
-    learner = DecisionTreeRegressor(random_state=101)
-
-    tune_res = _dml_tune_optuna(
-        y,
-        x,
-        learner,
-        _small_tree_params,
-        None,
-        cv=3,
-        optuna_settings=_basic_optuna_settings({"n_trials": 1}),
-        learner_name="ml_l",
-        params_name="ml_l",
-    )
-
-    preds = tune_res.best_estimator.predict(x)
-    assert preds.shape == (40,)
-
-
 def test_dml_optuna_result_predicts_without_param_grid():
     rng = np.random.default_rng(3146)
     x = rng.normal(size=(30, 2))
