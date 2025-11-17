@@ -936,6 +936,7 @@ class DoubleMLAPOS(SampleSplittingMixin):
         return_tune_res=False,
         optuna_settings=None,
     ):
+        """Hyperparameter-tuning for DoubleML models using Optuna."""
 
         tuning_kwargs = {
             "ml_param_space": ml_param_space,

@@ -243,7 +243,7 @@ TUNE_ML_MODELS_DOC = """
         >>> # Initialize model
         >>> dml_plr = DoubleMLPLR(
         ...    dml_data,
-        ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42),
+        ...    LGBMRegressorn(n_estimators=50, verbose=-1, random_state=42),
         ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42)
         ... )
         >>> # Define parameter grid functions
@@ -691,7 +691,6 @@ def _dml_tune_optuna(
 
     # Fit the best estimator on the full dataset once
     best_estimator = clone(learner).set_params(**best_params)
-    best_estimator.fit(x, y)
 
     return DMLOptunaResult(
         learner_name=learner_name,

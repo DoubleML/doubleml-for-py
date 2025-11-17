@@ -744,6 +744,8 @@ class DoubleMLDIDMulti:
         return_tune_res=False,
         optuna_settings=None,
     ):
+        """Hyperparameter-tuning for DoubleML models using Optuna."""
+
         tuning_kwargs = {
             "ml_param_space": ml_param_space,
             "scoring_methods": scoring_methods,
@@ -761,6 +763,8 @@ class DoubleMLDIDMulti:
                 tune_res.append(res[0])
 
         return tune_res if return_tune_res else self
+
+    tune_ml_models.__doc__ = TUNE_ML_MODELS_DOC
 
     def bootstrap(self, method="normal", n_rep_boot=500):
         """
@@ -1435,8 +1439,6 @@ class DoubleMLDIDMulti:
             modellist[i_model] = model
 
         return modellist
-
-    tune_ml_models.__doc__ = TUNE_ML_MODELS_DOC
 
     def _create_ci_dataframe(self, level=0.95, joint=True):
         """

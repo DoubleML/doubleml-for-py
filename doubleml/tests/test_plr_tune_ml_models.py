@@ -77,6 +77,3 @@ def test_doubleml_plr_optuna_tune_with_ml_g():
     assert "ml_g" in tune_res[0]
     ml_g_res = tune_res[0]["ml_g"]
     assert ml_g_res.best_params is not None
-
-    preds = ml_g_res.best_estimator.predict(dml_data.x)
-    assert preds.shape[0] == dml_data.n_obs

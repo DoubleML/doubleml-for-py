@@ -546,6 +546,8 @@ class DoubleMLQTE(SampleSplittingMixin):
         return_tune_res=False,
         optuna_settings=None,
     ):
+        """Hyperparameter-tuning for DoubleML models using Optuna."""
+
         tuning_kwargs = {
             "ml_param_space": ml_param_space,
             "scoring_methods": scoring_methods,
@@ -568,6 +570,8 @@ class DoubleMLQTE(SampleSplittingMixin):
                 tune_res.append({"treatment_0": res_0[0], "treatment_1": res_1[0]})
 
         return tune_res if return_tune_res else self
+
+    tune_ml_models.__doc__ = TUNE_ML_MODELS_DOC
 
     def _fit_quantile(self, i_quant, n_jobs_cv=None, store_predictions=True, store_models=False):
         model_0 = self.modellist_0[i_quant]
@@ -624,5 +628,3 @@ class DoubleMLQTE(SampleSplittingMixin):
             modellist_1[i_quant] = model_1
 
         return modellist_0, modellist_1
-
-    tune_ml_models.__doc__ = TUNE_ML_MODELS_DOC

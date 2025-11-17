@@ -937,6 +937,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         return_tune_res=False,
         optuna_settings=None,
     ):
+        """Hyperparameter-tuning for DoubleML models using Optuna."""
 
         # Validation
 
@@ -978,10 +979,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
                     self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
 
-        if return_tune_res:
-            return tuning_res
-        else:
-            return self
+        return tuning_res if return_tune_res else self
 
     tune_ml_models.__doc__ = TUNE_ML_MODELS_DOC
 
