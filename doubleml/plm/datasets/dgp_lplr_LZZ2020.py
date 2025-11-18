@@ -10,8 +10,7 @@ _data_frame_alias = _get_data_frame_alias()
 _dml_data_alias = _get_dml_data_alias()
 
 
-def make_lplr_LZZ2020(
-    n_obs=500, dim_x=20, alpha=0.5, return_type="DoubleMLData", balanced_r0=True, treatment="continuous"):
+def make_lplr_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type="DoubleMLData", balanced_r0=True, treatment="continuous"):
     r"""
     Generates synthetic data for a logistic partially linear regression model, as in Liu et al. (2021),
     designed for use in double/debiased machine learning applications.
@@ -48,6 +47,7 @@ def make_lplr_LZZ2020(
 
     return_type : str, default="DoubleMLData"
         Determines the return format. One of:
+
         - 'DoubleMLData' or DoubleMLData: returns a ``DoubleMLData`` object.
         - 'DataFrame', 'pd.DataFrame' or pd.DataFrame: returns a ``pandas.DataFrame``.
         - 'array', 'np.ndarray', 'np.array' or np.ndarray: returns tuple of numpy arrays (x, y, d, p).
@@ -60,6 +60,7 @@ def make_lplr_LZZ2020(
     treatment : str, default="continuous"
         Type of treatment variable. One of "continuous", "binary", or "binary_unbalanced".
         Determines how the treatment d is generated from a_0(x):
+
         - "continuous": d = a_0(x) (continuous treatment).
         - "binary":    d ~ Bernoulli( sigmoid(a_0(x) - mean(a_0(x))) ) .
         - "binary_unbalanced": d ~ Bernoulli( sigmoid(a_0(x)) ).

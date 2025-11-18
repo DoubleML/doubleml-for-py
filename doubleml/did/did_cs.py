@@ -59,7 +59,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Default is ``True``.
 
     Examples
-    --------    >>> import numpy as np
+    --------
+    >>> import numpy as np
     >>> import doubleml as dml
     >>> from doubleml.did.datasets import make_did_SZ2020
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier

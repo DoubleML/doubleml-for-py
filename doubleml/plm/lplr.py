@@ -28,12 +28,12 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
     ml_M : estimator implementing ``fit()`` and ``predict_proba()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function 
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function
         :math:`M_0(D, X) = P[Y = 1 | D, X]`.
 
     ml_t : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the auxiliary regression 
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the auxiliary regression
         used to predict log-odds :math:`t_0(X) = E[W | X]` where :math:`W = \\text{logit}(M_0(D, X))`.
 
     ml_m : estimator implementing ``fit()`` and ``predict()`` or ``predict_proba()``
