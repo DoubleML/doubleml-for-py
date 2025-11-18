@@ -1044,6 +1044,10 @@ class DoubleMLDIDMulti:
         if result_type not in ["effect", "rv", "est_bounds", "ci_bounds"]:
             raise ValueError("result_type must be either 'effect', 'rv', 'est_bounds' or 'ci_bounds'.")
         
+        if result_type != "effect" and self._framework.sensitivity_params is None:
+            raise ValueError(f"result_type='{result_type}' requires sensitivity analysis. "
+                           "Please call sensitivity_analysis() first.")
+        
         df = self._create_ci_dataframe(level=level, joint=joint)
 
         # Set default y_label and title based on result_type
