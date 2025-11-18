@@ -1431,6 +1431,8 @@ class DoubleMLDIDMulti:
             - 'CI Lower': Lower bound of confidence intervals
             - 'CI Upper': Upper bound of confidence intervals
             - 'Pre-Treatment': Boolean indicating if evaluation period is before treatment
+            - 'RV': Robustness values (if sensitivity_analysis() has been called before)
+            - 'RVa': Robustness values for (1-a) confidence bounds (if sensitivity_analysis() has been called before)
 
         Notes
         -----
@@ -1459,5 +1461,11 @@ class DoubleMLDIDMulti:
                 "Pre-Treatment": [gt_combination[2] < gt_combination[0] for gt_combination in self.gt_combinations],
             }
         )
-
+        if self._framework.sensitivity_params is not None:
+            df["RV"] = self.framework.sensitivity_params["rv"]
+            df["RVa"] = self.framework.sensitivity_params["rva"]
+            df["CI Lower Bound"] = self.framework.sensitivity_params["ci"]["lower"]
+            df["CI Upper Bound"] = self.framework.sensitivity_params["ci"]["upper"]
+            df["Estimate Lower Bound"] = self.framework.sensitivity_params["theta"]["lower"]
+            df["Estimate Upper Bound"] = self.framework.sensitivity_params["theta"]["upper"]
         return df
