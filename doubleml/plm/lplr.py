@@ -18,35 +18,61 @@ from doubleml.utils._estimation import (
 
 
 class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
-    """Double machine learning for partially logistic models (binary outcomes)
+    """Double machine learning for partially logistic models (binary outcomes).
 
     Parameters
     ----------
-    obj_dml_data : DoubleMLData
-        The DoubleMLData object providing the data and variable specification.
+    obj_dml_data : :class:`DoubleMLData` object
+        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
         The outcome variable y must be binary with values {0, 1}.
-    ml_M : estimator
-        Classifier for M_0(D, X) = P[Y = 1 | D, X]. Must implement fit() and predict_proba().
-    ml_t : estimator
-        Regressor for the auxiliary regression used to predict log-odds. Must implement fit() and predict().
-    ml_m : estimator
-        Learner for m_0(X) = E[D | X]. For binary treatments a classifier with predict_proba() is expected;
-        for continuous treatments a regressor with predict() is expected.
-    ml_a : estimator, optional
-        Optional alternative learner for E[D | X]. If not provided, a clone of ml_m is used.
-        Must support the same prediction interface as ml_m.
-    n_folds : int, default=5
+
+    ml_M : estimator implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function 
+        :math:`M_0(D, X) = P[Y = 1 | D, X]`.
+
+    ml_t : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the auxiliary regression 
+        used to predict log-odds :math:`t_0(X) = E[W | X]` where :math:`W = \\text{logit}(M_0(D, X))`.
+
+    ml_m : estimator implementing ``fit()`` and ``predict()`` or ``predict_proba()``
+        A machine learner for the nuisance function :math:`m_0(X) = E[D | X]`.
+        For binary treatments, a classifier implementing ``fit()`` and ``predict_proba()`` is expected
+        (e.g. :py:class:`sklearn.ensemble.RandomForestClassifier`).
+        For continuous treatments, a regressor implementing ``fit()`` and ``predict()`` is expected
+        (e.g. :py:class:`sklearn.ensemble.RandomForestRegressor`).
+
+    ml_a : estimator implementing ``fit()`` and ``predict()`` or ``predict_proba()``, optional
+        Optional alternative learner for :math:`E[D | X]`. If not provided, a clone of ``ml_m`` is used.
+        Must support the same prediction interface as ``ml_m``.
+        Default is ``None``.
+
+    n_folds : int
         Number of outer cross-fitting folds.
-    n_folds_inner : int, default=5
+        Default is ``5``.
+
+    n_folds_inner : int
         Number of inner folds for nested resampling used internally.
-    n_rep : int, default=1
-        Number of repetitions for sample splitting.
-    score : {'nuisance_space', 'instrument'}, default='nuisance_space'
-        Score to use. 'nuisance_space' estimates m on subsamples with y=0; 'instrument' uses an instrument-type score.
-    draw_sample_splitting : bool, default=True
-        Whether to draw sample splitting during initialization.
-    error_on_convergence_failure : bool, default=False
-        If True, raise an error on convergence failure of score.
+        Default is ``5``.
+
+    n_rep : int
+        Number of repetitions for the sample splitting.
+        Default is ``1``.
+
+    score : str
+        A str (``'nuisance_space'`` or ``'instrument'``) specifying the score function.
+        ``'nuisance_space'`` estimates m on subsamples with y=0;
+        ``'instrument'`` uses an instrument-type score.
+        Default is ``'nuisance_space'``.
+
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
+
+    error_on_convergence_failure : bool
+        If ``True``, raise an error on convergence failure of score.
+        Default is ``False``.
 
     Examples
     --------
@@ -74,7 +100,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         Y =  \\text{expit} ( D \\theta_0 + r_0(X))
 
     where :math:`Y` is the outcome variable and :math:`D` is the policy variable of interest.
-    The high-dimensional vector :math:`X = (X_1, \\ldots, X_p)` consists of other confounding covariates.
+    The (potentially) high-dimensional vector :math:`X = (X_1, \\ldots, X_p)` consists of other confounding covariates.
     """
 
     def __init__(

@@ -11,16 +11,15 @@ _dml_data_alias = _get_dml_data_alias()
 
 
 def make_lplr_LZZ2020(
-    n_obs=500, dim_x=20, alpha=0.5, return_type="DoubleMLData", balanced_r0=True, treatment="continuous", **kwargs
-):
+    n_obs=500, dim_x=20, alpha=0.5, return_type="DoubleMLData", balanced_r0=True, treatment="continuous"):
     r"""
     Generates synthetic data for a logistic partially linear regression model, as in Liu et al. (2021),
     designed for use in double/debiased machine learning applications.
 
     The data generating process is defined as follows:
 
-    - Covariates :math:`x_i \sim \mathcal{N}(0, \Sigma)`, where :math:`\Sigma_{kj} = 0.7^{|j-k|}`.
-    - Treatment :math:`d_i = a_0(x_i)`.
+    - Covariates :math:`x_i \sim \mathcal{N}(0, \Sigma)`, where :math:`\Sigma_{kj} = 0.2^{|j-k|}`.
+    - Treatment :math:`d_i = a_0(x_i)` (or a binary transformation thereof, depending on the `treatment` parameter).
     - Propensity score :math:`p_i = \sigma(\alpha d_i + r_0(x_i))`, where :math:`\sigma(\cdot)` is the logistic function.
     - Outcome :math:`y_i \sim \text{Bernoulli}(p_i)`.
 
@@ -38,30 +37,32 @@ def make_lplr_LZZ2020(
 
     Parameters
     ----------
-    n_obs : int
+    n_obs : int, default=500
         Number of observations to simulate.
-    dim_x : int
-        Number of covariates.
-    alpha : float
-        Value of the causal parameter.
-    return_type : str
-        Determines the return format. One of:
 
+    dim_x : int, default=20
+        Number of covariates.
+
+    alpha : float, default=0.5
+        Value of the causal parameter.
+
+    return_type : str, default="DoubleMLData"
+        Determines the return format. One of:
         - 'DoubleMLData' or DoubleMLData: returns a ``DoubleMLData`` object.
         - 'DataFrame', 'pd.DataFrame' or pd.DataFrame: returns a ``pandas.DataFrame``.
         - 'array', 'np.ndarray', 'np.array' or np.ndarray: returns tuple of numpy arrays (x, y, d, p).
-    balanced_r0 : bool, default True
+
+    balanced_r0 : bool, default=True
         If True, uses the "balanced" r_0 specification (smaller magnitude / more balanced
         heterogeneity). If False, uses an "unbalanced" r_0 specification with larger
         share of Y=0.
-    treatment : {'continuous', 'binary', 'binary_unbalanced'}, default 'continuous'
-        Determines how the treatment d is generated from a_0(x):
-        - 'continuous': d = a_0(x) (continuous treatment).
-        - 'binary':    d ~ Bernoulli( sigmoid(a_0(x) - mean(a_0(x))) ) .
-        - 'binary_unbalanced': d ~ Bernoulli( sigmoid(a_0(x)) ).
 
-    **kwargs
-        Optional keyword arguments (currently unused in this implementation).
+    treatment : str, default="continuous"
+        Type of treatment variable. One of "continuous", "binary", or "binary_unbalanced".
+        Determines how the treatment d is generated from a_0(x):
+        - "continuous": d = a_0(x) (continuous treatment).
+        - "binary":    d ~ Bernoulli( sigmoid(a_0(x) - mean(a_0(x))) ) .
+        - "binary_unbalanced": d ~ Bernoulli( sigmoid(a_0(x)) ).
 
     Returns
     -------
@@ -72,7 +73,8 @@ def make_lplr_LZZ2020(
     ----------
     Liu, Molei, Yi Zhang, and Doudou Zhou. 2021.
     "Double/Debiased Machine Learning for Logistic Partially Linear Model."
-    The Econometrics Journal 24 (3): 559–88. https://doi.org/10.1093/ectj/utab019.
+    The Econometrics Journal 24 (3): 559–88.
+    doi:`10.1093/ectj/utab019 <https://doi.org/10.1093/ectj/utab019>`_.
 
     """
 
