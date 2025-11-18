@@ -1040,14 +1040,15 @@ class DoubleMLDIDMulti:
         """
         if self.framework is None:
             raise ValueError("Apply fit() before plot_effects().")
-        
+
         if result_type not in ["effect", "rv", "est_bounds", "ci_bounds"]:
             raise ValueError("result_type must be either 'effect', 'rv', 'est_bounds' or 'ci_bounds'.")
-        
+
         if result_type != "effect" and self._framework.sensitivity_params is None:
-            raise ValueError(f"result_type='{result_type}' requires sensitivity analysis. "
-                           "Please call sensitivity_analysis() first.")
-        
+            raise ValueError(
+                f"result_type='{result_type}' requires sensitivity analysis. " "Please call sensitivity_analysis() first."
+            )
+
         df = self._create_ci_dataframe(level=level, joint=joint)
 
         # Set default y_label and title based on result_type
@@ -1055,9 +1056,9 @@ class DoubleMLDIDMulti:
             "effect": {"y_label": "Effect", "title": "Estimated ATTs by Group"},
             "rv": {"y_label": "Robustness Value", "title": "Robustness Values by Group"},
             "est_bounds": {"y_label": "Estimate Bounds", "title": "Estimate Bounds by Group"},
-            "ci_bounds": {"y_label": "Confidence Interval Bounds", "title": "Confidence Interval Bounds by Group"}
+            "ci_bounds": {"y_label": "Confidence Interval Bounds", "title": "Confidence Interval Bounds by Group"},
         }
-        
+
         config = label_configs[result_type]
         y_label = y_label if y_label is not None else config["y_label"]
         title = title if title is not None else config["title"]
@@ -1198,10 +1199,20 @@ class DoubleMLDIDMulti:
         plot_configs = {
             "effect": {"plot_col": "Estimate", "err_col_upper": "CI Upper", "err_col_lower": "CI Lower", "s_val": 30},
             "rv": {"plot_col": "RV", "plot_col_2": "RVa", "s_val": 50},
-            "est_bounds": {"plot_col": "Estimate", "err_col_upper": "Estimate Upper Bound", "err_col_lower": "Estimate Lower Bound", "s_val": 30},
-            "ci_bounds": {"plot_col": "Estimate", "err_col_upper": "CI Upper Bound", "err_col_lower": "CI Lower Bound", "s_val": 30}
+            "est_bounds": {
+                "plot_col": "Estimate",
+                "err_col_upper": "Estimate Upper Bound",
+                "err_col_lower": "Estimate Lower Bound",
+                "s_val": 30,
+            },
+            "ci_bounds": {
+                "plot_col": "Estimate",
+                "err_col_upper": "CI Upper Bound",
+                "err_col_lower": "CI Lower Bound",
+                "s_val": 30,
+            },
         }
-        
+
         config = plot_configs[result_type]
         plot_col = config["plot_col"]
         plot_col_2 = config.get("plot_col_2")
@@ -1240,13 +1251,17 @@ class DoubleMLDIDMulti:
                         markeredgewidth=1,
                         linewidth=1,
                     )
-                    
+
                 elif result_type == "rv":
                     ax.scatter(
-                        category_data["jittered_x"], category_data[plot_col_2], color=colors[category_name], alpha=0.8, s=s_val,
-                        marker="s"
+                        category_data["jittered_x"],
+                        category_data[plot_col_2],
+                        color=colors[category_name],
+                        alpha=0.8,
+                        s=s_val,
+                        marker="s",
                     )
-        
+
         # Format axes
         if is_datetime:
             period_str = np.datetime64(period, self._dml_data.datetime_unit)

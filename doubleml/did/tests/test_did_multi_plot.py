@@ -195,10 +195,10 @@ def test_plot_effects_result_types(doubleml_did_fixture):
     fig_effect, axes_effect = dml_obj.plot_effects(result_type="effect")
     assert isinstance(fig_effect, plt.Figure)
     assert isinstance(axes_effect, list)
-    
+
     # Check that the default y-label is set correctly
     assert axes_effect[0].get_ylabel() == "Effect"
-    
+
     plt.close("all")
 
 
@@ -206,18 +206,18 @@ def test_plot_effects_result_types(doubleml_did_fixture):
 def test_plot_effects_result_type_rv(doubleml_did_fixture):
     """Test plot_effects with result_type='rv' (requires sensitivity analysis)."""
     dml_obj = doubleml_did_fixture["model"]
-    
+
     # Perform sensitivity analysis first
     dml_obj.sensitivity_analysis(cf_y=0.03, cf_d=0.03)
-    
+
     # Test result_type='rv'
     fig_rv, axes_rv = dml_obj.plot_effects(result_type="rv")
     assert isinstance(fig_rv, plt.Figure)
     assert isinstance(axes_rv, list)
-    
+
     # Check that the y-label is set correctly
     assert axes_rv[0].get_ylabel() == "Robustness Value"
-    
+
     plt.close("all")
 
 
@@ -225,18 +225,18 @@ def test_plot_effects_result_type_rv(doubleml_did_fixture):
 def test_plot_effects_result_type_est_bounds(doubleml_did_fixture):
     """Test plot_effects with result_type='est_bounds' (requires sensitivity analysis)."""
     dml_obj = doubleml_did_fixture["model"]
-    
+
     # Perform sensitivity analysis first
     dml_obj.sensitivity_analysis(cf_y=0.03, cf_d=0.03)
-    
+
     # Test result_type='est_bounds'
     fig_est, axes_est = dml_obj.plot_effects(result_type="est_bounds")
     assert isinstance(fig_est, plt.Figure)
     assert isinstance(axes_est, list)
-    
+
     # Check that the y-label is set correctly
     assert axes_est[0].get_ylabel() == "Estimate Bounds"
-    
+
     plt.close("all")
 
 
@@ -244,18 +244,18 @@ def test_plot_effects_result_type_est_bounds(doubleml_did_fixture):
 def test_plot_effects_result_type_ci_bounds(doubleml_did_fixture):
     """Test plot_effects with result_type='ci_bounds' (requires sensitivity analysis)."""
     dml_obj = doubleml_did_fixture["model"]
-    
+
     # Perform sensitivity analysis first
     dml_obj.sensitivity_analysis(cf_y=0.03, cf_d=0.03)
-    
+
     # Test result_type='ci_bounds'
     fig_ci, axes_ci = dml_obj.plot_effects(result_type="ci_bounds")
     assert isinstance(fig_ci, plt.Figure)
     assert isinstance(axes_ci, list)
-    
+
     # Check that the y-label is set correctly
     assert axes_ci[0].get_ylabel() == "Confidence Interval Bounds"
-    
+
     plt.close("all")
 
 
@@ -263,11 +263,11 @@ def test_plot_effects_result_type_ci_bounds(doubleml_did_fixture):
 def test_plot_effects_result_type_invalid(doubleml_did_fixture):
     """Test plot_effects with invalid result_type."""
     dml_obj = doubleml_did_fixture["model"]
-    
+
     # Test with invalid result_type
     with pytest.raises(ValueError, match="result_type must be either"):
         dml_obj.plot_effects(result_type="invalid_type")
-    
+
     plt.close("all")
 
 
@@ -275,22 +275,18 @@ def test_plot_effects_result_type_invalid(doubleml_did_fixture):
 def test_plot_effects_result_type_with_custom_labels(doubleml_did_fixture):
     """Test plot_effects with result_type and custom labels."""
     dml_obj = doubleml_did_fixture["model"]
-    
+
     # Perform sensitivity analysis first
     dml_obj.sensitivity_analysis(cf_y=0.03, cf_d=0.03)
-    
+
     # Test result_type with custom labels
     custom_title = "Custom Sensitivity Plot"
     custom_ylabel = "Custom Bounds Label"
-    
-    fig, axes = dml_obj.plot_effects(
-        result_type="est_bounds",
-        title=custom_title,
-        y_label=custom_ylabel
-    )
-    
+
+    fig, axes = dml_obj.plot_effects(result_type="est_bounds", title=custom_title, y_label=custom_ylabel)
+
     assert isinstance(fig, plt.Figure)
     assert fig._suptitle.get_text() == custom_title
     assert axes[0].get_ylabel() == custom_ylabel
-    
+
     plt.close("all")
