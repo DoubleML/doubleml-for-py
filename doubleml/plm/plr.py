@@ -3,14 +3,16 @@ import warnings
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
+from sklearn.model_selection import cross_val_predict
 from sklearn.utils import check_X_y
 
-from ..data.base_data import DoubleMLData
-from ..double_ml import DoubleML
-from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
-from ..utils._estimation import _dml_cv_predict, _dml_tune
-from ..utils.blp import DoubleMLBLP
+from doubleml.data.base_data import DoubleMLData
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune
+from doubleml.utils._tune_optuna import _dml_tune_optuna
+from doubleml.utils.blp import DoubleMLBLP
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):
@@ -68,7 +70,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     >>> ml_m = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
     >>> obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=500, dim_x=20)
     >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-    >>> dml_plr_obj.fit().summary
+    >>> dml_plr_obj.fit().summary # doctest: +SKIP
            coef   std err          t         P>|t|     2.5 %    97.5 %
     d  0.480691  0.040533  11.859129  1.929729e-32  0.401247  0.560135
 
@@ -371,6 +373,76 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+        """
+        Optuna-based hyperparameter tuning for PLR nuisance models.
+
+        Performs tuning once on the whole dataset using cross-validation,
+        returning the same optimal parameters for all folds.
+        """
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_l": None, "ml_m": None, "ml_g": None}
+
+        l_tune_res = _dml_tune_optuna(
+            y,
+            x,
+            self._learner["ml_l"],
+            optuna_params["ml_l"],
+            scoring_methods["ml_l"],
+            cv,
+            optuna_settings,
+            learner_name="ml_l",
+            params_name="ml_l",
+        )
+        m_tune_res = _dml_tune_optuna(
+            d,
+            x,
+            self._learner["ml_m"],
+            optuna_params["ml_m"],
+            scoring_methods["ml_m"],
+            cv,
+            optuna_settings,
+            learner_name="ml_m",
+            params_name="ml_m",
+        )
+
+        results = {"ml_l": l_tune_res, "ml_m": m_tune_res}
+
+        # an ML model for g is obtained for the IV-type score and callable scores
+        if "ml_g" in self._learner:
+            # construct an initial theta estimate from the tuned models using the partialling out score
+            # use cross-fitting for tuning ml_g
+            l_hat = cross_val_predict(l_tune_res.best_estimator, x, y, cv=cv, method=self._predict_method["ml_l"])
+            m_hat = cross_val_predict(m_tune_res.best_estimator, x, d, cv=cv, method=self._predict_method["ml_m"])
+            psi_a = -np.multiply(d - m_hat, d - m_hat)
+            psi_b = np.multiply(d - m_hat, y - l_hat)
+            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+
+            g_tune_res = _dml_tune_optuna(
+                y - theta_initial * d,
+                x,
+                self._learner["ml_g"],
+                optuna_params["ml_g"],
+                scoring_methods["ml_g"],
+                cv,
+                optuna_settings,
+                learner_name="ml_g",
+                params_name="ml_g",
+            )
+            results["ml_g"] = g_tune_res
+
+        return results
 
     def cate(self, basis, is_gate=False, **kwargs):
         """

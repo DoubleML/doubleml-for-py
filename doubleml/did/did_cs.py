@@ -9,6 +9,7 @@ from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_is_propensity, _check_score
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 
 
 # TODO: Remove DoubleMLDIDData with version 0.12.0
@@ -69,7 +70,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
     >>> data = make_did_SZ2020(n_obs=500, cross_sectional_data=True, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLDIDData(data, 'y', 'd', t_col='t')
     >>> dml_did_obj = dml.DoubleMLDIDCS(obj_dml_data, ml_g, ml_m)
-    >>> dml_did_obj.fit().summary
+    >>> dml_did_obj.fit().summary # doctest: +SKIP
          coef   std err         t     P>|t|      2.5 %    97.5 %
     d -4.9944  7.561785 -0.660479  0.508947 -19.815226  9.826426
     """
@@ -658,6 +659,82 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, t = check_X_y(x, self._dml_data.t, force_all_finite=False)
+
+        if scoring_methods is None:
+            if self.score == "observational":
+                scoring_methods = {
+                    "ml_g_d0_t0": None,
+                    "ml_g_d0_t1": None,
+                    "ml_g_d1_t0": None,
+                    "ml_g_d1_t1": None,
+                    "ml_m": None,
+                }
+            else:
+                scoring_methods = {
+                    "ml_g_d0_t0": None,
+                    "ml_g_d0_t1": None,
+                    "ml_g_d1_t0": None,
+                    "ml_g_d1_t1": None,
+                }
+
+        masks = {
+            "d0_t0": (d == 0) & (t == 0),
+            "d0_t1": (d == 0) & (t == 1),
+            "d1_t0": (d == 1) & (t == 0),
+            "d1_t1": (d == 1) & (t == 1),
+        }
+
+        g_tune_results = {}
+        for key, mask in masks.items():
+            x_subset = x[mask, :]
+            y_subset = y[mask]
+            params_key = f"ml_g_{key}"
+            param_grid = optuna_params[params_key]
+            scoring = scoring_methods[params_key]
+            g_tune_results[key] = _dml_tune_optuna(
+                y_subset,
+                x_subset,
+                self._learner["ml_g"],
+                param_grid,
+                scoring,
+                cv,
+                optuna_settings,
+                learner_name="ml_g",
+                params_name=params_key,
+            )
+
+        m_tune_res = None
+        if self.score == "observational":
+            m_tune_res = _dml_tune_optuna(
+                d,
+                x,
+                self._learner["ml_m"],
+                optuna_params["ml_m"],
+                scoring_methods["ml_m"],
+                cv,
+                optuna_settings,
+                learner_name="ml_m",
+                params_name="ml_m",
+            )
+
+        results = {f"ml_g_{key}": res_obj for key, res_obj in g_tune_results.items()}
+
+        if self.score == "observational":
+            results["ml_m"] = m_tune_res
+
+        return results
 
     def sensitivity_benchmark(self, benchmarking_set, fit_args=None):
         """

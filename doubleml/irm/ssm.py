@@ -12,6 +12,7 @@ from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_score
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d, _predict_zero_one_propensity
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -571,6 +572,204 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         }
 
         return {"params": params, "tune_res": tune_res}
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, s = check_X_y(x, self._dml_data.s, force_all_finite=False)
+
+        if self._score == "nonignorable":
+            z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {
+                "ml_g_d0": None,
+                "ml_g_d1": None,
+                "ml_pi": None,
+                "ml_m": None,
+            }
+
+        def get_param_and_scoring(key):
+            return optuna_params[key], scoring_methods[key]
+
+        if self._score == "nonignorable":
+            train_index = np.arange(x.shape[0])
+            stratify_vec = d[train_index] + 2 * s[train_index]
+            inner0, inner1 = train_test_split(train_index, test_size=0.5, stratify=stratify_vec, random_state=42)
+            inner_train0_inds = [inner0]
+            inner_train1_inds = [inner1]
+
+            def filter_by_ds(indices):
+                inner1_d0_s1, inner1_d1_s1 = [], []
+                for idx in indices:
+                    d_fold = d[idx]
+                    s_fold = s[idx]
+                    mask_d0_s1 = (d_fold == 0) & (s_fold == 1)
+                    mask_d1_s1 = (d_fold == 1) & (s_fold == 1)
+                    inner1_d0_s1.append(idx[mask_d0_s1])
+                    inner1_d1_s1.append(idx[mask_d1_s1])
+                return inner1_d0_s1, inner1_d1_s1
+
+            inner_train1_d0_s1, inner_train1_d1_s1 = filter_by_ds(inner_train1_inds)
+
+            x_d_z = np.column_stack((x, d, z))
+            pi_tune_res = []
+            pi_hat_full = np.full_like(s, np.nan, dtype=float)
+            for inner0_idx, inner1_idx in zip(inner_train0_inds, inner_train1_inds):
+                x_inner0 = x_d_z[inner0_idx, :]
+                s_inner0 = s[inner0_idx]
+                tuned = _dml_tune_optuna(
+                    s_inner0,
+                    x_inner0,
+                    self._learner["ml_pi"],
+                    optuna_params["ml_pi"],
+                    scoring_methods["ml_pi"],
+                    cv,
+                    optuna_settings,
+                    learner_name="ml_pi",
+                    params_name="ml_pi",
+                )
+                pi_tune_res.append(tuned)
+                ml_pi_temp = clone(self._learner["ml_pi"])
+                ml_pi_temp.set_params(**tuned.best_params)
+                ml_pi_temp.fit(x_inner0, s_inner0)
+                pi_hat_full[inner1_idx] = _predict_zero_one_propensity(ml_pi_temp, x_d_z)[inner1_idx]
+
+            x_pi = np.column_stack([x, pi_hat_full.reshape(-1, 1)])
+            inner1_idx = inner_train1_inds[0]
+            m_subset = x_pi[inner1_idx, :]
+            d_subset = d[inner1_idx]
+            m_tune_res = _dml_tune_optuna(
+                d_subset,
+                m_subset,
+                self._learner["ml_m"],
+                optuna_params["ml_m"],
+                scoring_methods["ml_m"],
+                cv,
+                optuna_settings,
+                learner_name="ml_m",
+                params_name="ml_m",
+            )
+
+            x_pi_d = np.column_stack([x, d.reshape(-1, 1), pi_hat_full.reshape(-1, 1)])
+            g_d0_tune_res = []
+            g_d1_tune_res = []
+
+            g_d0_param, g_d0_scoring = get_param_and_scoring("ml_g_d0")
+            for subset in inner_train1_d0_s1:
+                if subset.size == 0:
+                    continue
+                res = _dml_tune_optuna(
+                    y[subset],
+                    x_pi_d[subset, :],
+                    self._learner["ml_g"],
+                    g_d0_param,
+                    g_d0_scoring,
+                    cv,
+                    optuna_settings,
+                    learner_name="ml_g",
+                    params_name="ml_g_d0",
+                )
+                g_d0_tune_res.append(res)
+
+            g_d1_param, g_d1_scoring = get_param_and_scoring("ml_g_d1")
+            for subset in inner_train1_d1_s1:
+                if subset.size == 0:
+                    continue
+                res = _dml_tune_optuna(
+                    y[subset],
+                    x_pi_d[subset, :],
+                    self._learner["ml_g"],
+                    g_d1_param,
+                    g_d1_scoring,
+                    cv,
+                    optuna_settings,
+                    learner_name="ml_g",
+                    params_name="ml_g_d1",
+                )
+                g_d1_tune_res.append(res)
+
+            results = {
+                "ml_g_d0": g_d0_tune_res,
+                "ml_g_d1": g_d1_tune_res,
+                "ml_pi": pi_tune_res,
+                "ml_m": m_tune_res,
+            }
+        else:
+            mask_d0_s1 = np.logical_and(d == 0, s == 1)
+            mask_d1_s1 = np.logical_and(d == 1, s == 1)
+
+            g_d0_param, g_d0_scoring = get_param_and_scoring("ml_g_d0")
+            g_d1_param, g_d1_scoring = get_param_and_scoring("ml_g_d1")
+
+            x_d0 = x[mask_d0_s1, :]
+            y_d0 = y[mask_d0_s1]
+            g_d0_tune_res = _dml_tune_optuna(
+                y_d0,
+                x_d0,
+                self._learner["ml_g"],
+                g_d0_param,
+                g_d0_scoring,
+                cv,
+                optuna_settings,
+                learner_name="ml_g",
+                params_name="ml_g_d0",
+            )
+
+            x_d1 = x[mask_d1_s1, :]
+            y_d1 = y[mask_d1_s1]
+            g_d1_tune_res = _dml_tune_optuna(
+                y_d1,
+                x_d1,
+                self._learner["ml_g"],
+                g_d1_param,
+                g_d1_scoring,
+                cv,
+                optuna_settings,
+                learner_name="ml_g",
+                params_name="ml_g_d1",
+            )
+
+            x_d_feat = np.column_stack((x, d))
+            pi_tune_res = _dml_tune_optuna(
+                s,
+                x_d_feat,
+                self._learner["ml_pi"],
+                optuna_params["ml_pi"],
+                scoring_methods["ml_pi"],
+                cv,
+                optuna_settings,
+                learner_name="ml_pi",
+                params_name="ml_pi",
+            )
+
+            m_tune_res = _dml_tune_optuna(
+                d,
+                x,
+                self._learner["ml_m"],
+                optuna_params["ml_m"],
+                scoring_methods["ml_m"],
+                cv,
+                optuna_settings,
+                learner_name="ml_m",
+                params_name="ml_m",
+            )
+
+            results = {
+                "ml_g_d0": g_d0_tune_res,
+                "ml_g_d1": g_d1_tune_res,
+                "ml_pi": pi_tune_res,
+                "ml_m": m_tune_res,
+            }
+
+        return results
 
     def _sensitivity_element_est(self, preds):
         pass
