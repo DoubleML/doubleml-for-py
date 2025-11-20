@@ -253,3 +253,29 @@ def test_nonlinear_warnings(generate_data1, coef_bounds):
     with pytest.warns(UserWarning, match=msg):
         dml_plr_obj._coef_bounds = coef_bounds
         dml_plr_obj.fit()
+
+
+@pytest.mark.ci
+def test_nonlinear_errors(generate_data1, coef_bounds):
+    # collect data
+    data = generate_data1
+    x_cols = data.columns[data.columns.str.startswith("X")].tolist()
+
+    np.random.seed(3141)
+    obj_dml_data = dml.DoubleMLData(data, "y", ["d"], x_cols)
+
+    dml_plr_obj = DoubleMLPLRWithNonLinearScoreMixin(obj_dml_data, LinearRegression(), LinearRegression(), score="no_root_pos")
+    dml_plr_obj._error_on_convergence_failure = True
+
+    msg = "Could not find a root of the score function."
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_obj._coef_bounds = coef_bounds
+        dml_plr_obj.fit()
+
+    dml_plr_obj = DoubleMLPLRWithNonLinearScoreMixin(obj_dml_data, LinearRegression(), LinearRegression(), score="no_root_neg")
+    dml_plr_obj._error_on_convergence_failure = True
+
+    msg = "Could not find a root of the score function."
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_obj._coef_bounds = coef_bounds
+        dml_plr_obj.fit()

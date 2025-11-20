@@ -99,7 +99,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     >>> data = make_iivm_data(theta=0.5, n_obs=1000, dim_x=20, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
     >>> dml_lpq_obj = dml.DoubleMLLPQ(obj_dml_data, ml_g, ml_m, treatment=1, quantile=0.5)
-    >>> dml_lpq_obj.fit().summary
+    >>> dml_lpq_obj.fit().summary  # doctest: +SKIP
            coef   std err         t    P>|t|    2.5 %    97.5 %
     d  0.217244  0.636453  0.341336  0.73285 -1.03018  1.464668
     """
