@@ -9,7 +9,7 @@ from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV, cro
 from sklearn.preprocessing import LabelEncoder
 from statsmodels.nonparametric.kde import KDEUnivariate
 
-from ._checks import _check_is_partition
+from ._checks import _check_finite_predictions, _check_is_partition
 
 
 def _assure_2d_array(x):
@@ -38,13 +38,25 @@ def _get_cond_smpls_2d(smpls, bin_var1, bin_var2):
     return smpls_00, smpls_01, smpls_10, smpls_11
 
 
-def _fit(estimator, x, y, train_index, idx=None):
-    estimator.fit(x[train_index, :], y[train_index])
+def _fit(estimator, x, y, train_index, idx=None, sample_weights=None):
+    if sample_weights is not None:
+        estimator.fit(x[train_index, :], y[train_index], sample_weight=sample_weights[train_index])
+    else:
+        estimator.fit(x[train_index, :], y[train_index])
     return estimator, idx
 
 
 def _dml_cv_predict(
-    estimator, x, y, smpls=None, n_jobs=None, est_params=None, method="predict", return_train_preds=False, return_models=False
+    estimator,
+    x,
+    y,
+    smpls=None,
+    n_jobs=None,
+    est_params=None,
+    method="predict",
+    return_train_preds=False,
+    return_models=False,
+    sample_weights=None,
 ):
     n_obs = x.shape[0]
 
@@ -57,14 +69,33 @@ def _dml_cv_predict(
 
     res = {"models": None}
     if not manual_cv_predict:
+        # prepare fit_params for cross_val_predict
+        fit_params_for_cv = {"sample_weight": sample_weights} if sample_weights is not None else None
+
         if est_params is None:
             # if there are no parameters set we redirect to the standard method
-            preds = cross_val_predict(clone(estimator), x, y, cv=smpls, n_jobs=n_jobs, method=method)
+            preds = cross_val_predict(
+                clone(estimator),
+                x,
+                y,
+                cv=smpls,
+                n_jobs=n_jobs,
+                method=method,
+                params=fit_params_for_cv,
+            )
         else:
             assert isinstance(est_params, dict)
             # if no fold-specific parameters we redirect to the standard method
             # warnings.warn("Using the same (hyper-)parameters for all folds")
-            preds = cross_val_predict(clone(estimator).set_params(**est_params), x, y, cv=smpls, n_jobs=n_jobs, method=method)
+            preds = cross_val_predict(
+                clone(estimator).set_params(**est_params),
+                x,
+                y,
+                cv=smpls,
+                n_jobs=n_jobs,
+                method=method,
+                params=fit_params_for_cv,
+            )
         if method == "predict_proba":
             res["preds"] = preds[:, 1]
         else:
@@ -73,7 +104,7 @@ def _dml_cv_predict(
     else:
         if not smpls_is_partition:
             assert not fold_specific_target, "combination of fold-specific y and no cross-fitting not implemented yet"
-            assert len(smpls) == 1
+            # assert len(smpls) == 1
 
         if method == "predict_proba":
             assert not fold_specific_target  # fold_specific_target only needed for PLIV.partialXZ
@@ -95,19 +126,28 @@ def _dml_cv_predict(
 
         if est_params is None:
             fitted_models = parallel(
-                delayed(_fit)(clone(estimator), x, y_list[idx], train_index, idx)
+                delayed(_fit)(clone(estimator), x, y_list[idx], train_index, idx, sample_weights=sample_weights)
                 for idx, (train_index, test_index) in enumerate(smpls)
             )
         elif isinstance(est_params, dict):
             # warnings.warn("Using the same (hyper-)parameters for all folds")
             fitted_models = parallel(
-                delayed(_fit)(clone(estimator).set_params(**est_params), x, y_list[idx], train_index, idx)
+                delayed(_fit)(
+                    clone(estimator).set_params(**est_params), x, y_list[idx], train_index, idx, sample_weights=sample_weights
+                )
                 for idx, (train_index, test_index) in enumerate(smpls)
             )
         else:
             assert len(est_params) == len(smpls), "provide one parameter setting per fold"
             fitted_models = parallel(
-                delayed(_fit)(clone(estimator).set_params(**est_params[idx]), x, y_list[idx], train_index, idx)
+                delayed(_fit)(
+                    clone(estimator).set_params(**est_params[idx]),
+                    x,
+                    y_list[idx],
+                    train_index,
+                    idx,
+                    sample_weights=sample_weights,
+                )
                 for idx, (train_index, test_index) in enumerate(smpls)
             )
 
@@ -147,11 +187,65 @@ def _dml_cv_predict(
     return res
 
 
+def _double_dml_cv_predict(
+    estimator,
+    estimator_name,
+    x,
+    y,
+    smpls=None,
+    smpls_inner=None,
+    n_jobs=None,
+    est_params=None,
+    method="predict",
+    sample_weights=None,
+):
+    res = {}
+    res["preds"] = np.zeros(y.shape, dtype=float)
+    res["preds_inner"] = []
+    res["targets_inner"] = []
+    res["models"] = []
+    for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
+        res_inner = _dml_cv_predict(
+            estimator,
+            x,
+            y,
+            smpls=smpls_double_split,
+            n_jobs=n_jobs,
+            est_params=est_params,
+            method=method,
+            return_models=True,
+            sample_weights=sample_weights,
+        )
+        _check_finite_predictions(res_inner["preds"], estimator, estimator_name, smpls_double_split)
+
+        res["preds_inner"].append(res_inner["preds"])
+        res["targets_inner"].append(res_inner["targets"])
+        for model in res_inner["models"]:
+            res["models"].append(model)
+            if method == "predict_proba":
+                res["preds"][smpls_single_split[1]] += model.predict_proba(x[smpls_single_split[1]])[:, 1]
+            else:
+                res["preds"][smpls_single_split[1]] += model.predict(x[smpls_single_split[1]])
+    res["preds"] /= len(smpls)
+    res["targets"] = np.copy(y)
+    return res
+
+
 def _dml_tune(
-    y, x, train_inds, learner, param_grid, scoring_method, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+    y,
+    x,
+    train_inds,
+    learner,
+    param_grid,
+    scoring_method,
+    n_folds_tune,
+    n_jobs_cv,
+    search_mode,
+    n_iter_randomized_search,
+    fold_specific_target=False,
 ):
     tune_res = list()
-    for train_index in train_inds:
+    for i, train_index in enumerate(train_inds):
         tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         if search_mode == "grid_search":
             g_grid_search = GridSearchCV(learner, param_grid, scoring=scoring_method, cv=tune_resampling, n_jobs=n_jobs_cv)
@@ -165,7 +259,10 @@ def _dml_tune(
                 n_jobs=n_jobs_cv,
                 n_iter=n_iter_randomized_search,
             )
-        tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
+        if fold_specific_target:
+            tune_res.append(g_grid_search.fit(x[train_index, :], y[i]))
+        else:
+            tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
 
     return tune_res
 
@@ -332,7 +429,7 @@ def _set_external_predictions(external_predictions, learners, treatment, i_rep):
             ext_prediction_dict[learner] = None
         elif learner in external_predictions[treatment].keys():
             if isinstance(external_predictions[treatment][learner], np.ndarray):
-                ext_prediction_dict[learner] = external_predictions[treatment][learner][:, i_rep]
+                ext_prediction_dict[learner] = external_predictions[treatment][learner][:, i_rep].astype(float)
             else:
                 ext_prediction_dict[learner] = None
         else:
