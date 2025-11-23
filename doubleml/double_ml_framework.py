@@ -21,11 +21,11 @@ from .utils._plots import _sensitivity_contour_plot
 
 
 class DoubleMLFramework:
-    """Double Machine Learning Framework to combine DoubleML classes and compute confidendence intervals.
+    """Double Machine Learning Framework to combine DoubleML classes and compute confidence intervals.
 
     Parameters
     ----------
-    doubleml_dict : :dict
+    doubleml_dict : dict
         A dictionary providing the estimated parameters and normalized scores. Keys have to be 'thetas', 'ses',
         'all_thetas', 'all_ses', 'var_scaling_factors' and 'scaled_psi'.
         Values have to be numpy arrays with the corresponding shapes.
