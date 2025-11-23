@@ -24,8 +24,6 @@ from .utils._plots import _sensitivity_contour_plot
 
 @dataclass
 class DoubleMLCore:
-    thetas: np.ndarray
-    ses: np.ndarray
     all_thetas: np.ndarray
     all_ses: np.ndarray
     var_scaling_factors: np.ndarray
@@ -42,10 +40,6 @@ class DoubleMLCore:
 
     Parameters
     ----------
-    thetas : np.ndarray
-        Estimated target parameters (shape: (n_thetas,)).
-    ses : np.ndarray
-        Estimated standard errors (shape: (n_thetas,)).
     all_thetas : np.ndarray
         Estimated target parameters for each repetition (shape: (n_thetas, n_rep)).
     all_ses : np.ndarray
@@ -80,8 +74,6 @@ class DoubleMLCore:
     def _check_arrays(self):
         """Type and shape checks for input arrays."""
         arrays = {
-            "thetas": self.thetas,
-            "ses": self.ses,
             "all_thetas": self.all_thetas,
             "all_ses": self.all_ses,
             "var_scaling_factors": self.var_scaling_factors,
@@ -92,8 +84,6 @@ class DoubleMLCore:
                 raise TypeError(f"{name} must be a numpy.ndarray, got {type(arr)}.")
 
         expected_shapes = {
-            "thetas": (self._n_thetas,),
-            "ses": (self._n_thetas,),
             "all_thetas": (self._n_thetas, self._n_rep),
             "all_ses": (self._n_thetas, self._n_rep),
             "var_scaling_factors": (self._n_thetas,),
@@ -192,6 +182,9 @@ class DoubleMLFramework:
             self._check_treatment_names(treatment_names)
         self._treatment_names = treatment_names
 
+        # aggregate estimates
+        self._thetas, self._ses = _aggregate_coefs_and_ses(self.all_thetas, self.all_ses)
+
         # initialize sensitivity analysis attributes
         self._sensitivity_implemented = self._dml_core.sensitivity_elements is not None
         self._benchmark_available = self._sensitivity_implemented and all(
@@ -237,7 +230,7 @@ class DoubleMLFramework:
         """
         Estimated target parameters (shape (``n_thetas``,)).
         """
-        return self._dml_core.thetas
+        return self._thetas
 
     @property
     def all_thetas(self):
@@ -251,7 +244,7 @@ class DoubleMLFramework:
         """
         Estimated standard errors (shape (``n_thetas``,)).
         """
-        return self._dml_core.ses
+        return self._ses
 
     @property
     def all_ses(self):
@@ -457,11 +450,8 @@ class DoubleMLFramework:
             # compute standard errors (Uses factor 1/n for scaling!)
             sigma2_hat = np.divide(np.mean(np.square(scaled_psi), axis=0), var_scaling_factors.reshape(-1, 1))
             all_ses = np.sqrt(sigma2_hat)
-            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses)
 
             doubleml_dict = {
-                "thetas": thetas,
-                "ses": ses,
                 "all_thetas": all_thetas,
                 "all_ses": all_ses,
                 "var_scaling_factors": var_scaling_factors,
@@ -504,11 +494,8 @@ class DoubleMLFramework:
             # compute standard errors
             sigma2_hat = np.divide(np.mean(np.square(scaled_psi), axis=0), var_scaling_factors.reshape(-1, 1))
             all_ses = np.sqrt(sigma2_hat)
-            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses)
 
             doubleml_dict = {
-                "thetas": thetas,
-                "ses": ses,
                 "all_thetas": all_thetas,
                 "all_ses": all_ses,
                 "var_scaling_factors": var_scaling_factors,
@@ -541,17 +528,12 @@ class DoubleMLFramework:
     # TODO: Restrict to linear?
     def __mul__(self, other):
         if isinstance(other, (int, float)):
-            thetas = np.multiply(other, self.thetas)
             all_thetas = np.multiply(other, self.all_thetas)
-
             var_scaling_factors = self.var_scaling_factors
-            ses = np.multiply(other, self.ses)
             all_ses = np.multiply(other, self.all_ses)
             scaled_psi = np.multiply(other, self.scaled_psi)
 
             doubleml_dict = {
-                "thetas": thetas,
-                "ses": ses,
                 "all_thetas": all_thetas,
                 "all_ses": all_ses,
                 "var_scaling_factors": var_scaling_factors,
@@ -1101,17 +1083,12 @@ def concat(objs):
     var_scaling_factors = np.concatenate([obj.var_scaling_factors for obj in objs], axis=0)
     scaled_psi = np.concatenate([obj.scaled_psi for obj in objs], axis=1)
 
-    thetas = np.concatenate([obj.thetas for obj in objs], axis=0)
-    ses = np.concatenate([obj.ses for obj in objs], axis=0)
-
     if any(obj.is_cluster_data for obj in objs):
         raise NotImplementedError("concat not yet implemented with clustering.")
     else:
         is_cluster_data = False
 
     doubleml_dict = {
-        "thetas": thetas,
-        "ses": ses,
         "all_thetas": all_thetas,
         "all_ses": all_ses,
         "var_scaling_factors": var_scaling_factors,

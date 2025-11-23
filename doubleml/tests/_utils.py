@@ -106,8 +106,6 @@ def generate_dml_dict(psi_a, psi_b):
     scaled_psi = psi_b / np.mean(psi_a, axis=0)
 
     doubleml_dict = {
-        "thetas": thetas,
-        "ses": ses,
         "all_thetas": all_thetas,
         "all_ses": all_ses,
         "var_scaling_factors": var_scaling_factors,

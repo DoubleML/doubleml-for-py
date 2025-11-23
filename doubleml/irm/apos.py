@@ -715,8 +715,6 @@ class DoubleMLAPOS(SampleSplittingMixin):
                 # update sensitivity elements with sharper bounds
                 current_sensitivity_dict = self._compute_causal_contrast_sensitivity_dict(model=model, ref_model=ref_model)
                 updated_dml_core = DoubleMLCore(
-                    thetas=diff_framework.thetas,
-                    ses=diff_framework.ses,
                     all_thetas=diff_framework.all_thetas,
                     all_ses=diff_framework.all_ses,
                     var_scaling_factors=diff_framework.var_scaling_factors,

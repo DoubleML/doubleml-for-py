@@ -36,15 +36,13 @@ def test_scaled_psi_shape_and_type():
 def test_arrays():
     kwargs = valid_core_kwargs()
     # Type checks
-    for key in ["thetas", "ses", "all_thetas", "all_ses", "var_scaling_factors"]:
+    for key in ["all_thetas", "all_ses", "var_scaling_factors"]:
         bad_kwargs = kwargs.copy()
         bad_kwargs[key] = "not_an_array"
         with pytest.raises(TypeError, match=f"{key} must be a numpy.ndarray"):
             DoubleMLCore(**bad_kwargs)
     # Shape checks
     shapes = {
-        "thetas": (3,),
-        "ses": (3,),
         "all_thetas": (3, 5),
         "all_ses": (3, 5),
         "var_scaling_factors": (3,),

@@ -625,9 +625,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         scaled_psi_reshape = np.transpose(scaled_psi, (0, 2, 1))
 
         doubleml_dict = {
-            "thetas": self.coef,
             "all_thetas": self.all_coef,
-            "ses": self.se,
             "all_ses": self.all_se,
             "var_scaling_factors": self._var_scaling_factors,
             "scaled_psi": scaled_psi_reshape,
