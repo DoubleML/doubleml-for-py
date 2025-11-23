@@ -84,14 +84,14 @@ def test_cluster_dict_exceptions():
     type_cases = [
         ("smpls", "not_a_list", "cluster_dict\\['smpls'\\] must be a list."),
         ("smpls_cluster", "not_a_list", "cluster_dict\\['smpls_cluster'\\] must be a list."),
-        ("cluster_vars", "not_a_list", "cluster_dict\\['cluster_vars'\\] must be a list."),
+        ("cluster_vars", "not_a_list", "cluster_dict\\['cluster_vars'\\] must be a numpy.ndarray."),
         ("n_folds_per_cluster", "not_an_int", "cluster_dict\\['n_folds_per_cluster'\\] must be an int."),
     ]
     for key, bad_value, msg in type_cases:
         cluster_dict = {
             "smpls": [],
             "smpls_cluster": [],
-            "cluster_vars": [],
+            "cluster_vars": np.array([]),
             "n_folds_per_cluster": 1,
         }
         cluster_dict[key] = bad_value
@@ -168,7 +168,7 @@ def test_sensitivity_elements_exceptions():
             key: -np.ones((1, n_thetas, n_rep)),
         }
         bad_kwargs["sensitivity_elements"] = sens
-        with pytest.raises(ValueError, match=rf"sensitivity_elements\['{key}'\] must be positive."):
+        with pytest.raises(ValueError, match=rf"sensitivity_elements\['{key}'\] must be positive.*"):
             DoubleMLCore(**bad_kwargs)
 
     # sigma2 and nu2 wrong shape
@@ -184,23 +184,3 @@ def test_sensitivity_elements_exceptions():
             ValueError, match=rf"sensitivity_elements\['{key}'\] shape \(2, 2, 5\) does not match expected \(1, 2, 5\)\."
         ):
             DoubleMLCore(**bad_kwargs)
-
-
-@pytest.mark.ci
-def test_treatment_names_exceptions():
-    kwargs = valid_core_kwargs()
-
-    bad_kwargs = kwargs.copy()
-    bad_kwargs["treatment_names"] = "not_a_list"
-    with pytest.raises(TypeError, match="treatment_names must be a list of strings."):
-        DoubleMLCore(**bad_kwargs)
-
-    bad_kwargs = kwargs.copy()
-    bad_kwargs["treatment_names"] = [1, 2]
-    with pytest.raises(TypeError, match="treatment_names must be a list of strings."):
-        DoubleMLCore(**bad_kwargs)
-
-    bad_kwargs = kwargs.copy()
-    bad_kwargs["treatment_names"] = ["treat1"]
-    with pytest.raises(ValueError, match=r"Length of treatment_names \(1\) does not match n_thetas \(2\)\."):
-        DoubleMLCore(**bad_kwargs)

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework
 
 from ._utils import generate_dml_dict
 
@@ -29,7 +29,8 @@ def dml_framework_tstat_pval_fixture(n_rep, n_thetas):
     psi_a = np.ones(shape=(n_obs, n_thetas, n_rep))
     psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
     doubleml_dict = generate_dml_dict(psi_a, psi_b)
-    dml_framework_obj = DoubleMLFramework(doubleml_dict)
+    dml_core = DoubleMLCore(**doubleml_dict)
+    dml_framework_obj = DoubleMLFramework(dml_core=dml_core)
 
     result_dict = {
         "dml_framework_obj": dml_framework_obj,
@@ -83,7 +84,8 @@ def dml_framework_pval_cov_fixture(n_rep, sig_level):
         psi_a = np.ones(shape=(n_obs, n_thetas, n_rep))
         psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
         doubleml_dict = generate_dml_dict(psi_a, psi_b)
-        dml_framework_obj = DoubleMLFramework(doubleml_dict)
+        dml_core = DoubleMLCore(**doubleml_dict)
+        dml_framework_obj = DoubleMLFramework(dml_core=dml_core)
 
         p_vals = dml_framework_obj.pvals
         all_p_vals = dml_framework_obj.all_pvals

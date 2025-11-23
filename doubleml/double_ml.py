@@ -9,7 +9,7 @@ from sklearn.base import is_classifier, is_regressor
 
 from doubleml.data import DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
-from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework
 from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.utils._checks import _check_external_predictions
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
@@ -632,7 +632,6 @@ class DoubleML(SampleSplittingMixin, ABC):
             "var_scaling_factors": self._var_scaling_factors,
             "scaled_psi": scaled_psi_reshape,
             "is_cluster_data": self._is_cluster_data,
-            "treatment_names": self._dml_data.d_cols,
         }
 
         if self._sensitivity_implemented:
@@ -669,8 +668,8 @@ class DoubleML(SampleSplittingMixin, ABC):
                     },
                 }
             )
-
-        doubleml_framework = DoubleMLFramework(doubleml_dict)
+        dml_core = DoubleMLCore(**doubleml_dict)
+        doubleml_framework = DoubleMLFramework(dml_core=dml_core, treatment_names=self._dml_data.d_cols)
         return doubleml_framework
 
     def bootstrap(self, method="normal", n_rep_boot=500):
