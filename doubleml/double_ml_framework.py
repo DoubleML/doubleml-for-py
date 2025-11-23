@@ -1,4 +1,6 @@
 import copy
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -18,6 +20,163 @@ from .utils._checks import (
 from .utils._descriptive import generate_summary
 from .utils._estimation import _aggregate_coefs_and_ses, _draw_weights, _var_est
 from .utils._plots import _sensitivity_contour_plot
+
+
+@dataclass
+class DoubleMLCore:
+    thetas: np.ndarray
+    ses: np.ndarray
+    all_thetas: np.ndarray
+    all_ses: np.ndarray
+    var_scaling_factors: np.ndarray
+    scaled_psi: np.ndarray
+    is_cluster_data: bool = False
+    cluster_dict: Optional[Dict] = None
+    sensitivity_elements: Optional[Dict[str, np.ndarray]] = None
+    treatment_names: Optional[List[str]] = None
+    """
+    Core container for DoubleML results .
+
+    This class stores the main results and diagnostics from a DoubleML estimation, including parameter estimates,
+    standard errors, normalized scores, and (optionally) sensitivity and clustering information. It performs
+    thorough type and shape validation on all inputs to ensure internal consistency.
+
+    Parameters
+    ----------
+    thetas : np.ndarray
+        Estimated target parameters (shape: (n_thetas,)).
+    ses : np.ndarray
+        Estimated standard errors (shape: (n_thetas,)).
+    all_thetas : np.ndarray
+        Estimated target parameters for each repetition (shape: (n_thetas, n_rep)).
+    all_ses : np.ndarray
+        Estimated standard errors for each repetition (shape: (n_thetas, n_rep)).
+    var_scaling_factors : np.ndarray
+        Variance scaling factors (shape: (n_thetas,)).
+    scaled_psi : np.ndarray
+        Normalized scores (shape: (n_obs, n_thetas, n_rep)).
+    is_cluster_data : bool, optional
+        Indicates whether clustering is used (default: False).
+    cluster_dict : dict, optional
+        Dictionary with clustering information, required if is_cluster_data is True.
+    sensitivity_elements : dict, optional
+        Dictionary with sensitivity analysis components (e.g., max_bias, psi_max_bias, sigma2, nu2).
+    treatment_names : list of str, optional
+        Names of the treatments (must match n_thetas if provided).
+
+    Raises
+    ------
+    ValueError, TypeError
+        If any input fails type or shape validation.
+    """
+
+    def __post_init__(self):
+
+        if not isinstance(self.scaled_psi, np.ndarray) or self.scaled_psi.ndim != 3:
+            raise ValueError("scaled_psi must be a 3-dimensional numpy.ndarray.")
+        self.n_obs, self.n_thetas, self.n_rep = self.scaled_psi.shape
+
+        self._check_arrays()
+        self._check_cluster_dict()
+        self._check_sensitivity_elements()
+        self._check_treatment_names()
+
+    def _check_arrays(self):
+        """Type and shape checks for input arrays."""
+        arrays = {
+            "thetas": self.thetas,
+            "ses": self.ses,
+            "all_thetas": self.all_thetas,
+            "all_ses": self.all_ses,
+            "var_scaling_factors": self.var_scaling_factors,
+            "scaled_psi": self.scaled_psi,
+        }
+        for name, arr in arrays.items():
+            if not isinstance(arr, np.ndarray):
+                raise TypeError(f"{name} must be a numpy.ndarray, got {type(arr)}.")
+
+        expected_shapes = {
+            "thetas": (self.n_thetas,),
+            "ses": (self.n_thetas,),
+            "all_thetas": (self.n_thetas, self.n_rep),
+            "all_ses": (self.n_thetas, self.n_rep),
+            "var_scaling_factors": (self.n_thetas,),
+            "scaled_psi": (self.n_obs, self.n_thetas, self.n_rep),
+        }
+        for name, expected_shape in expected_shapes.items():
+            actual_shape = arrays[name].shape
+            if actual_shape != expected_shape:
+                raise ValueError(f"{name} shape {actual_shape} does not match expected {expected_shape}.")
+
+    def _check_cluster_dict(self):
+        """Checks for cluster_dict if is_cluster_data is True."""
+        if self.is_cluster_data:
+            if self.cluster_dict is None:
+                raise ValueError("If is_cluster_data is True, cluster_dict must be provided.")
+            if not isinstance(self.cluster_dict, dict):
+                raise TypeError("cluster_dict must be a dictionary.")
+            expected_keys = ["smpls", "smpls_cluster", "cluster_vars", "n_folds_per_cluster"]
+            if not all(key in self.cluster_dict for key in expected_keys):
+                raise ValueError(
+                    f"cluster_dict must contain keys: {', '.join(expected_keys)}. "
+                    f"Got: {', '.join(self.cluster_dict.keys())}."
+                )
+            # Type checks for values
+            if not isinstance(self.cluster_dict["smpls"], list):
+                raise TypeError("cluster_dict['smpls'] must be a list.")
+            if not isinstance(self.cluster_dict["smpls_cluster"], list):
+                raise TypeError("cluster_dict['smpls_cluster'] must be a list.")
+            if not isinstance(self.cluster_dict["cluster_vars"], list):
+                raise TypeError("cluster_dict['cluster_vars'] must be a list.")
+            if not isinstance(self.cluster_dict["n_folds_per_cluster"], int):
+                raise TypeError("cluster_dict['n_folds_per_cluster'] must be an int.")
+
+    def _check_sensitivity_elements(self):
+        """Checks for sensitivity_elements if provided."""
+        if self.sensitivity_elements is not None:
+            if not isinstance(self.sensitivity_elements, dict):
+                raise TypeError("sensitivity_elements must be a dict if provided.")
+            required_keys = ["max_bias", "psi_max_bias"]
+            for key in required_keys:
+                if key not in self.sensitivity_elements:
+                    raise ValueError(f"sensitivity_elements must contain key '{key}'.")
+                if not isinstance(self.sensitivity_elements[key], np.ndarray):
+                    raise TypeError(f"sensitivity_elements['{key}'] must be a numpy.ndarray.")
+
+            expected_shapes = {
+                "max_bias": (1, self.n_thetas, self.n_rep),
+                "psi_max_bias": (self.n_obs, self.n_thetas, self.n_rep),
+            }
+            for key in required_keys:
+                actual_shape = self.sensitivity_elements[key].shape
+                if actual_shape != expected_shapes[key]:
+                    raise ValueError(
+                        f"sensitivity_elements['{key}'] shape {actual_shape} does not match expected {expected_shapes[key]}."
+                    )
+
+            # Optional: check benchmarks if present
+            for key in ["sigma2", "nu2"]:
+                if key in self.sensitivity_elements:
+                    if not isinstance(self.sensitivity_elements[key], np.ndarray):
+                        raise TypeError(f"sensitivity_elements['{key}'] must be a numpy.ndarray.")
+                    if np.any(self.sensitivity_elements[key] < 0):
+                        raise ValueError(f"sensitivity_elements['{key}'] must be positive.")
+                    if self.sensitivity_elements[key].shape != (1, self.n_thetas, self.n_rep):
+                        expected_shape = (1, self.n_thetas, self.n_rep)
+                        actual_shape = self.sensitivity_elements[key].shape
+                        raise ValueError(
+                            f"sensitivity_elements['{key}'] shape {actual_shape} does not match expected {expected_shape}."
+                        )
+
+    def _check_treatment_names(self):
+        """Checks for treatment_names if provided."""
+        if self.treatment_names is not None:
+            if not isinstance(self.treatment_names, list) or not all(isinstance(n, str) for n in self.treatment_names):
+                raise TypeError("treatment_names must be a list of strings.")
+            if len(self.treatment_names) != self.n_thetas:
+                raise ValueError(
+                    f"Length of treatment_names ({len(self.treatment_names)}) does not match n_thetas ({self.n_thetas})."
+                )
 
 
 class DoubleMLFramework:
