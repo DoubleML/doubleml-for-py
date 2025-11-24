@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
-from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework
 from doubleml.tests._utils import generate_dml_dict
 
 
@@ -28,7 +28,8 @@ def base_framework(n_rep):
     psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
 
     doubleml_dict = generate_dml_dict(psi_a, psi_b)
-    return DoubleMLFramework(doubleml_dict)
+    dml_core = DoubleMLCore(**doubleml_dict)
+    return DoubleMLFramework(dml_core=dml_core)
 
 
 @pytest.fixture(scope="module", params=["ones", "random", "zeros", "mixed"])

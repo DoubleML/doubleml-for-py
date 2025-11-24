@@ -1,4 +1,6 @@
 import copy
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -20,56 +22,175 @@ from .utils._estimation import _aggregate_coefs_and_ses, _draw_weights, _var_est
 from .utils._plots import _sensitivity_contour_plot
 
 
-class DoubleMLFramework:
-    """Double Machine Learning Framework to combine DoubleML classes and compute confidendence intervals.
+@dataclass
+class DoubleMLCore:
+    all_thetas: np.ndarray
+    all_ses: np.ndarray
+    var_scaling_factors: np.ndarray
+    scaled_psi: np.ndarray
+    is_cluster_data: bool = False
+    cluster_dict: Optional[Dict] = None
+    sensitivity_elements: Optional[Dict[str, np.ndarray]] = None
+    """
+    Core container for DoubleML results .
+
+    This class stores the main results and diagnostics from a DoubleML estimation, including parameter estimates,
+    standard errors, normalized scores, and (optionally) sensitivity and clustering information. It performs
+    thorough type and shape validation on all inputs to ensure internal consistency.
 
     Parameters
     ----------
-    doubleml_dict : :dict
-        A dictionary providing the estimated parameters and normalized scores. Keys have to be 'thetas', 'ses',
-        'all_thetas', 'all_ses', 'var_scaling_factors' and 'scaled_psi'.
-        Values have to be numpy arrays with the corresponding shapes.
+    all_thetas : np.ndarray
+        Estimated target parameters for each repetition (shape: (n_thetas, n_rep)).
+    all_ses : np.ndarray
+        Estimated standard errors for each repetition (shape: (n_thetas, n_rep)).
+    var_scaling_factors : np.ndarray
+        Variance scaling factors (shape: (n_thetas,)).
+    scaled_psi : np.ndarray
+        Normalized scores (shape: (n_obs, n_thetas, n_rep)).
+    is_cluster_data : bool, optional
+        Indicates whether clustering is used (default: False).
+    cluster_dict : dict, optional
+        Dictionary with clustering information, required if is_cluster_data is True.
+    sensitivity_elements : dict, optional
+        Dictionary with sensitivity analysis components (e.g., max_bias, psi_max_bias, sigma2, nu2).
 
+    Raises
+    ------
+    ValueError, TypeError
+        If any input fails type or shape validation.
+    """
+
+    def __post_init__(self):
+
+        if not isinstance(self.scaled_psi, np.ndarray) or self.scaled_psi.ndim != 3:
+            raise ValueError("scaled_psi must be a 3-dimensional numpy.ndarray.")
+        self._n_obs, self._n_thetas, self._n_rep = self.scaled_psi.shape
+
+        self._check_arrays()
+        self._check_cluster_dict()
+        self._check_sensitivity_elements()
+
+    def _check_arrays(self):
+        """Type and shape checks for input arrays."""
+        arrays = {
+            "all_thetas": self.all_thetas,
+            "all_ses": self.all_ses,
+            "var_scaling_factors": self.var_scaling_factors,
+            "scaled_psi": self.scaled_psi,
+        }
+        for name, arr in arrays.items():
+            if not isinstance(arr, np.ndarray):
+                raise TypeError(f"{name} must be a numpy.ndarray, got {type(arr)}.")
+
+        expected_shapes = {
+            "all_thetas": (self._n_thetas, self._n_rep),
+            "all_ses": (self._n_thetas, self._n_rep),
+            "var_scaling_factors": (self._n_thetas,),
+            "scaled_psi": (self._n_obs, self._n_thetas, self._n_rep),
+        }
+        for name, expected_shape in expected_shapes.items():
+            actual_shape = arrays[name].shape
+            if actual_shape != expected_shape:
+                raise ValueError(f"{name} shape {actual_shape} does not match expected {expected_shape}.")
+
+    def _check_cluster_dict(self):
+        """Checks for cluster_dict if is_cluster_data is True."""
+        if self.is_cluster_data:
+            if self.cluster_dict is None:
+                raise ValueError("If is_cluster_data is True, cluster_dict must be provided.")
+            if not isinstance(self.cluster_dict, dict):
+                raise TypeError("cluster_dict must be a dictionary.")
+            expected_keys = ["smpls", "smpls_cluster", "cluster_vars", "n_folds_per_cluster"]
+            if not all(key in self.cluster_dict for key in expected_keys):
+                raise ValueError(
+                    f"cluster_dict must contain keys: {', '.join(expected_keys)}. "
+                    f"Got: {', '.join(self.cluster_dict.keys())}."
+                )
+            # Type checks
+            if not isinstance(self.cluster_dict["smpls"], list):
+                raise TypeError("cluster_dict['smpls'] must be a list.")
+            if not isinstance(self.cluster_dict["smpls_cluster"], list):
+                raise TypeError("cluster_dict['smpls_cluster'] must be a list.")
+            if not isinstance(self.cluster_dict["cluster_vars"], np.ndarray):
+                raise TypeError("cluster_dict['cluster_vars'] must be a numpy.ndarray.")
+            if not isinstance(self.cluster_dict["n_folds_per_cluster"], int):
+                raise TypeError("cluster_dict['n_folds_per_cluster'] must be an int.")
+
+    def _check_sensitivity_elements(self):
+        """Checks for sensitivity_elements if provided."""
+        if self.sensitivity_elements is not None:
+            if not isinstance(self.sensitivity_elements, dict):
+                raise TypeError("sensitivity_elements must be a dict if provided.")
+            required_keys = ["max_bias", "psi_max_bias"]
+            for key in required_keys:
+                if key not in self.sensitivity_elements:
+                    raise ValueError(f"sensitivity_elements must contain key '{key}'.")
+                if not isinstance(self.sensitivity_elements[key], np.ndarray):
+                    raise TypeError(f"sensitivity_elements['{key}'] must be a numpy.ndarray.")
+
+            expected_shapes = {
+                "max_bias": (1, self._n_thetas, self._n_rep),
+                "psi_max_bias": (self._n_obs, self._n_thetas, self._n_rep),
+            }
+            for key in required_keys:
+                actual_shape = self.sensitivity_elements[key].shape
+                if actual_shape != expected_shapes[key]:
+                    raise ValueError(
+                        f"sensitivity_elements['{key}'] shape {actual_shape} does not match expected {expected_shapes[key]}."
+                    )
+
+            # Optional: check benchmarks if present
+            for key in ["sigma2", "nu2"]:
+                if key in self.sensitivity_elements:
+                    if not isinstance(self.sensitivity_elements[key], np.ndarray):
+                        raise TypeError(f"sensitivity_elements['{key}'] must be a numpy.ndarray.")
+                    if np.any(self.sensitivity_elements[key] < 0):
+                        raise ValueError(
+                            f"sensitivity_elements['{key}'] must be positive. "
+                            f"Got {str(self.sensitivity_elements[key])} "
+                            "Most likely this is due to low quality learners (especially propensity scores)."
+                        )
+                    if self.sensitivity_elements[key].shape != (1, self._n_thetas, self._n_rep):
+                        expected_shape = (1, self._n_thetas, self._n_rep)
+                        actual_shape = self.sensitivity_elements[key].shape
+                        raise ValueError(
+                            f"sensitivity_elements['{key}'] shape {actual_shape} does not match expected {expected_shape}."
+                        )
+
+
+class DoubleMLFramework:
+    """
+    Double Machine Learning Framework to combine DoubleMLCore results and compute confidence intervals.
+
+    Parameters
+    ----------
+    dml_core : DoubleMLCore
+        A DoubleMLCore object providing the estimated parameters and scores.
     """
 
     def __init__(
         self,
-        doubleml_dict=None,
+        dml_core: DoubleMLCore,
+        treatment_names: Optional[List[str]] = None,
     ):
-        self._is_cluster_data = False
+        if not isinstance(dml_core, DoubleMLCore):
+            raise TypeError("dml_core must be a DoubleMLCore instance.")
+        self._dml_core = dml_core
 
-        # check input
-        if not isinstance(doubleml_dict, dict):
-            raise TypeError("doubleml_dict must be a dictionary.")
-        expected_keys = ["thetas", "ses", "all_thetas", "all_ses", "var_scaling_factors", "scaled_psi"]
-        if not all(key in doubleml_dict.keys() for key in expected_keys):
-            raise ValueError("The dict must contain the following keys: " + ", ".join(expected_keys))
+        if treatment_names is not None:
+            self._check_treatment_names(treatment_names)
+        self._treatment_names = treatment_names
 
-        # set scores and parameters
-        self._n_thetas = doubleml_dict["scaled_psi"].shape[1]
-        self._n_rep = doubleml_dict["scaled_psi"].shape[2]
-        self._n_obs = doubleml_dict["scaled_psi"].shape[0]
+        # aggregate estimates
+        self._thetas, self._ses = _aggregate_coefs_and_ses(self.all_thetas, self.all_ses)
 
-        self._thetas = doubleml_dict["thetas"]
-        self._ses = doubleml_dict["ses"]
-        self._all_thetas = doubleml_dict["all_thetas"]
-        self._all_ses = doubleml_dict["all_ses"]
-        self._var_scaling_factors = doubleml_dict["var_scaling_factors"]
-        self._scaled_psi = doubleml_dict["scaled_psi"]
-
-        # initialize cluster data
-        self._check_and_set_cluster_data(doubleml_dict)
-
-        # initialize sensitivity analysis
-        self._check_and_set_sensitivity_elements(doubleml_dict)
-
-        # check if all sizes match
-        self._check_framework_shapes()
-
-        self._treatment_names = None
-        if "treatment_names" in doubleml_dict.keys():
-            self._check_treatment_names(doubleml_dict["treatment_names"])
-            self._treatment_names = doubleml_dict["treatment_names"]
+        # initialize sensitivity analysis attributes
+        self._sensitivity_implemented = self._dml_core.sensitivity_elements is not None
+        self._benchmark_available = self._sensitivity_implemented and all(
+            k in self._dml_core.sensitivity_elements for k in ["sigma2", "nu2"]
+        )
+        self._sensitivity_params = None
 
         # initialize bootstrap distribution
         self._boot_t_stat = None
@@ -77,25 +198,32 @@ class DoubleMLFramework:
         self._n_rep_boot = None
 
     @property
+    def dml_core(self):
+        """
+        The underlying DoubleMLCore object.
+        """
+        return self._dml_core
+
+    @property
     def n_thetas(self):
         """
         Number of target parameters.
         """
-        return self._n_thetas
+        return self._dml_core._n_thetas
 
     @property
     def n_rep(self):
         """
         Number of repetitions.
         """
-        return self._n_rep
+        return self._dml_core._n_rep
 
     @property
     def n_obs(self):
         """
         Number of observations.
         """
-        return self._n_obs
+        return self._dml_core._n_obs
 
     @property
     def thetas(self):
@@ -109,7 +237,7 @@ class DoubleMLFramework:
         """
         Estimated target parameters for each repetition (shape (``n_thetas``, ``n_rep``)).
         """
-        return self._all_thetas
+        return self._dml_core.all_thetas
 
     @property
     def ses(self):
@@ -123,21 +251,21 @@ class DoubleMLFramework:
         """
         Estimated standard errors for each repetition (shape (``n_thetas``, ``n_rep``)).
         """
-        return self._all_ses
+        return self._dml_core.all_ses
 
     @property
     def t_stats(self):
         """
         t-statistics for the causal parameter(s) (shape (``n_thetas``,)).
         """
-        return self._thetas / self._ses
+        return self.thetas / self.ses
 
     @property
     def all_t_stats(self):
         """
         t-statistics for the causal parameter(s) for each repetition (shape (``n_thetas``, ``n_rep``)).
         """
-        return self._all_thetas / self._all_ses
+        return self.all_thetas / self.all_ses
 
     @property
     def pvals(self):
@@ -161,14 +289,28 @@ class DoubleMLFramework:
         """
         Normalized scores (shape (``n_obs``, ``n_thetas``, ``n_rep``)).
         """
-        return self._scaled_psi
+        return self._dml_core.scaled_psi
 
     @property
     def var_scaling_factors(self):
         """
         Variance scaling factors (shape (``n_thetas``,)).
         """
-        return self._var_scaling_factors
+        return self._dml_core.var_scaling_factors
+
+    @property
+    def is_cluster_data(self):
+        """
+        Whether the data is clustered.
+        """
+        return self._dml_core.is_cluster_data
+
+    @property
+    def cluster_dict(self):
+        """
+        Clustering information (if available).
+        """
+        return self._dml_core.cluster_dict
 
     @property
     def n_rep_boot(self):
@@ -200,7 +342,7 @@ class DoubleMLFramework:
          ``psi_max_bias`` (shape (``n_obs``, ``n_thetas``, ``n_rep``)).
         Optionally, additional entries ``sigma2`` and ``nu2``(shape (``1``, ``n_thetas``, ``n_rep``)) are available.
         """
-        return self._sensitivity_elements
+        return self._dml_core.sensitivity_elements
 
     @property
     def sensitivity_params(self):
@@ -229,7 +371,7 @@ class DoubleMLFramework:
         A summary for the estimated causal parameters ``thetas``.
         """
         ci = self.confint()
-        df_summary = generate_summary(self.thetas, self.ses, self.t_stats, self.pvals, ci, self._treatment_names)
+        df_summary = generate_summary(self.thetas, self.ses, self.t_stats, self.pvals, ci, self.treatment_names)
         return df_summary
 
     @property
@@ -296,43 +438,39 @@ class DoubleMLFramework:
     def __add__(self, other):
         if isinstance(other, DoubleMLFramework):
             # internal consistency check
-            self._check_framework_shapes()
-            other._check_framework_shapes()
             _check_framework_compatibility(self, other, check_treatments=True)
 
-            all_thetas = self._all_thetas + other._all_thetas
-            scaled_psi = self._scaled_psi + other._scaled_psi
+            all_thetas = self.all_thetas + other.all_thetas
+            scaled_psi = self.scaled_psi + other.scaled_psi
 
             # check if var_scaling_factors are the same
-            assert np.allclose(self._var_scaling_factors, other._var_scaling_factors)
-            var_scaling_factors = self._var_scaling_factors
+            assert np.allclose(self.var_scaling_factors, other.var_scaling_factors)
+            var_scaling_factors = self.var_scaling_factors
 
             # compute standard errors (Uses factor 1/n for scaling!)
             sigma2_hat = np.divide(np.mean(np.square(scaled_psi), axis=0), var_scaling_factors.reshape(-1, 1))
             all_ses = np.sqrt(sigma2_hat)
-            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses)
 
             doubleml_dict = {
-                "thetas": thetas,
-                "ses": ses,
                 "all_thetas": all_thetas,
                 "all_ses": all_ses,
                 "var_scaling_factors": var_scaling_factors,
                 "scaled_psi": scaled_psi,
-                "is_cluster_data": self._is_cluster_data,
-                "cluster_dict": self._cluster_dict,
+                "is_cluster_data": self.is_cluster_data,
+                "cluster_dict": self.cluster_dict,
             }
 
             if self._sensitivity_implemented and other._sensitivity_implemented:
-                max_bias = self._sensitivity_elements["max_bias"] + other._sensitivity_elements["max_bias"]
-                psi_max_bias = self._sensitivity_elements["psi_max_bias"] + other._sensitivity_elements["psi_max_bias"]
+                max_bias = self.sensitivity_elements["max_bias"] + other.sensitivity_elements["max_bias"]
+                psi_max_bias = self.sensitivity_elements["psi_max_bias"] + other.sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
                     "max_bias": max_bias,
                     "psi_max_bias": psi_max_bias,
                 }
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
-            new_obj = DoubleMLFramework(doubleml_dict)
+            dml_core = DoubleMLCore(**doubleml_dict)
+            new_obj = DoubleMLFramework(dml_core)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
 
@@ -344,45 +482,41 @@ class DoubleMLFramework:
     def __sub__(self, other):
         if isinstance(other, DoubleMLFramework):
             # internal consistency check
-            self._check_framework_shapes()
-            other._check_framework_shapes()
             _check_framework_compatibility(self, other, check_treatments=True)
 
-            all_thetas = self._all_thetas - other._all_thetas
-            scaled_psi = self._scaled_psi - other._scaled_psi
+            all_thetas = self.all_thetas - other.all_thetas
+            scaled_psi = self.scaled_psi - other.scaled_psi
 
             # check if var_scaling_factors are the same
-            assert np.allclose(self._var_scaling_factors, other._var_scaling_factors)
-            var_scaling_factors = self._var_scaling_factors
+            assert np.allclose(self.var_scaling_factors, other.var_scaling_factors)
+            var_scaling_factors = self.var_scaling_factors
 
             # compute standard errors
             sigma2_hat = np.divide(np.mean(np.square(scaled_psi), axis=0), var_scaling_factors.reshape(-1, 1))
             all_ses = np.sqrt(sigma2_hat)
-            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses)
 
             doubleml_dict = {
-                "thetas": thetas,
-                "ses": ses,
                 "all_thetas": all_thetas,
                 "all_ses": all_ses,
                 "var_scaling_factors": var_scaling_factors,
                 "scaled_psi": scaled_psi,
-                "is_cluster_data": self._is_cluster_data,
-                "cluster_dict": self._cluster_dict,
+                "is_cluster_data": self.is_cluster_data,
+                "cluster_dict": self.cluster_dict,
             }
 
             # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
             if self._sensitivity_implemented and other._sensitivity_implemented:
 
-                max_bias = self._sensitivity_elements["max_bias"] + other._sensitivity_elements["max_bias"]
-                psi_max_bias = self._sensitivity_elements["psi_max_bias"] + other._sensitivity_elements["psi_max_bias"]
+                max_bias = self.sensitivity_elements["max_bias"] + other.sensitivity_elements["max_bias"]
+                psi_max_bias = self.sensitivity_elements["psi_max_bias"] + other.sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
                     "max_bias": max_bias,
                     "psi_max_bias": psi_max_bias,
                 }
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
-            new_obj = DoubleMLFramework(doubleml_dict)
+            dml_core = DoubleMLCore(**doubleml_dict)
+            new_obj = DoubleMLFramework(dml_core=dml_core)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
 
@@ -394,30 +528,25 @@ class DoubleMLFramework:
     # TODO: Restrict to linear?
     def __mul__(self, other):
         if isinstance(other, (int, float)):
-            thetas = np.multiply(other, self._thetas)
-            all_thetas = np.multiply(other, self._all_thetas)
-
-            var_scaling_factors = self._var_scaling_factors
-            ses = np.multiply(other, self._ses)
-            all_ses = np.multiply(other, self._all_ses)
-            scaled_psi = np.multiply(other, self._scaled_psi)
+            all_thetas = np.multiply(other, self.all_thetas)
+            var_scaling_factors = self.var_scaling_factors
+            all_ses = np.multiply(other, self.all_ses)
+            scaled_psi = np.multiply(other, self.scaled_psi)
 
             doubleml_dict = {
-                "thetas": thetas,
-                "ses": ses,
                 "all_thetas": all_thetas,
                 "all_ses": all_ses,
                 "var_scaling_factors": var_scaling_factors,
                 "scaled_psi": scaled_psi,
-                "is_cluster_data": self._is_cluster_data,
-                "cluster_dict": self._cluster_dict,
+                "is_cluster_data": self.is_cluster_data,
+                "cluster_dict": self.cluster_dict,
             }
 
             # sensitivity combination only available for linear models
             if self._sensitivity_implemented:
 
-                max_bias = abs(other) * self._sensitivity_elements["max_bias"]
-                psi_max_bias = abs(other) * self._sensitivity_elements["psi_max_bias"]
+                max_bias = abs(other) * self.sensitivity_elements["max_bias"]
+                psi_max_bias = abs(other) * self.sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
                     "max_bias": max_bias,
                     "psi_max_bias": psi_max_bias,
@@ -425,13 +554,14 @@ class DoubleMLFramework:
                 if self._benchmark_available:
                     sensitivity_elements.update(
                         {
-                            "sigma2": self._sensitivity_elements["sigma2"],
-                            "nu2": np.multiply(np.square(other), self._sensitivity_elements["nu2"]),
+                            "sigma2": self.sensitivity_elements["sigma2"],
+                            "nu2": np.multiply(np.square(other), self.sensitivity_elements["nu2"]),
                         }
                     )
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
-            new_obj = DoubleMLFramework(doubleml_dict)
+            dml_core = DoubleMLCore(**doubleml_dict)
+            new_obj = DoubleMLFramework(dml_core=dml_core)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
 
@@ -453,7 +583,7 @@ class DoubleMLFramework:
         _check_in_zero_one(level, "The confidence level", include_zero=False, include_one=False)
 
         # set elements for readability
-        psi_scaled = self._scaled_psi
+        psi_scaled = self.scaled_psi
         max_bias = self.sensitivity_elements["max_bias"]
         psi_max_bias = self.sensitivity_elements["psi_max_bias"]
 
@@ -473,22 +603,22 @@ class DoubleMLFramework:
 
         for i_rep in range(self.n_rep):
             for i_theta in range(self.n_thetas):
-                if not self._is_cluster_data:
+                if not self.is_cluster_data:
                     smpls = None
                     cluster_vars = None
                     smpls_cluster = None
                     n_folds_per_cluster = None
                 else:
-                    smpls = self._cluster_dict["smpls"][i_rep]
-                    cluster_vars = self._cluster_dict["cluster_vars"]
-                    smpls_cluster = self._cluster_dict["smpls_cluster"][i_rep]
-                    n_folds_per_cluster = self._cluster_dict["n_folds_per_cluster"]
+                    smpls = self.cluster_dict["smpls"][i_rep]
+                    cluster_vars = self.cluster_dict["cluster_vars"]
+                    smpls_cluster = self.cluster_dict["smpls_cluster"][i_rep]
+                    n_folds_per_cluster = self.cluster_dict["n_folds_per_cluster"]
 
                 sigma2_lower_hat, _ = _var_est(
                     psi=psi_lower[:, i_theta, i_rep],
                     psi_deriv=np.ones_like(psi_lower[:, i_theta, i_rep]),
                     smpls=smpls,
-                    is_cluster_data=self._is_cluster_data,
+                    is_cluster_data=self.is_cluster_data,
                     cluster_vars=cluster_vars,
                     smpls_cluster=smpls_cluster,
                     n_folds_per_cluster=n_folds_per_cluster,
@@ -497,7 +627,7 @@ class DoubleMLFramework:
                     psi=psi_upper[:, i_theta, i_rep],
                     psi_deriv=np.ones_like(psi_upper[:, i_theta, i_rep]),
                     smpls=smpls,
-                    is_cluster_data=self._is_cluster_data,
+                    is_cluster_data=self.is_cluster_data,
                     cluster_vars=cluster_vars,
                     smpls_cluster=smpls_cluster,
                     n_folds_per_cluster=n_folds_per_cluster,
@@ -530,7 +660,7 @@ class DoubleMLFramework:
 
     def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
         _check_float(null_hypothesis, "null_hypothesis")
-        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._n_thetas - 1)
+        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self.n_thetas - 1)
 
         # check which side is relvant
         bound = "upper" if (null_hypothesis > self.thetas[idx_treatment]) else "lower"
@@ -586,14 +716,14 @@ class DoubleMLFramework:
         """
         # check null_hypothesis
         if isinstance(null_hypothesis, float):
-            null_hypothesis_vec = np.full(shape=self._n_thetas, fill_value=null_hypothesis)
+            null_hypothesis_vec = np.full(shape=self.n_thetas, fill_value=null_hypothesis)
         elif isinstance(null_hypothesis, np.ndarray):
-            if null_hypothesis.shape == (self._n_thetas,):
+            if null_hypothesis.shape == (self.n_thetas,):
                 null_hypothesis_vec = null_hypothesis
             else:
                 raise ValueError(
                     "null_hypothesis is numpy.ndarray but does not have the required "
-                    f"shape ({self._n_thetas},). "
+                    f"shape ({self.n_thetas},). "
                     f"Array of shape {str(null_hypothesis.shape)} was passed."
                 )
         else:
@@ -606,10 +736,10 @@ class DoubleMLFramework:
         sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
 
         # compute robustess values with respect to null_hypothesis
-        rv = np.full(shape=self._n_thetas, fill_value=np.nan)
-        rva = np.full(shape=self._n_thetas, fill_value=np.nan)
+        rv = np.full(shape=self.n_thetas, fill_value=np.nan)
+        rva = np.full(shape=self.n_thetas, fill_value=np.nan)
 
-        for i_theta in range(self._n_thetas):
+        for i_theta in range(self.n_thetas):
             rv[i_theta], rva[i_theta] = self._calc_robustness_value(
                 null_hypothesis=null_hypothesis_vec[i_theta], level=level, rho=rho, idx_treatment=i_theta
             )
@@ -662,7 +792,7 @@ class DoubleMLFramework:
             max_abs_t_value_distribution = np.amax(np.abs(self._boot_t_stat), axis=1)
             critical_values = np.quantile(a=max_abs_t_value_distribution, q=level, axis=0)
         else:
-            critical_values = np.repeat(norm.ppf(percentages[1]), self._n_rep)
+            critical_values = np.repeat(norm.ppf(percentages[1]), self.n_rep)
 
         # compute all cis over repetitions (shape: n_thetas x 2 x n_rep)
         self._all_cis = np.stack(
@@ -695,17 +825,17 @@ class DoubleMLFramework:
         """
 
         _check_bootstrap(method, n_rep_boot)
-        if self._is_cluster_data:
+        if self.is_cluster_data:
             raise NotImplementedError("bootstrap not yet implemented with clustering.")
 
         self._n_rep_boot = n_rep_boot
         self._boot_method = method
         # initialize bootstrap distribution array
-        self._boot_t_stat = np.full((n_rep_boot, self.n_thetas, self._n_rep), np.nan)
-        var_scaling = self._var_scaling_factors.reshape(-1, 1) * self._all_ses
+        self._boot_t_stat = np.full((n_rep_boot, self.n_thetas, self.n_rep), np.nan)
+        var_scaling = self.var_scaling_factors.reshape(-1, 1) * self.all_ses
         for i_rep in range(self.n_rep):
-            weights = _draw_weights(method, n_rep_boot, self._n_obs)
-            bootstraped_scaled_psi = np.matmul(weights, np.divide(self._scaled_psi[:, :, i_rep], var_scaling[:, i_rep]))
+            weights = _draw_weights(method, n_rep_boot, self.n_obs)
+            bootstraped_scaled_psi = np.matmul(weights, np.divide(self.scaled_psi[:, :, i_rep], var_scaling[:, i_rep]))
             self._boot_t_stat[:, :, i_rep] = bootstraped_scaled_psi
 
         return self
@@ -917,137 +1047,6 @@ class DoubleMLFramework:
         )
         return fig
 
-    def _check_and_set_cluster_data(self, doubleml_dict):
-        self._cluster_dict = None
-
-        if "is_cluster_data" in doubleml_dict.keys():
-            _check_bool(doubleml_dict["is_cluster_data"], "is_cluster_data")
-            self._is_cluster_data = doubleml_dict["is_cluster_data"]
-
-        if self._is_cluster_data:
-            if "cluster_dict" not in doubleml_dict.keys():
-                raise ValueError("If is_cluster_data is True, cluster_dict must be provided.")
-
-            if not isinstance(doubleml_dict["cluster_dict"], dict):
-                raise TypeError("cluster_dict must be a dictionary.")
-
-            expected_keys_cluster = ["smpls", "smpls_cluster", "cluster_vars", "n_folds_per_cluster"]
-            if not all(key in doubleml_dict["cluster_dict"].keys() for key in expected_keys_cluster):
-                raise ValueError(
-                    "The cluster_dict must contain the following keys: "
-                    + ", ".join(expected_keys_cluster)
-                    + ". Got: "
-                    + ", ".join(doubleml_dict["cluster_dict"].keys())
-                    + "."
-                )
-
-            self._cluster_dict = doubleml_dict["cluster_dict"]
-
-        return
-
-    def _check_and_set_sensitivity_elements(self, doubleml_dict):
-        if "sensitivity_elements" not in doubleml_dict.keys():
-            sensitivity_implemented = False
-            sensitivity_elements = None
-            benchmark_available = False
-
-        else:
-            if not isinstance(doubleml_dict["sensitivity_elements"], dict):
-                raise TypeError("sensitivity_elements must be a dictionary.")
-
-            expected_keys_sensitivity = ["max_bias", "psi_max_bias"]
-            if not all(key in doubleml_dict["sensitivity_elements"].keys() for key in expected_keys_sensitivity):
-                raise ValueError(
-                    "The sensitivity_elements dict must contain the following keys: " + ", ".join(expected_keys_sensitivity)
-                )
-
-            for key in expected_keys_sensitivity:
-                if not isinstance(doubleml_dict["sensitivity_elements"][key], np.ndarray):
-                    raise TypeError(f"The sensitivity element {key} must be a numpy array.")
-
-            # set sensitivity elements
-            sensitivity_implemented = True
-            sensitivity_elements = {key: doubleml_dict["sensitivity_elements"][key] for key in expected_keys_sensitivity}
-
-            # check if benchmarks are available and update sensitivity elements
-            benchmark_available, sensitivity_elements_benchmark = self._check_sensitivity_benchmark(doubleml_dict)
-            sensitivity_elements.update(sensitivity_elements_benchmark)
-
-        # set attributes
-        self._sensitivity_implemented = sensitivity_implemented
-        self._sensitivity_elements = sensitivity_elements
-        self._benchmark_available = benchmark_available
-        self._sensitivity_params = None
-
-        return
-
-    def _check_sensitivity_benchmark(self, doubleml_dict):
-        # check if benchmarks are available
-        expected_keys_benchmark = ["sigma2", "nu2"]
-        benchmark_available = all(key in doubleml_dict["sensitivity_elements"] for key in expected_keys_benchmark)
-        if benchmark_available:
-            # type checks
-            for key in expected_keys_benchmark:
-                if not isinstance(doubleml_dict["sensitivity_elements"][key], np.ndarray):
-                    raise TypeError(f"The sensitivity element {key} must be a numpy array.")
-
-            # additional constraints
-            if (np.any(doubleml_dict["sensitivity_elements"]["sigma2"] < 0)) | (
-                np.any(doubleml_dict["sensitivity_elements"]["nu2"] < 0)
-            ):
-                raise ValueError(
-                    "sensitivity_elements sigma2 and nu2 have to be positive. "
-                    f"Got sigma2 {str(doubleml_dict['sensitivity_elements']['sigma2'])} "
-                    f"and nu2 {str(doubleml_dict['sensitivity_elements']['nu2'])}. "
-                    "Most likely this is due to low quality learners (especially propensity scores)."
-                )
-
-            sensitivity_elements_benchmark = {
-                key: doubleml_dict["sensitivity_elements"][key] for key in expected_keys_benchmark
-            }
-        else:
-            sensitivity_elements_benchmark = {}
-
-        return benchmark_available, sensitivity_elements_benchmark
-
-    def _check_framework_shapes(self):
-        expected_shapes = {
-            "thetas": (self._n_thetas,),
-            "ses": (self._n_thetas,),
-            "all_thetas": (self._n_thetas, self._n_rep),
-            "all_ses": (self._n_thetas, self._n_rep),
-            "var_scaling_factors": (self._n_thetas,),
-            "scaled_psi": (self._n_obs, self._n_thetas, self.n_rep),
-        }
-
-        for attr, expected_shape in expected_shapes.items():
-            actual_shape = getattr(self, f"_{attr}").shape
-            if actual_shape != expected_shape:
-                raise ValueError(f"The shape of {attr} does not match the expected shape {expected_shape}.")
-
-        if self._sensitivity_implemented:
-            self._check_sensitivity_elements_shapes()
-
-        return None
-
-    def _check_sensitivity_elements_shapes(self):
-        expected_sensitivity_shapes = {
-            "max_bias": (1, self._n_thetas, self.n_rep),
-            "psi_max_bias": (self._n_obs, self._n_thetas, self.n_rep),
-        }
-
-        if self._benchmark_available:
-            expected_sensitivity_shapes.update(
-                {"sigma2": (1, self._n_thetas, self.n_rep), "nu2": (1, self._n_thetas, self.n_rep)}
-            )
-
-        for key, expected_shape in expected_sensitivity_shapes.items():
-            actual_shape = self._sensitivity_elements[key].shape
-            if actual_shape != expected_shape:
-                raise ValueError(f"The shape of {key} does not match the expected shape {expected_shape}.")
-
-        return None
-
     def _check_treatment_names(self, treatment_names):
         if not isinstance(treatment_names, list):
             raise TypeError(
@@ -1058,10 +1057,10 @@ class DoubleMLFramework:
             raise TypeError(
                 f"treatment_names must be a list of strings. At least one element is not a string: {str(treatment_names)}."
             )
-        if len(treatment_names) != self._n_thetas:
+        if len(treatment_names) != self.n_thetas:
             raise ValueError(
                 "The length of treatment_names does not match the number of treatments. "
-                f"Got {self._n_thetas} treatments and {len(treatment_names)} treatment names."
+                f"Got {self.n_thetas} treatments and {len(treatment_names)} treatment names."
             )
         return None
 
@@ -1076,27 +1075,20 @@ def concat(objs):
     if not all(isinstance(obj, DoubleMLFramework) for obj in objs):
         raise TypeError("All objects must be of type DoubleMLFramework.")
 
-    # check on internal consitency of objects
-    _ = [obj._check_framework_shapes() for obj in objs]
     # check if all objects are compatible in n_obs and n_rep
     _ = [_check_framework_compatibility(objs[0], obj, check_treatments=False) for obj in objs[1:]]
 
     all_thetas = np.concatenate([obj.all_thetas for obj in objs], axis=0)
     all_ses = np.concatenate([obj.all_ses for obj in objs], axis=0)
-    var_scaling_factors = np.concatenate([obj._var_scaling_factors for obj in objs], axis=0)
-    scaled_psi = np.concatenate([obj._scaled_psi for obj in objs], axis=1)
+    var_scaling_factors = np.concatenate([obj.var_scaling_factors for obj in objs], axis=0)
+    scaled_psi = np.concatenate([obj.scaled_psi for obj in objs], axis=1)
 
-    thetas = np.concatenate([obj.thetas for obj in objs], axis=0)
-    ses = np.concatenate([obj.ses for obj in objs], axis=0)
-
-    if any(obj._is_cluster_data for obj in objs):
+    if any(obj.is_cluster_data for obj in objs):
         raise NotImplementedError("concat not yet implemented with clustering.")
     else:
         is_cluster_data = False
 
     doubleml_dict = {
-        "thetas": thetas,
-        "ses": ses,
         "all_thetas": all_thetas,
         "all_ses": all_ses,
         "var_scaling_factors": var_scaling_factors,
@@ -1107,19 +1099,17 @@ def concat(objs):
     if all(obj._sensitivity_implemented for obj in objs):
         sensitivity_elements = {}
         for key in ["max_bias", "psi_max_bias"]:
-            assert all(key in obj._sensitivity_elements.keys() for obj in objs)
-            sensitivity_elements[key] = np.concatenate([obj._sensitivity_elements[key] for obj in objs], axis=1)
+            assert all(key in obj.sensitivity_elements.keys() for obj in objs)
+            sensitivity_elements[key] = np.concatenate([obj.sensitivity_elements[key] for obj in objs], axis=1)
 
         if all(obj._benchmark_available for obj in objs):
             for key in ["sigma2", "nu2"]:
-                assert all(key in obj._sensitivity_elements.keys() for obj in objs)
-                sensitivity_elements[key] = np.concatenate([obj._sensitivity_elements[key] for obj in objs], axis=1)
+                assert all(key in obj.sensitivity_elements.keys() for obj in objs)
+                sensitivity_elements[key] = np.concatenate([obj.sensitivity_elements[key] for obj in objs], axis=1)
 
         doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
-    new_obj = DoubleMLFramework(doubleml_dict)
-
-    # check internal consistency of new object
-    new_obj._check_framework_shapes()
+    dml_core = DoubleMLCore(**doubleml_dict)
+    new_obj = DoubleMLFramework(dml_core=dml_core)
 
     return new_obj
