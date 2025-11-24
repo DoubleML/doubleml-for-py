@@ -797,8 +797,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         optuna_settings,
     ):
 
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None, "ml_g": None}
@@ -819,7 +819,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             m_tune_res = {}
             z_all = self._dml_data.z
             for i_instr, instr_var in enumerate(self._dml_data.z_cols):
-                x_instr, this_z = check_X_y(x, z_all[:, i_instr], force_all_finite=False)
+                x_instr, this_z = check_X_y(x, z_all[:, i_instr], ensure_all_finite=False)
                 scoring_key = scoring_methods.get(f"ml_m_{instr_var}", scoring_methods.get("ml_m"))
                 m_tune_res[instr_var] = _dml_tune_optuna(
                     this_z,
@@ -835,7 +835,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             x_m_features = x  # keep reference for later when constructing params
             z_vector = None
         else:
-            x_m_features, z_vector = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+            x_m_features, z_vector = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
             m_tune_res = _dml_tune_optuna(
                 z_vector,
                 x_m_features,
@@ -901,7 +901,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         optuna_settings,
     ):
 
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_r": None}
@@ -927,9 +927,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         optuna_settings,
     ):
 
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None}

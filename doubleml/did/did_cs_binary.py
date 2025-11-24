@@ -774,9 +774,9 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         optuna_settings,
     ):
 
-        x, y = check_X_y(self._x_data_subset, self._y_data_subset, force_all_finite=False)
-        _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)
-        _, t = check_X_y(x, self._t_data_subset, force_all_finite=False)
+        x, y = check_X_y(self._x_data_subset, self._y_data_subset, ensure_all_finite=False)
+        _, d = check_X_y(x, self._g_data_subset, ensure_all_finite=False)
+        _, t = check_X_y(x, self._t_data_subset, ensure_all_finite=False)
 
         if scoring_methods is None:
             if self.score == "observational":

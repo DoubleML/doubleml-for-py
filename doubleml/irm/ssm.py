@@ -581,12 +581,12 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         optuna_settings,
     ):
 
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
-        x, s = check_X_y(x, self._dml_data.s, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        x, s = check_X_y(x, self._dml_data.s, ensure_all_finite=False)
 
         if self._score == "nonignorable":
-            z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
+            z, _ = check_X_y(self._dml_data.z, y, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {
