@@ -89,7 +89,7 @@ class DoubleMLQTE(SampleSplittingMixin):
     >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
     >>> dml_qte_obj = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, quantiles=[0.25, 0.5, 0.75])
-    >>> dml_qte_obj.fit().summary # doctest: +SKIP
+    >>> dml_qte_obj.fit().summary  # doctest: +SKIP
               coef   std err         t     P>|t|     2.5 %    97.5 %
     0.25  0.274825  0.347310  0.791297  0.428771 -0.405890  0.955541
     0.50  0.449150  0.192539  2.332782  0.019660  0.071782  0.826519

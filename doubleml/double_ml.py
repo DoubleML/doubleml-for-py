@@ -23,7 +23,7 @@ _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDI
 class DoubleML(SampleSplittingMixin, ABC):
     """Double Machine Learning."""
 
-    def __init__(self, obj_dml_data, n_folds, n_rep, score, draw_sample_splitting):
+    def __init__(self, obj_dml_data, n_folds, n_rep, score, draw_sample_splitting, double_sample_splitting=False):
         # check and pick up obj_dml_data
         if not isinstance(obj_dml_data, DoubleMLBaseData):
             raise TypeError(
@@ -35,18 +35,10 @@ class DoubleML(SampleSplittingMixin, ABC):
             if obj_dml_data.n_cluster_vars > 2:
                 raise NotImplementedError("Multi-way (n_ways > 2) clustering not yet implemented.")
             self._is_cluster_data = True
-        self._is_panel_data = False
-        if isinstance(obj_dml_data, DoubleMLPanelData):
-            self._is_panel_data = True
-        self._is_did_data = False
-        if isinstance(obj_dml_data, DoubleMLDIDData):
-            self._is_did_data = True
-        self._is_ssm_data = False
-        if isinstance(obj_dml_data, DoubleMLSSMData):
-            self._is_ssm_data = True
-        self._is_rdd_data = False
-        if isinstance(obj_dml_data, DoubleMLRDDData):
-            self._is_rdd_data = True
+        self._is_panel_data = isinstance(obj_dml_data, DoubleMLPanelData)
+        self._is_did_data = isinstance(obj_dml_data, DoubleMLDIDData)
+        self._is_ssm_data = isinstance(obj_dml_data, DoubleMLSSMData)
+        self._is_rdd_data = isinstance(obj_dml_data, DoubleMLRDDData)
 
         self._dml_data = obj_dml_data
         self._n_obs = self._dml_data.n_obs
@@ -109,6 +101,9 @@ class DoubleML(SampleSplittingMixin, ABC):
         self._smpls = None
         self._smpls_cluster = None
         self._n_obs_sample_splitting = self.n_obs
+        self._double_sample_splitting = double_sample_splitting
+        if self._double_sample_splitting:
+            self._smpls_inner = None
         if draw_sample_splitting:
             self.draw_sample_splitting()
         self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
@@ -361,6 +356,21 @@ class DoubleML(SampleSplittingMixin, ABC):
         return self._smpls
 
     @property
+    def smpls_inner(self):
+        """
+        The partition used for cross-fitting.
+        """
+        if not self._double_sample_splitting:
+            raise ValueError("smpls_inner is only available for double sample splitting.")
+        if self._smpls_inner is None:
+            err_msg = (
+                "Sample splitting not specified. Either draw samples via .draw_sample splitting() "
+                + "or set external samples via .set_sample_splitting()."
+            )
+            raise ValueError(err_msg)
+        return self._smpls_inner
+
+    @property
     def smpls_cluster(self):
         """
         The partition of clusters used for cross-fitting.
@@ -507,6 +517,18 @@ class DoubleML(SampleSplittingMixin, ABC):
     @property
     def __smpls(self):
         return self._smpls[self._i_rep]
+
+    @property
+    def __smpls__inner(self):
+        if not self._double_sample_splitting:
+            raise ValueError("smpls_inner is only available for double sample splitting.")
+        if self._smpls_inner is None:
+            err_msg = (
+                "Sample splitting not specified. Either draw samples via .draw_sample splitting() "
+                + "or set external samples via .set_sample_splitting()."
+            )
+            raise ValueError(err_msg)
+        return self._smpls_inner[self._i_rep]
 
     @property
     def __smpls_cluster(self):
@@ -1277,7 +1299,10 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     def _fit_nuisance_and_score_elements(self, n_jobs_cv, store_predictions, external_predictions, store_models):
         ext_prediction_dict = _set_external_predictions(
-            external_predictions, learners=self.params_names, treatment=self._dml_data.d_cols[self._i_treat], i_rep=self._i_rep
+            external_predictions,
+            learners=self.params_names,
+            treatment=self._dml_data.d_cols[self._i_treat],
+            i_rep=self._i_rep,
         )
 
         # ml estimation of nuisance models and computation of score elements
@@ -1426,8 +1451,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> def mae(y_true, y_pred):
         ...     subset = np.logical_not(np.isnan(y_true))
         ...     return mean_absolute_error(y_true[subset], y_pred[subset])
-        >>> dml_irm_obj.evaluate_learners(metric=mae) # doctest: +SKIP
-        {'ml_g0': array([[0.88086873]]), 'ml_g1': array([[0.8452644]]), 'ml_m': array([[0.35789438]])}
+        >>> dml_irm_obj.evaluate_learners(metric=mae)  # doctest: +SKIP
+        {'ml_g0': array([[0.88173585]]), 'ml_g1': array([[0.83854057]]), 'ml_m': array([[0.35871235]])}
         """
         # if no learners are provided try to evaluate all learners
         if learners is None:
@@ -1445,12 +1470,19 @@ class DoubleML(SampleSplittingMixin, ABC):
             for learner in learners:
                 for rep in range(self.n_rep):
                     for coef_idx in range(self._dml_data.n_coefs):
-                        res = metric(
-                            y_pred=self.predictions[learner][:, rep, coef_idx].reshape(1, -1),
-                            y_true=self.nuisance_targets[learner][:, rep, coef_idx].reshape(1, -1),
-                        )
-                        if not np.isfinite(res):
-                            raise ValueError(f"Evaluation from learner {str(learner)} is not finite.")
+                        targets = self.nuisance_targets[learner][:, rep, coef_idx].reshape(1, -1)
+
+                        if np.all(np.isnan(targets)):
+                            res = np.nan
+                        else:
+                            predictions = self.predictions[learner][:, rep, coef_idx].reshape(1, -1)
+                            res = metric(
+                                y_pred=predictions,
+                                y_true=targets,
+                            )
+                            if not np.isfinite(res):
+                                raise ValueError(f"Evaluation from learner {str(learner)} is not finite.")
+
                         dist[learner][rep, coef_idx] = res
             return dist
         else:

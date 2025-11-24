@@ -4,16 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "DoubleML"
-version = "0.11.dev0"
+version = "0.12.dev0"
 description = "Double Machine Learning in Python"
 readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE"}
 authors = [
     {name = "Bach, P., Chernozhukov, V., Klaassen, S., Kurz, M. S., and Spindler, M."}
 ]
 maintainers = [
     {name = "Sven Klaassen", email = "sven.klaassen@uni-hamburg.de"}
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "joblib>=1.2.0",
     "numpy>=2.0.0",
@@ -28,7 +29,6 @@ dependencies = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -86,7 +86,7 @@ doctest_optionflags = [
 
 [tool.black]
 line-length = 127
-target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
+target-version = ['py310', 'py311', 'py312', 'py313']
 preview = true
 exclude = '''
 /(
@@ -103,7 +103,7 @@ exclude = '''
 [tool.ruff]
 # max line length for black
 line-length = 127
-target-version = "py39"
+target-version = "py312"
 
 
 [tool.ruff.lint]

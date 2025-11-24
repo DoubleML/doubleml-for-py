@@ -95,7 +95,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     >>> ml_pi_sim = clone(learner_class)
     >>> ml_m_sim = clone(learner_class)
     >>> obj_dml_sim = DoubleMLSSM(simul_data, ml_g_sim, ml_pi_sim, ml_m_sim)
-    >>> obj_dml_sim.fit().summary
+    >>> obj_dml_sim.fit().summary  # doctest: +SKIP
            coef   std err         t         P>|t|    2.5 %    97.5 %
     d  0.518517  0.065535  7.912033  2.532202e-15  0.39007  0.646963
 

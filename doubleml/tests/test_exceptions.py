@@ -15,6 +15,7 @@ from doubleml import (
     DoubleMLDIDData,
     DoubleMLIIVM,
     DoubleMLIRM,
+    DoubleMLLPLR,
     DoubleMLLPQ,
     DoubleMLPLIV,
     DoubleMLPLR,
@@ -23,7 +24,12 @@ from doubleml import (
 )
 from doubleml.did.datasets import make_did_SZ2020
 from doubleml.irm.datasets import make_iivm_data, make_irm_data
-from doubleml.plm.datasets import make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
+from doubleml.plm.datasets import (
+    make_lplr_LZZ2020,
+    make_pliv_CHS2015,
+    make_pliv_multiway_cluster_CKMS2021,
+    make_plr_CCDDHNR2018,
+)
 from doubleml.utils import PSProcessorConfig
 
 from ._utils import DummyDataClass
@@ -687,6 +693,28 @@ def test_doubleml_exception_smpls():
     msg = "Invalid cluster partition provided. At least one inner list does not form a partition."
     with pytest.raises(ValueError, match=msg):
         _ = dml_pliv_cluster.set_sample_splitting(all_smpls=dml_pliv_cluster.smpls, all_smpls_cluster=all_smpls_cluster)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_smpls_inner():
+    dml_plr_no_inner = DoubleMLPLR(dml_data, ml_l, ml_m)
+    msg = "smpls_inner is only available for double sample splitting."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_plr_no_inner.smpls_inner
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_plr_no_inner._DoubleML__smpls__inner
+
+    dml_data_lplr = make_lplr_LZZ2020()
+    ml_M = LogisticRegression()
+    dml_lplr_inner_no_smpls = DoubleMLLPLR(dml_data_lplr, ml_M, ml_m, ml_m, draw_sample_splitting=False)
+    msg = (
+        "Sample splitting not specified. "
+        r"Either draw samples via .draw_sample splitting\(\) or set external samples via .set_sample_splitting\(\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_lplr_inner_no_smpls.smpls_inner
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_lplr_inner_no_smpls._DoubleML__smpls__inner
 
 
 @pytest.mark.ci

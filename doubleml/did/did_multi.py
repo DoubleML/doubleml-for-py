@@ -141,7 +141,7 @@ class DoubleMLDIDMulti:
     ...     gt_combinations="standard",
     ...     control_group="never_treated",
     ... )
-    >>> print(dml_did_obj.fit().summary) # doctest: +SKIP
+    >>> print(dml_did_obj.fit().summary)  # doctest: +SKIP
                                       coef   std err  ...     2.5 %    97.5 %
     ATT(2025-03,2025-01,2025-02) -0.797617  0.459617  ... -1.698450  0.103215
     ATT(2025-03,2025-02,2025-03)  0.270311  0.456453  ... -0.624320  1.164941
@@ -1011,12 +1011,13 @@ class DoubleMLDIDMulti:
     def plot_effects(
         self,
         level=0.95,
+        result_type="effect",
         joint=True,
         figsize=(12, 8),
         color_palette="colorblind",
         date_format=None,
-        y_label="Effect",
-        title="Estimated ATTs by Group",
+        y_label=None,
+        title=None,
         jitter_value=None,
         default_jitter=0.1,
     ):
@@ -1028,6 +1029,10 @@ class DoubleMLDIDMulti:
         level : float
             The confidence level for the intervals.
             Default is ``0.95``.
+        result_type : str
+            Type of result to plot. Either ``'effect'`` for point estimates, ``'rv'`` for robustness values,
+            ``'est_bounds'`` for estimate bounds, or ``'ci_bounds'`` for confidence interval bounds.
+            Default is ``'effect'``.
         joint : bool
             Indicates whether joint confidence intervals are computed.
             Default is ``True``.
@@ -1042,10 +1047,10 @@ class DoubleMLDIDMulti:
             Default is ``None``.
         y_label : str
             Label for y-axis.
-            Default is ``"Effect"``.
+            Default is ``None``.
         title : str
             Title for the entire plot.
-            Default is ``"Estimated ATTs by Group"``.
+            Default is ``None``.
         jitter_value : float
             Amount of jitter to apply to points.
             Default is ``None``.
@@ -1067,7 +1072,28 @@ class DoubleMLDIDMulti:
         """
         if self.framework is None:
             raise ValueError("Apply fit() before plot_effects().")
+
+        if result_type not in ["effect", "rv", "est_bounds", "ci_bounds"]:
+            raise ValueError("result_type must be either 'effect', 'rv', 'est_bounds' or 'ci_bounds'.")
+
+        if result_type != "effect" and self._framework.sensitivity_params is None:
+            raise ValueError(
+                f"result_type='{result_type}' requires sensitivity analysis. " "Please call sensitivity_analysis() first."
+            )
+
         df = self._create_ci_dataframe(level=level, joint=joint)
+
+        # Set default y_label and title based on result_type
+        label_configs = {
+            "effect": {"y_label": "Effect", "title": "Estimated ATTs by Group"},
+            "rv": {"y_label": "Robustness Value", "title": "Robustness Values by Group"},
+            "est_bounds": {"y_label": "Estimate Bounds", "title": "Estimate Bounds by Group"},
+            "ci_bounds": {"y_label": "Confidence Interval Bounds", "title": "Confidence Interval Bounds by Group"},
+        }
+
+        config = label_configs[result_type]
+        y_label = y_label if y_label is not None else config["y_label"]
+        title = title if title is not None else config["title"]
 
         # Sort time periods and treatment groups
         first_treated_periods = sorted(df["First Treated"].unique())
@@ -1100,7 +1126,7 @@ class DoubleMLDIDMulti:
             period_df = df[df["First Treated"] == period]
             ax = axes[idx]
 
-            self._plot_single_group(ax, period_df, period, colors, is_datetime, jitter_value)
+            self._plot_single_group(ax, period_df, period, result_type, colors, is_datetime, jitter_value)
 
             # Set axis labels
             if idx == n_periods - 1:  # Only bottom plot gets x label
@@ -1117,7 +1143,7 @@ class DoubleMLDIDMulti:
         legend_ax.axis("off")
         legend_elements = [
             Line2D([0], [0], color="red", linestyle=":", alpha=0.7, label="Treatment start"),
-            Line2D([0], [0], color="black", linestyle="--", alpha=0.5, label="Zero effect"),
+            Line2D([0], [0], color="black", linestyle="--", alpha=0.5, label=f"Zero {result_type}"),
             Line2D([0], [0], marker="o", color=colors["pre"], linestyle="None", label="Pre-treatment", markersize=5),
         ]
 
@@ -1140,7 +1166,7 @@ class DoubleMLDIDMulti:
 
         return fig, axes
 
-    def _plot_single_group(self, ax, period_df, period, colors, is_datetime, jitter_value):
+    def _plot_single_group(self, ax, period_df, period, result_type, colors, is_datetime, jitter_value):
         """
         Plot estimates for a single treatment group on the given axis.
 
@@ -1152,6 +1178,10 @@ class DoubleMLDIDMulti:
             DataFrame containing estimates for a specific time period.
         period : int or datetime
             Treatment period for this group.
+        result_type : str
+            Type of result to plot. Either ``'effect'`` for point estimates, ``'rv'`` for robustness values,
+            ``'est_bounds'`` for estimate bounds, or ``'ci_bounds'`` for confidence interval bounds.
+            Default is ``'effect'``.
         colors : dict
             Dictionary with 'pre', 'anticipation' (if applicable), and 'post' color values.
         is_datetime : bool
@@ -1197,6 +1227,31 @@ class DoubleMLDIDMulti:
         # Define category mappings
         categories = [("pre", pre_treatment_mask), ("anticipation", anticipation_mask), ("post", post_treatment_mask)]
 
+        # Define plot configurations for each result type
+        plot_configs = {
+            "effect": {"plot_col": "Estimate", "err_col_upper": "CI Upper", "err_col_lower": "CI Lower", "s_val": 30},
+            "rv": {"plot_col": "RV", "plot_col_2": "RVa", "s_val": 50},
+            "est_bounds": {
+                "plot_col": "Estimate",
+                "err_col_upper": "Estimate Upper Bound",
+                "err_col_lower": "Estimate Lower Bound",
+                "s_val": 30,
+            },
+            "ci_bounds": {
+                "plot_col": "Estimate",
+                "err_col_upper": "CI Upper Bound",
+                "err_col_lower": "CI Lower Bound",
+                "s_val": 30,
+            },
+        }
+
+        config = plot_configs[result_type]
+        plot_col = config["plot_col"]
+        plot_col_2 = config.get("plot_col_2")
+        err_col_upper = config.get("err_col_upper")
+        err_col_lower = config.get("err_col_lower")
+        s_val = config["s_val"]
+
         # Plot each category
         for category_name, mask in categories:
             if not mask.any():
@@ -1211,22 +1266,33 @@ class DoubleMLDIDMulti:
 
             if not category_data.empty:
                 ax.scatter(
-                    category_data["jittered_x"], category_data["Estimate"], color=colors[category_name], alpha=0.8, s=30
+                    category_data["jittered_x"], category_data[plot_col], color=colors[category_name], alpha=0.8, s=s_val
                 )
-                ax.errorbar(
-                    category_data["jittered_x"],
-                    category_data["Estimate"],
-                    yerr=[
-                        category_data["Estimate"] - category_data["CI Lower"],
-                        category_data["CI Upper"] - category_data["Estimate"],
-                    ],
-                    fmt="o",
-                    capsize=3,
-                    color=colors[category_name],
-                    markersize=4,
-                    markeredgewidth=1,
-                    linewidth=1,
-                )
+                if result_type in ["effect", "est_bounds", "ci_bounds"]:
+                    ax.errorbar(
+                        category_data["jittered_x"],
+                        category_data[plot_col],
+                        yerr=[
+                            category_data[plot_col] - category_data[err_col_lower],
+                            category_data[err_col_upper] - category_data[plot_col],
+                        ],
+                        fmt="o",
+                        capsize=3,
+                        color=colors[category_name],
+                        markersize=4,
+                        markeredgewidth=1,
+                        linewidth=1,
+                    )
+
+                elif result_type == "rv":
+                    ax.scatter(
+                        category_data["jittered_x"],
+                        category_data[plot_col_2],
+                        color=colors[category_name],
+                        alpha=0.8,
+                        s=s_val,
+                        marker="s",
+                    )
 
         # Format axes
         if is_datetime:
@@ -1463,6 +1529,8 @@ class DoubleMLDIDMulti:
             - 'CI Lower': Lower bound of confidence intervals
             - 'CI Upper': Upper bound of confidence intervals
             - 'Pre-Treatment': Boolean indicating if evaluation period is before treatment
+            - 'RV': Robustness values (if sensitivity_analysis() has been called before)
+            - 'RVa': Robustness values for (1-a) confidence bounds (if sensitivity_analysis() has been called before)
 
         Notes
         -----
@@ -1491,5 +1559,11 @@ class DoubleMLDIDMulti:
                 "Pre-Treatment": [gt_combination[2] < gt_combination[0] for gt_combination in self.gt_combinations],
             }
         )
-
+        if self._framework.sensitivity_params is not None:
+            df["RV"] = self.framework.sensitivity_params["rv"]
+            df["RVa"] = self.framework.sensitivity_params["rva"]
+            df["CI Lower Bound"] = self.framework.sensitivity_params["ci"]["lower"]
+            df["CI Upper Bound"] = self.framework.sensitivity_params["ci"]["upper"]
+            df["Estimate Lower Bound"] = self.framework.sensitivity_params["theta"]["lower"]
+            df["Estimate Upper Bound"] = self.framework.sensitivity_params["theta"]["upper"]
         return df
