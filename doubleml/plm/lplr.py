@@ -536,3 +536,17 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             deriv = -psi_elements["d"] * expit * (1 - expit) * psi_elements["d_tilde"]
 
         return deriv
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+        """
+        Optuna-based hyperparameter tuning hook.
+
+        Subclasses should override this method to provide Optuna tuning support.
+        """
+        raise NotImplementedError(f"Optuna tuning not implemented for {self.__class__.__name__}.")
