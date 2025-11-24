@@ -655,7 +655,9 @@ def _dml_tune_optuna(
 
     # Create the study
     study = _create_study(settings, params_name)
-    study.set_metric_names([f"{scoring_method}_{params_name}"])
+
+    # Optionally set metric names (commented out as there is a warning in Optuna about this)
+    # study.set_metric_names([f"{scoring_method}_{params_name}"])
 
     # Create the objective function
     objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method)
