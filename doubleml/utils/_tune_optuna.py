@@ -140,14 +140,16 @@ TUNE_ML_MODELS_DOC = """
         Parameters
         ----------
         ml_param_space : dict
-            A dict with a parameter grid function for each nuisance model / learner
-            (see attribute ``params_names``).
+            A dict with a parameter grid function for each nuisance model
+            (see attribute ``params_names``) or for each learner (see attribute ``learner_names``).
+            Mixed specification are allowed, i.e., some nuisance models can share the same learner.
+            For mixed specifications, learner-specific settings will be overwritten by nuisance model-specific settings.
 
             Each parameter grid must be specified as a callable function that takes an Optuna trial
             and returns a dictionary of hyperparameters.
 
             For PLR models, keys should be: ``'ml_l'``, ``'ml_m'`` (and optionally ``'ml_g'`` for IV-type score).
-            For IRM models, keys should be: ``'ml_g0'``, ``'ml_g1'``, ``'ml_m'``.
+            For IRM models, keys should be: ``'ml_g0'``, ``'ml_g1'`` (or just ``'ml_g'`` for both), ``'ml_m'``.
 
             Example:
 
