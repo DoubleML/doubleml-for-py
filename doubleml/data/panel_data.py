@@ -107,8 +107,10 @@ class DoubleMLPanelData(DoubleMLData):
 
         if not self.static_panel:
             cluster_cols = None
+            force_all_d_finite = False
         else:
             cluster_cols = id_col
+            force_all_d_finite = True
 
         DoubleMLData.__init__(
             self,
@@ -120,7 +122,7 @@ class DoubleMLPanelData(DoubleMLData):
             cluster_cols=cluster_cols,
             use_other_treat_as_covariate=use_other_treat_as_covariate,
             force_all_x_finite=force_all_x_finite,
-            force_all_d_finite=False,
+            force_all_d_finite=force_all_d_finite,
         )
 
         # reset index to ensure a simple RangeIndex
