@@ -60,12 +60,24 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
 
-    TODO: include example and notes
+    TODO: include notes
     Examples
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-
+    >>> from doubleml.plm.datasets import make_static_panel_CP2025
+    >>> from sklearn.linear_model import LassoCV
+    >>> from sklearn.base import clone
+    >>> np.random.seed(3142)
+    >>> learner = LassoCV()
+    >>> ml_l = clone(learner)
+    >>> ml_m = clone(learner)
+    >>> data = make_static_panel_CP2025(num_n=250, num_t=10, dim_x=30, theta=0.5, dgp_type='dgp1')
+    >>> obj_dml_data = DoubleMLPanelData(data, 'y', 'd', 'time', 'id', static_panel=True)
+    >>> dml_plpr_obj = DoubleMLPLPR(obj_dml_data, ml_l, ml_m)
+    >>> dml_plpr_obj.fit().summary
+    	        coef   std err          t	      P>|t|	    2.5 %	 97.5 %
+    d_diff  0.511626  0.024615  20.784933  5.924636e-96  0.463381  0.559871
 
     Notes
     -----
@@ -110,9 +122,9 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
 
         valid_scores = ["IV-type", "partialling out"]
         _check_score(self.score, valid_scores, allow_callable=True)
-        # TODO: update learner checks
         _ = self._check_learner(ml_l, "ml_l", regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
+        # TODO: maybe warning for binary treatment with approaches 'fd_exact' and 'wg_approx'
         self._learner = {"ml_l": ml_l, "ml_m": ml_m}
 
         if ml_g is not None:
@@ -138,10 +150,16 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             if self._dml_data.binary_treats.all():
                 self._predict_method["ml_m"] = "predict_proba"
             else:
-                raise ValueError(
+                msg = (
                     f"The ml_m learner {str(ml_m)} was identified as classifier "
                     "but at least one treatment variable is not binary with values 0 and 1."
                 )
+                if self._approach in ["fd_exact", "wg_approx"]:
+                    msg += (
+                        " Note: In case of binary input treatment variable(s), approaches 'fd_exact' and "
+                        "'wg_approx' tansform the treatment variable(s), such that they are no longer binary."
+                    )
+                raise ValueError(msg)
         else:
             self._predict_method["ml_m"] = "predict"
 
@@ -158,8 +176,10 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         """
         Includes information on the original data before transformation.
         """
+        # TODO: adjust header length of additional info in double_ml.py
         data_original_summary = (
-            f"Original Data Summary Pre-transformation:\n\n"
+            f"Cluster variable(s): {self._original_dml_data.cluster_cols}\n"
+            f"\nPre-Transformation Data Summary: \n"
             f"Outcome variable: {self._original_dml_data.y_col}\n"
             f"Treatment variable(s): {self._original_dml_data.d_cols}\n"
             f"Covariates: {self._original_dml_data.x_cols}\n"
@@ -262,7 +282,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         return data, cols
 
     def _set_d_mean(self):
-        if self._approach == "cre_normal":
+        if self._approach in ["cre_general", "cre_normal"]:
             data = self._original_dml_data.data
             d_cols = self._original_dml_data.d_cols
             id_col = self._original_dml_data.id_col
@@ -322,11 +342,11 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             )
 
             # general cre adjustment
-            # TODO: update this section
             if self._approach == "cre_general":
-                help_data = pd.DataFrame({"id": self._dml_data.id_var, "m_hat": m_hat["preds"], "d": d})
-                group_means = help_data.groupby(["id"])[["m_hat", "d"]].transform("mean")
-                m_hat_star = m_hat["preds"] + group_means["d"] - group_means["m_hat"]
+                d_mean = self._d_mean[:, self._i_treat]
+                df_m_hat = pd.DataFrame({"id": self._dml_data.id_var, "m_hat": m_hat["preds"]})
+                m_hat_mean = df_m_hat.groupby(["id"]).transform("mean")
+                m_hat_star = m_hat["preds"] + d_mean - m_hat_mean["m_hat"]
                 m_hat["preds"] = m_hat_star
 
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
