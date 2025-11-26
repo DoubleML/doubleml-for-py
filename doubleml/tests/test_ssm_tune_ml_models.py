@@ -4,8 +4,7 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 import doubleml as dml
 from doubleml.irm.datasets import make_ssm_data
-
-from .test_dml_tune_optuna import (
+from doubleml.tests._utils_tune_optuna import (
     _SAMPLER_CASES,
     _assert_tree_params,
     _basic_optuna_settings,

@@ -9,8 +9,7 @@ import doubleml as dml
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.datasets import make_did_CS2021
 from doubleml.irm.datasets import make_irm_data, make_irm_data_discrete_treatments
-
-from .test_dml_tune_optuna import _basic_optuna_settings, _small_tree_params
+from doubleml.tests._utils_tune_optuna import _basic_optuna_settings, _small_tree_params
 
 
 def _build_apos_object():

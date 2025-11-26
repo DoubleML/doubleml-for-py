@@ -4,8 +4,7 @@ from sklearn.tree import DecisionTreeRegressor
 
 import doubleml as dml
 from doubleml.plm.datasets import make_pliv_CHS2015
-
-from .test_dml_tune_optuna import (
+from doubleml.tests._utils_tune_optuna import (
     _SAMPLER_CASES,
     _assert_tree_params,
     _basic_optuna_settings,

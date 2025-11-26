@@ -5,8 +5,7 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from doubleml.data import DoubleMLPanelData
 from doubleml.did import DoubleMLDIDBinary
 from doubleml.did.datasets import make_did_CS2021
-
-from .test_dml_tune_optuna import (
+from doubleml.tests._utils_tune_optuna import (
     _SAMPLER_CASES,
     _assert_tree_params,
     _basic_optuna_settings,
