@@ -12,6 +12,7 @@ from doubleml.tests._utils_tune_optuna import (
 )
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_plr_optuna_multiple_treatments(sampler_name, optuna_sampler):
     np.random.seed(3141)

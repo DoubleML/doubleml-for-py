@@ -106,6 +106,7 @@ def did_multi_obj():
     return _build_did_multi_object()
 
 
+@pytest.mark.ci
 def test_doubleml_apos_tune_ml_models_collects_results(apos_obj):
     dml_obj = apos_obj
     mocks = []
@@ -136,6 +137,7 @@ def test_doubleml_apos_tune_ml_models_collects_results(apos_obj):
         mock.tune_ml_models.assert_called_once_with(**tune_kwargs_nores)
 
 
+@pytest.mark.ci
 def test_doubleml_qte_tune_ml_models_returns_quantile_results(qte_obj):
     dml_obj = qte_obj
     modellist_0 = []
@@ -172,6 +174,7 @@ def test_doubleml_qte_tune_ml_models_returns_quantile_results(qte_obj):
         mock.tune_ml_models.assert_called_once_with(**tune_kwargs_nores)
 
 
+@pytest.mark.ci
 def test_doubleml_did_multi_tune_ml_models_handles_all_group_time_models(did_multi_obj):
     dml_obj = did_multi_obj
     mocks = []

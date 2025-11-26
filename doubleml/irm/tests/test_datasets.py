@@ -131,6 +131,7 @@ def n_levels(request):
     return request.param
 
 
+@pytest.mark.ci
 def test_make_data_discrete_treatments(n_levels):
     np.random.seed(3141)
     n = 100

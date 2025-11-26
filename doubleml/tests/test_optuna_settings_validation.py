@@ -12,6 +12,7 @@ def _constant_params(_trial):
     return {}
 
 
+@pytest.mark.ci
 def test_optuna_settings_invalid_key_for_irm_raises():
     np.random.seed(2024)
     dml_data = make_irm_data(n_obs=40, dim_x=2)
@@ -27,6 +28,7 @@ def test_optuna_settings_invalid_key_for_irm_raises():
         dml_irm.tune_ml_models(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
+@pytest.mark.ci
 def test_optuna_settings_invalid_key_for_plr_raises():
     np.random.seed(2025)
     dml_data = make_plr_CCDDHNR2018(n_obs=80, dim_x=4)
@@ -42,6 +44,7 @@ def test_optuna_settings_invalid_key_for_plr_raises():
         dml_plr.tune_ml_models(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
+@pytest.mark.ci
 def test_optuna_settings_invalid_key_for_pliv_raises():
     np.random.seed(2026)
     dml_data = make_pliv_CHS2015(n_obs=80, dim_x=4, dim_z=2)
@@ -64,6 +67,7 @@ def test_optuna_settings_invalid_key_for_pliv_raises():
         dml_pliv.tune_ml_models(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
+@pytest.mark.ci
 def test_optuna_settings_invalid_key_for_did_raises():
     np.random.seed(2027)
     dml_data = make_did_SZ2020(n_obs=120, dgp_type=1, return_type="DoubleMLDIDData")
@@ -79,6 +83,7 @@ def test_optuna_settings_invalid_key_for_did_raises():
         dml_did.tune_ml_models(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
+@pytest.mark.ci
 def test_optuna_params_invalid_key_for_irm_raises():
     np.random.seed(2028)
     dml_data = make_irm_data(n_obs=40, dim_x=2)
@@ -93,6 +98,7 @@ def test_optuna_params_invalid_key_for_irm_raises():
         dml_irm.tune_ml_models(ml_param_space=optuna_params)
 
 
+@pytest.mark.ci
 def test_optuna_params_invalid_key_for_plr_raises():
     np.random.seed(2029)
     dml_data = make_plr_CCDDHNR2018(n_obs=80, dim_x=4)
@@ -107,6 +113,7 @@ def test_optuna_params_invalid_key_for_plr_raises():
         dml_plr.tune_ml_models(ml_param_space=optuna_params)
 
 
+@pytest.mark.ci
 def test_optuna_params_invalid_key_for_pliv_raises():
     np.random.seed(2030)
     dml_data = make_pliv_CHS2015(n_obs=80, dim_x=4, dim_z=2)
@@ -122,6 +129,7 @@ def test_optuna_params_invalid_key_for_pliv_raises():
         dml_pliv.tune_ml_models(ml_param_space=optuna_params)
 
 
+@pytest.mark.ci
 def test_optuna_params_invalid_key_for_did_raises():
     np.random.seed(2031)
     dml_data = make_did_SZ2020(n_obs=100, dgp_type=1, return_type="DoubleMLDIDData")

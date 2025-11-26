@@ -13,6 +13,7 @@ from doubleml.tests._utils_tune_optuna import (
 )
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 @pytest.mark.parametrize("score", ["observational", "experimental"])
 def test_doubleml_did_optuna_tune(sampler_name, optuna_sampler, score):

@@ -13,6 +13,7 @@ from doubleml.tests._utils_tune_optuna import (
 )
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_pliv_optuna_tune(sampler_name, optuna_sampler):
     """Test PLIV with ml_l, ml_m, ml_r nuisance models."""

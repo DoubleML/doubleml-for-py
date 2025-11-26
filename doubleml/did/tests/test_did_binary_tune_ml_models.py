@@ -15,8 +15,10 @@ from doubleml.tests._utils_tune_optuna import (
 )
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
-def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler):
+@pytest.mark.parametrize("score", ["observational", "experimental"])
+def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler, score):
     np.random.seed(3152)
     df_panel = make_did_CS2021(
         n_obs=1000,
@@ -47,7 +49,7 @@ def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler):
         t_value_eval=t_value_eval,
         ml_g=ml_g,
         ml_m=ml_m,
-        score="observational",
+        score=score,
         n_folds=2,
     )
     dml_did_binary.fit()

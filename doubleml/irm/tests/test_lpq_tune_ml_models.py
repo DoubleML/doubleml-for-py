@@ -13,6 +13,7 @@ from doubleml.tests._utils_tune_optuna import (
 )
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_lpq_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3148)

@@ -21,6 +21,7 @@ from doubleml.utils._tune_optuna import (
 )
 
 
+@pytest.mark.ci
 def test_resolve_optuna_scoring_regressor_default():
     learner = LinearRegression()
     scoring, message = _resolve_optuna_scoring(None, learner, "ml_l")
@@ -28,6 +29,7 @@ def test_resolve_optuna_scoring_regressor_default():
     assert "neg_root_mean_squared_error" in message
 
 
+@pytest.mark.ci
 def test_resolve_optuna_scoring_classifier_default():
     learner = LogisticRegression()
     scoring, message = _resolve_optuna_scoring(None, learner, "ml_m")
@@ -35,6 +37,7 @@ def test_resolve_optuna_scoring_classifier_default():
     assert "neg_log_loss" in message
 
 
+@pytest.mark.ci
 def test_resolve_optuna_scoring_with_criterion_keeps_default():
     learner = DecisionTreeRegressor(random_state=0)
     scoring, message = _resolve_optuna_scoring(None, learner, "ml_l")
@@ -42,6 +45,7 @@ def test_resolve_optuna_scoring_with_criterion_keeps_default():
     assert "neg_root_mean_squared_error" in message
 
 
+@pytest.mark.ci
 def test_resolve_optuna_scoring_lightgbm_regressor_default():
     pytest.importorskip("lightgbm")
     from lightgbm import LGBMRegressor
@@ -52,6 +56,7 @@ def test_resolve_optuna_scoring_lightgbm_regressor_default():
     assert "neg_root_mean_squared_error" in message
 
 
+@pytest.mark.ci
 def test_resolve_optuna_cv_sets_random_state():
     cv = resolve_optuna_cv(3)
     assert isinstance(cv, KFold)
@@ -59,6 +64,7 @@ def test_resolve_optuna_cv_sets_random_state():
     assert cv.random_state == 42
 
 
+@pytest.mark.ci
 def test_doubleml_optuna_cv_variants():
     np.random.seed(3142)
     dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
@@ -164,6 +170,7 @@ def test_doubleml_optuna_cv_variants():
     assert none_m_params is not None
 
 
+@pytest.mark.ci
 def test_create_study_respects_user_study_name(monkeypatch):
     captured_kwargs = {}
 
@@ -189,6 +196,7 @@ def test_create_study_respects_user_study_name(monkeypatch):
     assert captured_kwargs["study_name"] == "custom-study"
 
 
+@pytest.mark.ci
 def test_doubleml_optuna_partial_tuning_single_learner():
     np.random.seed(3143)
     dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
@@ -218,6 +226,7 @@ def test_doubleml_optuna_partial_tuning_single_learner():
     assert set(tune_res[0].keys()) == {"ml_l", "ml_m"}
 
 
+@pytest.mark.ci
 def test_doubleml_optuna_sets_params_for_all_folds():
     np.random.seed(3153)
     dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
@@ -255,6 +264,7 @@ def test_doubleml_optuna_sets_params_for_all_folds():
             assert m_fold_params == expected_m
 
 
+@pytest.mark.ci
 def test_doubleml_optuna_fit_uses_tuned_params():
     np.random.seed(3154)
     dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
@@ -285,6 +295,7 @@ def test_doubleml_optuna_fit_uses_tuned_params():
                 assert ml_m_model.get_params()[key] == value
 
 
+@pytest.mark.ci
 def test_dml_optuna_result_str_representation():
     def custom_scorer(**args):
         return 0.0
@@ -325,6 +336,7 @@ def test_dml_optuna_result_str_representation():
     assert "No best parameters available." in empty_str
 
 
+@pytest.mark.ci
 def test_doubleml_optuna_scoring_method_variants():
     np.random.seed(3156)
     dml_data = make_plr_CCDDHNR2018(n_obs=120, dim_x=5)
@@ -368,6 +380,7 @@ def test_doubleml_optuna_scoring_method_variants():
     assert tune_res_callable[0]["ml_m"].scoring_method is neg_mae_scorer
 
 
+@pytest.mark.ci
 def test_doubleml_optuna_invalid_settings_key_raises():
     np.random.seed(3155)
     dml_data = make_irm_data(n_obs=100, dim_x=5)
@@ -384,6 +397,7 @@ def test_doubleml_optuna_invalid_settings_key_raises():
         dml_irm.tune_ml_models(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
+@pytest.mark.ci
 def test_optuna_settings_hierarchy_overrides():
     np.random.seed(3160)
     dml_data = make_irm_data(n_obs=80, dim_x=5)
@@ -425,6 +439,7 @@ def test_optuna_settings_hierarchy_overrides():
     assert _completed_trials(result_map["ml_m"].study) == 4
 
 
+@pytest.mark.ci
 def test_optuna_logging_integration():
     """Test that logging integration works correctly with Optuna."""
     import logging
@@ -494,6 +509,7 @@ def test_optuna_logging_integration():
         logger.setLevel(original_level)
 
 
+@pytest.mark.ci
 def test_optuna_logging_verbosity_sync():
     """Test that DoubleML logger level syncs with Optuna logger level."""
     import logging
@@ -530,6 +546,7 @@ def test_optuna_logging_verbosity_sync():
         logger.setLevel(original_level)
 
 
+@pytest.mark.ci
 def test_optuna_logging_explicit_verbosity():
     """Test that explicit verbosity setting in optuna_settings takes precedence."""
     np.random.seed(3156)
@@ -557,6 +574,7 @@ def test_optuna_logging_explicit_verbosity():
     assert tuned_l is not None
 
 
+@pytest.mark.ci
 def test_doubleml_optuna_respects_provided_study_instances():
     np.random.seed(3157)
     dml_data = make_plr_CCDDHNR2018(n_obs=80, dim_x=4)

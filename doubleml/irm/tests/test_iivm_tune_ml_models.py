@@ -12,6 +12,7 @@ from doubleml.tests._utils_tune_optuna import (
 )
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_iivm_optuna_tune(sampler_name, optuna_sampler):
     """Test IIVM with ml_g0, ml_g1, ml_m, ml_r0, ml_r1 nuisance models."""

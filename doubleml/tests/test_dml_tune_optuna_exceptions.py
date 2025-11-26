@@ -36,6 +36,7 @@ def ml_m_params(trial):
 valid_param_space = {"ml_l": ml_l_params, "ml_m": ml_m_params}
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize(
     "ml_param_space, msg",
     [
@@ -55,6 +56,7 @@ def test_tune_ml_models_invalid_param_space(ml_param_space, msg):
         dml_plr.tune_ml_models(ml_param_space)
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize(
     "scoring_methods, exc, msg",
     [
@@ -76,6 +78,7 @@ def test_tune_ml_models_invalid_scoring_methods(scoring_methods, exc, msg):
         dml_plr.tune_ml_models(valid_param_space, scoring_methods=scoring_methods)
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize(
     "cv, msg",
     [
@@ -88,6 +91,7 @@ def test_tune_ml_models_invalid_cv(cv, msg):
         dml_plr.tune_ml_models(valid_param_space, cv=cv)
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize(
     "set_as_params, msg",
     [
@@ -100,6 +104,7 @@ def test_tune_ml_models_invalid_set_as_params(set_as_params, msg):
         dml_plr.tune_ml_models(valid_param_space, set_as_params=set_as_params)
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize(
     "return_tune_res, msg",
     [
@@ -112,6 +117,7 @@ def test_tune_ml_models_invalid_return_tune_res(return_tune_res, msg):
         dml_plr.tune_ml_models(valid_param_space, return_tune_res=return_tune_res)
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize(
     "optuna_settings, msg",
     [
@@ -129,6 +135,7 @@ def test_tune_ml_models_invalid_optuna_settings(optuna_settings, msg):
 
 
 # add test for giving non iterable cv object
+@pytest.mark.ci
 def test_tune_ml_models_non_iterable_cv():
     class NonIterableCV:
         pass
@@ -142,6 +149,7 @@ def test_tune_ml_models_non_iterable_cv():
         dml_plr.tune_ml_models(valid_param_space, cv=non_iterable_cv)
 
 
+@pytest.mark.ci
 def test_resolve_optuna_cv_invalid_iterable_pairs():
     invalid_cv = [(np.array([0, 1]),)]
     msg = re.escape("cv iterable must yield (train_indices, test_indices) pairs.")
@@ -149,6 +157,7 @@ def test_resolve_optuna_cv_invalid_iterable_pairs():
         resolve_optuna_cv(invalid_cv)
 
 
+@pytest.mark.ci
 def test_resolve_optuna_scoring_unknown_estimator_type():
     class GenericEstimator(BaseEstimator):
         def fit(self, x, y):
@@ -165,6 +174,7 @@ def test_resolve_optuna_scoring_unknown_estimator_type():
         _resolve_optuna_scoring(None, GenericEstimator(), "ml_l")
 
 
+@pytest.mark.ci
 def test_check_tuning_inputs_mismatched_dimensions():
     x = np.zeros((3, 2))
     y = np.zeros(5)
@@ -175,6 +185,7 @@ def test_check_tuning_inputs_mismatched_dimensions():
         _check_tuning_inputs(y, x, Lasso(), lambda trial: {}, "neg_mean_squared_error", 2, "ml_l")
 
 
+@pytest.mark.ci
 def test_check_tuning_inputs_empty_target():
     x = np.zeros((0, 2))
     y = np.zeros(0)
@@ -185,6 +196,7 @@ def test_check_tuning_inputs_empty_target():
         _check_tuning_inputs(y, x, Lasso(), lambda trial: {}, "neg_mean_squared_error", 2, "ml_l")
 
 
+@pytest.mark.ci
 def test_check_tuning_inputs_invalid_learner_interface():
     class BadLearner:
         def set_params(self, **kwargs):
@@ -199,6 +211,7 @@ def test_check_tuning_inputs_invalid_learner_interface():
         _check_tuning_inputs(y, x, BadLearner(), lambda trial: {}, "neg_mean_squared_error", 2, "ml_l")
 
 
+@pytest.mark.ci
 def test_check_tuning_inputs_non_callable_param_grid():
     x = np.zeros((5, 2))
     y = np.zeros(5)
@@ -207,11 +220,13 @@ def test_check_tuning_inputs_non_callable_param_grid():
         _check_tuning_inputs(y, x, Lasso(), "not-callable", "neg_mean_squared_error", 2, "ml_l")
 
 
+@pytest.mark.ci
 def test_get_optuna_settings_requires_dict():
     with pytest.raises(TypeError, match="optuna_settings must be a dict or None."):
         _get_optuna_settings("invalid", "ml_l")
 
 
+@pytest.mark.ci
 def test_get_optuna_settings_returns_default_copy_for_none():
     resolved_a = _get_optuna_settings(None, "ml_l")
     resolved_b = _get_optuna_settings(None, "ml_l")
@@ -223,21 +238,25 @@ def test_get_optuna_settings_returns_default_copy_for_none():
     assert resolved_b["n_trials"] == _default_optuna_settings()["n_trials"]
 
 
+@pytest.mark.ci
 def test_get_optuna_settings_validates_study_kwargs_type():
     with pytest.raises(TypeError, match="study_kwargs must be a dict."):
         _get_optuna_settings({"study_kwargs": "invalid"}, "ml_l")
 
 
+@pytest.mark.ci
 def test_get_optuna_settings_validates_optimize_kwargs_type():
     with pytest.raises(TypeError, match="optimize_kwargs must be a dict."):
         _get_optuna_settings({"optimize_kwargs": "invalid"}, "ml_l")
 
 
+@pytest.mark.ci
 def test_get_optuna_settings_validates_callbacks_type():
     with pytest.raises(TypeError, match="callbacks must be a sequence of callables or None."):
         _get_optuna_settings({"callbacks": "invalid"}, "ml_l")
 
 
+@pytest.mark.ci
 def test_create_objective_requires_dict_params():
     x = np.asarray(dml_data.x)
     y = np.asarray(dml_data.y)
@@ -261,6 +280,7 @@ def test_create_objective_requires_dict_params():
         objective(None)
 
 
+@pytest.mark.ci
 def test_dml_tune_optuna_raises_when_no_trials_complete():
     class FailingRegressor(BaseEstimator, RegressorMixin):
         def fit(self, x, y):
