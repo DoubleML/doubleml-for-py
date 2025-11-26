@@ -4,7 +4,7 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 import doubleml as dml
 from doubleml.plm.datasets import make_lplr_LZZ2020
-from doubleml.tests.test_dml_tune_optuna import (
+from doubleml.tests._utils_tune_optuna import (
     _SAMPLER_CASES,
     _assert_tree_params,
     _basic_optuna_settings,
