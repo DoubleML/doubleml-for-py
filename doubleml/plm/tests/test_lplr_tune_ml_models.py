@@ -17,7 +17,7 @@ def score(request):
     return request.param
 
 
-@pytest.fixture(scope="module", params=[DecisionTreeRegressor(random_state=567), None])
+@pytest.fixture(scope="module", params=[DecisionTreeRegressor(random_state=567, max_depth=None, min_samples_split=2), None])
 def ml_a(request):
     return request.param
 
@@ -27,11 +27,11 @@ def ml_a(request):
 def test_doubleml_lplr_optuna_tune(sampler_name, optuna_sampler, score, ml_a):
     np.random.seed(3141)
     alpha = 0.5
-    dml_data = make_lplr_LZZ2020(n_obs=500, dim_x=15, alpha=alpha)
+    dml_data = make_lplr_LZZ2020(n_obs=200, dim_x=15, alpha=alpha)
 
-    ml_M = DecisionTreeClassifier(random_state=123, max_leaf_nodes=50)
-    ml_t = DecisionTreeRegressor(random_state=234, max_leaf_nodes=50)
-    ml_m = DecisionTreeRegressor(random_state=456, max_leaf_nodes=50)
+    ml_M = DecisionTreeClassifier(random_state=123, max_depth=None, min_samples_split=2)
+    ml_t = DecisionTreeRegressor(random_state=234, max_depth=None, min_samples_split=2)
+    ml_m = DecisionTreeRegressor(random_state=456, max_depth=None, min_samples_split=2)
 
     dml_lplr = dml.DoubleMLLPLR(
         dml_data,

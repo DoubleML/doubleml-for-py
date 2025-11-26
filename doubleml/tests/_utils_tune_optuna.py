@@ -23,7 +23,7 @@ _SAMPLER_CASES = [
 def _small_tree_params(trial):
     return {
         "max_depth": trial.suggest_int("max_depth", 1, 10),
-        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 2, 100),
+        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 5, 20),
         "max_leaf_nodes": trial.suggest_int("max_leaf_nodes", 2, 20),
     }
 
