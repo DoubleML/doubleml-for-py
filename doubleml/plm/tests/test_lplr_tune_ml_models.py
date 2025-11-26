@@ -29,9 +29,9 @@ def test_doubleml_lplr_optuna_tune(sampler_name, optuna_sampler, score, ml_a):
     alpha = 0.5
     dml_data = make_lplr_LZZ2020(n_obs=500, dim_x=15, alpha=alpha)
 
-    ml_M = DecisionTreeClassifier(random_state=123, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
-    ml_t = DecisionTreeRegressor(random_state=234, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
-    ml_m = DecisionTreeRegressor(random_state=456, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
+    ml_M = DecisionTreeClassifier(random_state=123, max_leaf_nodes=50)
+    ml_t = DecisionTreeRegressor(random_state=234, max_leaf_nodes=50)
+    ml_m = DecisionTreeRegressor(random_state=456, max_leaf_nodes=50)
 
     dml_lplr = dml.DoubleMLLPLR(
         dml_data,
@@ -55,7 +55,7 @@ def test_doubleml_lplr_optuna_tune(sampler_name, optuna_sampler, score, ml_a):
 
     tune_res = dml_lplr.tune_ml_models(
         ml_param_space=optuna_params,
-        optuna_settings=_basic_optuna_settings({"sampler": optuna_sampler}),
+        optuna_settings=_basic_optuna_settings({"sampler": optuna_sampler, "n_trials": 5}),
         return_tune_res=True,
     )
 
