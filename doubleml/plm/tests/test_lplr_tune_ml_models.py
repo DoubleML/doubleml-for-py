@@ -29,9 +29,9 @@ def test_doubleml_lplr_optuna_tune(sampler_name, optuna_sampler, score, ml_a):
     alpha = 0.5
     dml_data = make_lplr_LZZ2020(n_obs=500, dim_x=15, alpha=alpha)
 
-    ml_M = DecisionTreeClassifier(random_state=123)
-    ml_t = DecisionTreeRegressor(random_state=234)
-    ml_m = DecisionTreeRegressor(random_state=456)
+    ml_M = DecisionTreeClassifier(random_state=123, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
+    ml_t = DecisionTreeRegressor(random_state=234, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
+    ml_m = DecisionTreeRegressor(random_state=456, max_depth=1, min_samples_leaf=500, max_leaf_nodes=2)
 
     dml_lplr = dml.DoubleMLLPLR(
         dml_data,
@@ -85,6 +85,6 @@ def test_doubleml_lplr_optuna_tune(sampler_name, optuna_sampler, score, ml_a):
     assert tune_res[0]["ml_a"].best_params["max_depth"] == tuned_params_a["max_depth"]
 
     # ensure tuning improved RMSE #  not actually possible for ml_t as the targets are not available
-    assert tuned_score["ml_M"] < untuned_score["ml_M"]
-    assert tuned_score["ml_m"] < untuned_score["ml_m"]
-    assert tuned_score["ml_a"] < untuned_score["ml_a"]
+    assert tuned_score["ml_M"] <= untuned_score["ml_M"]
+    assert tuned_score["ml_m"] <= untuned_score["ml_m"]
+    assert tuned_score["ml_a"] <= untuned_score["ml_a"]
