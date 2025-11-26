@@ -614,7 +614,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             y=y,
             cv=cv,
             method="predict_proba",
-        )
+        )[:, 1]
         M_hat = np.clip(M_hat, 1e-8, 1 - 1e-8)
         W_hat = scipy.special.logit(M_hat)
 
