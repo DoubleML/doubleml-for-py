@@ -4,7 +4,7 @@ import optuna
 
 def _basic_optuna_settings(additional=None):
     base_settings = {
-        "n_trials": 5,
+        "n_trials": 10,
         "sampler": optuna.samplers.TPESampler(seed=3141),
         "verbosity": optuna.logging.WARNING,
         "show_progress_bar": False,
