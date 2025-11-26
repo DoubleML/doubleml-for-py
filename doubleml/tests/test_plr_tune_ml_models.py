@@ -13,6 +13,7 @@ from .test_dml_tune_optuna import (
 )
 
 
+@pytest.mark.ci
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3141)
@@ -56,6 +57,7 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     assert tuned_score["ml_m"] < untuned_score["ml_m"]
 
 
+@pytest.mark.ci
 def test_doubleml_plr_optuna_tune_with_ml_g():
     np.random.seed(3150)
     dml_data = make_plr_CCDDHNR2018(n_obs=200, dim_x=5, alpha=0.5)
