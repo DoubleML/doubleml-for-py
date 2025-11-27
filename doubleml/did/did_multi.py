@@ -36,6 +36,7 @@ from doubleml.double_ml import DoubleML
 from doubleml.double_ml_framework import concat
 from doubleml.utils._checks import _check_bool, _check_score
 from doubleml.utils._descriptive import generate_summary
+from doubleml.utils._tune_optuna import TUNE_ML_MODELS_DOC
 from doubleml.utils.gain_statistics import gain_statistics
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
@@ -733,6 +734,37 @@ class DoubleMLDIDMulti:
         p_val.set_index(pd.Index(self.gt_labels), inplace=True)
 
         return p_val
+
+    def tune_ml_models(
+        self,
+        ml_param_space,
+        scoring_methods=None,
+        cv=5,
+        set_as_params=True,
+        return_tune_res=False,
+        optuna_settings=None,
+    ):
+        """Hyperparameter-tuning for DoubleML models using Optuna."""
+
+        tuning_kwargs = {
+            "ml_param_space": ml_param_space,
+            "scoring_methods": scoring_methods,
+            "cv": cv,
+            "set_as_params": set_as_params,
+            "return_tune_res": return_tune_res,
+            "optuna_settings": optuna_settings,
+        }
+
+        tune_res = [] if return_tune_res else None
+
+        for model in self.modellist:
+            res = model.tune_ml_models(**tuning_kwargs)
+            if return_tune_res:
+                tune_res.append(res[0])
+
+        return tune_res if return_tune_res else self
+
+    tune_ml_models.__doc__ = TUNE_ML_MODELS_DOC
 
     def bootstrap(self, method="normal", n_rep_boot=500):
         """

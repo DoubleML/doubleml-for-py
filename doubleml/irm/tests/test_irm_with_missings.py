@@ -150,6 +150,7 @@ def test_dml_irm_w_missing_boot(dml_irm_w_missing_fixture):
         )
 
 
+@pytest.mark.ci
 def test_irm_exception_with_missings(generate_data_irm_w_missings, learner_sklearn):
     # collect data
     (x, y, d) = generate_data_irm_w_missings

@@ -27,6 +27,7 @@ from doubleml.utils._estimation import _solve_quadratic_inequality
     ],
 )
 def test_solve_quadratic_inequation(a, b, c, expected):
+    np.random.seed(42)
     result = _solve_quadratic_inequality(a, b, c)
 
     assert len(result) == len(expected), f"Expected {len(expected)} intervals but got {len(result)}"

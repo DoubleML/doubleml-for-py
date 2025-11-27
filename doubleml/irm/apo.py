@@ -15,6 +15,7 @@ from doubleml.utils._checks import (
 )
 from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _propensity_score_adjustment
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.blp import DoubleMLBLP
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
@@ -456,6 +457,75 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        dx = np.column_stack((d, x))
+        treated_indicator = self.treated.astype(bool)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_g_d_lvl0": None, "ml_g_d_lvl1": None, "ml_m": None}
+
+        mask_lvl1 = treated_indicator
+        mask_lvl0 = np.logical_not(mask_lvl1)
+
+        dx_lvl0 = dx[mask_lvl0, :]
+        y_lvl0 = y[mask_lvl0]
+        g_lvl0_param_grid = optuna_params["ml_g_d_lvl0"]
+        g_lvl0_scoring = scoring_methods["ml_g_d_lvl0"]
+        g_d_lvl0_tune_res = _dml_tune_optuna(
+            y_lvl0,
+            dx_lvl0,
+            self._learner["ml_g"],
+            g_lvl0_param_grid,
+            g_lvl0_scoring,
+            cv,
+            optuna_settings,
+            learner_name="ml_g",
+            params_name="ml_g_d_lvl0",
+        )
+
+        x_lvl1 = x[mask_lvl1, :]
+        y_lvl1 = y[mask_lvl1]
+        g_lvl1_param_grid = optuna_params["ml_g_d_lvl1"]
+        g_lvl1_scoring = scoring_methods["ml_g_d_lvl1"]
+        g_d_lvl1_tune_res = _dml_tune_optuna(
+            y_lvl1,
+            x_lvl1,
+            self._learner["ml_g"],
+            g_lvl1_param_grid,
+            g_lvl1_scoring,
+            cv,
+            optuna_settings,
+            learner_name="ml_g",
+            params_name="ml_g_d_lvl1",
+        )
+
+        m_tune_res = _dml_tune_optuna(
+            treated_indicator.astype(float),
+            x,
+            self._learner["ml_m"],
+            optuna_params["ml_m"],
+            scoring_methods["ml_m"],
+            cv,
+            optuna_settings,
+            learner_name="ml_m",
+            params_name="ml_m",
+        )
+
+        return {
+            "ml_g_d_lvl0": g_d_lvl0_tune_res,
+            "ml_g_d_lvl1": g_d_lvl1_tune_res,
+            "ml_m": m_tune_res,
+        }
 
     def _check_data(self, obj_dml_data):
         if len(obj_dml_data.d_cols) > 1:

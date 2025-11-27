@@ -26,6 +26,7 @@ from doubleml.utils._estimation import (
     _solve_ipw_score,
 )
 from doubleml.utils._propensity_score import _normalize_ipw
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -479,6 +480,50 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_g": None, "ml_m": None}
+
+        mask_treat = d == self.treatment
+        approx_goal = y <= np.quantile(y[mask_treat], self.quantile)
+
+        x_treat = x[mask_treat, :]
+        goal_treat = approx_goal[mask_treat]
+        g_tune_res = _dml_tune_optuna(
+            goal_treat,
+            x_treat,
+            self._learner["ml_g"],
+            optuna_params["ml_g"],
+            scoring_methods["ml_g"],
+            cv,
+            optuna_settings,
+            learner_name="ml_g",
+            params_name="ml_g",
+        )
+
+        m_tune_res = _dml_tune_optuna(
+            d,
+            x,
+            self._learner["ml_m"],
+            optuna_params["ml_m"],
+            scoring_methods["ml_m"],
+            cv,
+            optuna_settings,
+            learner_name="ml_m",
+            params_name="ml_m",
+        )
+        return {"ml_g": g_tune_res, "ml_m": m_tune_res}
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):

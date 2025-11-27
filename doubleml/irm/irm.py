@@ -18,6 +18,7 @@ from doubleml.utils._checks import (
 )
 from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _propensity_score_adjustment
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.blp import DoubleMLBLP
 from doubleml.utils.policytree import DoubleMLPolicyTree
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
@@ -493,6 +494,72 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+        """
+        Optuna-based hyperparameter tuning for IRM nuisance models.
+
+        Performs tuning once on the whole dataset using cross-validation,
+        returning the same optimal parameters for all folds.
+        """
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_g0": None, "ml_g1": None, "ml_m": None}
+
+        # Separate data by treatment status for conditional mean tuning
+        mask_d0 = d == 0
+        mask_d1 = d == 1
+
+        x_d0 = x[mask_d0, :]
+        y_d0 = y[mask_d0]
+        g0_tune_res = _dml_tune_optuna(
+            y_d0,
+            x_d0,
+            self._learner["ml_g"],
+            optuna_params["ml_g0"],
+            scoring_methods["ml_g0"],
+            cv,
+            optuna_settings,
+            learner_name="ml_g",
+            params_name="ml_g0",
+        )
+
+        x_d1 = x[mask_d1, :]
+        y_d1 = y[mask_d1]
+        g1_tune_res = _dml_tune_optuna(
+            y_d1,
+            x_d1,
+            self._learner["ml_g"],
+            optuna_params["ml_g1"],
+            scoring_methods["ml_g1"],
+            cv,
+            optuna_settings,
+            learner_name="ml_g",
+            params_name="ml_g1",
+        )
+
+        # Tune propensity score on full dataset
+        m_tune_res = _dml_tune_optuna(
+            d,
+            x,
+            self._learner["ml_m"],
+            optuna_params["ml_m"],
+            scoring_methods["ml_m"],
+            cv,
+            optuna_settings,
+            learner_name="ml_m",
+            params_name="ml_m",
+        )
+        return {"ml_g0": g0_tune_res, "ml_g1": g1_tune_res, "ml_m": m_tune_res}
 
     def cate(self, basis, is_gate=False, **kwargs):
         """
