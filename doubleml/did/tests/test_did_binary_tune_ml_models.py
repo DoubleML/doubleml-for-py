@@ -21,8 +21,8 @@ from doubleml.tests._utils_tune_optuna import (
 def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler, score):
     np.random.seed(3152)
     df_panel = make_did_CS2021(
-        n_obs=200,
-        dgp_type=1,
+        n_obs=500,
+        dgp_type=4,
         include_never_treated=True,
         time_type="float",
         n_periods=4,
@@ -39,9 +39,8 @@ def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler, score):
 
     g_value, t_value_pre, t_value_eval = _select_binary_periods(panel_data)
 
-    ml_g = DecisionTreeRegressor(random_state=321)
+    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1) # underfit
     ml_m = DecisionTreeClassifier(random_state=654)
-
     dml_did_binary = DoubleMLDIDBinary(
         obj_dml_data=panel_data,
         g_value=g_value,

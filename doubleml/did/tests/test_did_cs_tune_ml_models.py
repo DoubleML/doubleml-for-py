@@ -19,18 +19,18 @@ from doubleml.tests._utils_tune_optuna import (
 def test_doubleml_did_cs_optuna_tune(sampler_name, optuna_sampler, score):
     np.random.seed(3151)
     dml_data = make_did_SZ2020(
-        n_obs=200,
-        dgp_type=2,
+        n_obs=500,
+        dgp_type=4,
         cross_sectional_data=True,
         return_type="DoubleMLDIDData",
     )
 
-    ml_g = DecisionTreeRegressor(random_state=321)
+    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1) # underfit
     if score == "observational":
         ml_m = DecisionTreeClassifier(random_state=654)
-        dml_did_cs = dml.DoubleMLDIDCS(dml_data, ml_g, ml_m, score=score, n_folds=2)
+        dml_did_cs = dml.DoubleMLDIDCS(dml_data, ml_g, ml_m, score=score, n_folds=5)
     else:
-        dml_did_cs = dml.DoubleMLDIDCS(dml_data, ml_g, score=score, n_folds=2)
+        dml_did_cs = dml.DoubleMLDIDCS(dml_data, ml_g, score=score, n_folds=5)
     dml_did_cs.fit()
     untuned_score = dml_did_cs.evaluate_learners()
 
