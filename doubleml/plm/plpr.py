@@ -60,29 +60,38 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
 
-    TODO: include notes
     Examples
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.plm.datasets import make_static_panel_CP2025
+    >>> from doubleml.plm.datasets import make_plpr_CP2025
     >>> from sklearn.linear_model import LassoCV
     >>> from sklearn.base import clone
     >>> np.random.seed(3142)
     >>> learner = LassoCV()
     >>> ml_l = clone(learner)
     >>> ml_m = clone(learner)
-    >>> data = make_static_panel_CP2025(num_n=250, num_t=10, dim_x=30, theta=0.5, dgp_type='dgp1')
+    >>> data = make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type='dgp1')
     >>> obj_dml_data = DoubleMLPanelData(data, 'y', 'd', 'time', 'id', static_panel=True)
     >>> dml_plpr_obj = DoubleMLPLPR(obj_dml_data, ml_l, ml_m)
     >>> dml_plpr_obj.fit().summary
-    	        coef   std err          t	      P>|t|	    2.5 %	 97.5 %
+                coef   std err          t	      P>|t|	    2.5 %	 97.5 %
     d_diff  0.511626  0.024615  20.784933  5.924636e-96  0.463381  0.559871
 
     Notes
     -----
     **Partially linear panel regression (PLPR)** models take the form
 
+    .. math::
+
+        Y_{it} &= D_{it} \\theta_0 + l_0(X_{it}) + \\alpha_i + U_{it}, & &\\mathbb{E}(U_{it} | D_{it},X_{it},\\alpha_i) = 0,
+
+        D_{it} &= m_0(X_{it}) + \\gamma_i + V_{it}, & &\\mathbb{E}(V_{it} | X_{it},\\gamma_i) = 0,
+
+    where :math:`Y_{it}` is the outcome variable and :math:`D_{it}` is the policy variable of interest.
+    The high-dimensional vector :math:`X_{it} = (X_{it,1}, \\ldots, X_{it,p})` consists of other confounding covariates,
+    :math:`\\alpha_i` and :math:`\\gamma_i` are the unobserved individual heterogeneity correlated with the included covariates,
+    and :math:`\\U_{it}` and :math:` V_{it}` are stochastic errors.
     """
 
     def __init__(

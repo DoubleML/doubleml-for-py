@@ -9,7 +9,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1")
 
         .. math::
 
-        Y_{it} &= D_{it} \\theta + l_0(X_{it}) + \\alpha_i + U_{it} m_0(x_i), & &U_{it} \\sim \\mathcal{N}(0,1),
+        Y_{it} &= D_{it} \\theta + l_0(X_{it}) + \\alpha_i + U_{it}, & &U_{it} \\sim \\mathcal{N}(0,1),
 
         D_{it} &= m_0(X_{it}) + c_i + V_{it}, & &V_{it} \\sim \\mathcal{N}(0,1),
 
