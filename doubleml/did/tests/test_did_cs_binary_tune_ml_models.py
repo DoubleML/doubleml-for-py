@@ -37,7 +37,7 @@ def test_doubleml_did_cs_binary_optuna_tune(sampler_name, optuna_sampler, score)
     print(df_panel.head())
     g_value, t_value_pre, t_value_eval = _select_binary_periods(panel_data)
 
-    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1) # underfit
+    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1)  # underfit
     ml_m = DecisionTreeClassifier(random_state=654)
 
     dml_did_cs_binary = DoubleMLDIDCSBinary(

@@ -22,7 +22,7 @@ def test_doubleml_did_optuna_tune(sampler_name, optuna_sampler, score):
     np.random.seed(3150)
     dml_data = make_did_SZ2020(n_obs=500, dgp_type=4, return_type="DoubleMLDIDData")
 
-    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1) # underfit
+    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1)  # underfit
     if score == "observational":
         ml_m = DecisionTreeClassifier(random_state=654)
         dml_did = dml.DoubleMLDID(dml_data, ml_g, ml_m, score=score, n_folds=5)

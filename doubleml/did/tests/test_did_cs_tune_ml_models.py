@@ -25,7 +25,7 @@ def test_doubleml_did_cs_optuna_tune(sampler_name, optuna_sampler, score):
         return_type="DoubleMLDIDData",
     )
 
-    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1) # underfit
+    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1)  # underfit
     if score == "observational":
         ml_m = DecisionTreeClassifier(random_state=654)
         dml_did_cs = dml.DoubleMLDIDCS(dml_data, ml_g, ml_m, score=score, n_folds=5)
