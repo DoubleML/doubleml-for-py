@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 from doubleml.utils._checks import _check_sample_splitting
-from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
+from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLDoubleResampling, DoubleMLResampling
 
 
 class SampleSplittingMixin:
@@ -17,6 +17,8 @@ class SampleSplittingMixin:
     `sample splitting <https://docs.doubleml.org/stable/guide/resampling.html>`_ in the DoubleML user guide.
     """
 
+    _double_sample_splitting = False
+
     def draw_sample_splitting(self):
         """
         Draw sample splitting for DoubleML models.
@@ -29,6 +31,8 @@ class SampleSplittingMixin:
         self : object
         """
         if self._is_cluster_data:
+            if self._double_sample_splitting:
+                raise ValueError("Cluster data not supported for double sample splitting.")
             obj_dml_resampling = DoubleMLClusterResampling(
                 n_folds=self._n_folds_per_cluster,
                 n_rep=self.n_rep,
@@ -38,10 +42,20 @@ class SampleSplittingMixin:
             )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
-            obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._n_obs_sample_splitting, stratify=self._strata
-            )
-            self._smpls = obj_dml_resampling.split_samples()
+            if self._double_sample_splitting:
+                obj_dml_resampling = DoubleMLDoubleResampling(
+                    n_folds=self.n_folds,
+                    n_folds_inner=self.n_folds_inner,
+                    n_rep=self.n_rep,
+                    n_obs=self._dml_data.n_obs,
+                    stratify=self._strata,
+                )
+                self._smpls, self._smpls_inner = obj_dml_resampling.split_samples()
+            else:
+                obj_dml_resampling = DoubleMLResampling(
+                    n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._n_obs_sample_splitting, stratify=self._strata
+                )
+                self._smpls = obj_dml_resampling.split_samples()
 
         return self
 
@@ -104,6 +118,9 @@ class SampleSplittingMixin:
         >>> dml_plr_obj.set_sample_splitting(smpls) # doctest: +ELLIPSIS
         <doubleml.plm.plr.DoubleMLPLR object at 0x...>
         """
+        if self._double_sample_splitting:
+            raise ValueError("set_sample_splitting not supported for double sample splitting.")
+
         self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
             all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self._n_obs_sample_splitting
         )

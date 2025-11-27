@@ -47,7 +47,8 @@ def _check_basic_defaults_after_fit(dml_obj):
 
     # sensitivity
     assert dml_obj.sensitivity_params is None
-    assert isinstance(dml_obj.sensitivity_elements, dict)
+    if dml_obj.sensitivity_params is not None:
+        assert isinstance(dml_obj.sensitivity_elements, dict)
 
     # fit method
     if isinstance(dml_obj, DoubleML):

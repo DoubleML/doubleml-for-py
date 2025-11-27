@@ -19,17 +19,17 @@ jobs:
     - name: Install python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.12'
 
-    - name: Install dependencies
+    - name: Install build tools
       run: |
-        python -m pip install --upgrade pip
-        pip install --upgrade build
-        pip install -e .[dev,rdd]
+        python -m pip install --upgrade pip build twine
 
     - name: Build package
-      run: |
-        python -m build
+      run: python -m build
+
+    - name: Check package metadata
+      run: twine check dist/*
 
     - uses: actions/upload-artifact@v4
       with:
