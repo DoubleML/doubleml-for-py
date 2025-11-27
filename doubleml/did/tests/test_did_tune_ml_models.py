@@ -20,11 +20,11 @@ def test_doubleml_did_optuna_tune(sampler_name, optuna_sampler, score):
     """Test DID with ml_g0, ml_g1 (and ml_m for observational score) nuisance models."""
 
     np.random.seed(3150)
-    dml_data = make_did_SZ2020(n_obs=1000, dgp_type=1, return_type="DoubleMLDIDData")
+    dml_data = make_did_SZ2020(n_obs=200, dgp_type=1, return_type="DoubleMLDIDData")
 
-    ml_g = DecisionTreeRegressor(random_state=321, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
+    ml_g = DecisionTreeRegressor(random_state=321)
     if score == "observational":
-        ml_m = DecisionTreeClassifier(random_state=654, max_depth=1, min_samples_leaf=100, max_leaf_nodes=2)
+        ml_m = DecisionTreeClassifier(random_state=654)
         dml_did = dml.DoubleMLDID(dml_data, ml_g, ml_m, score=score, n_folds=2)
     else:
         dml_did = dml.DoubleMLDID(dml_data, ml_g, score=score, n_folds=2)

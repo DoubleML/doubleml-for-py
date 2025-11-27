@@ -18,8 +18,8 @@ def test_doubleml_cvar_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3145)
     dml_data = make_irm_data(n_obs=200, dim_x=5)
 
-    ml_g = DecisionTreeRegressor(random_state=321, max_depth=None, min_samples_split=2, min_samples_leaf=1)
-    ml_m = DecisionTreeClassifier(random_state=654, max_depth=None, min_samples_split=2, min_samples_leaf=1)
+    ml_g = DecisionTreeRegressor(random_state=321)
+    ml_m = DecisionTreeClassifier(random_state=654)
 
     dml_cvar = dml.DoubleMLCVAR(dml_data, ml_g=ml_g, ml_m=ml_m, n_folds=2)
     dml_cvar.fit()

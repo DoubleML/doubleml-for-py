@@ -17,7 +17,7 @@ from doubleml.tests._utils_tune_optuna import (
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_lpq_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3148)
-    dml_data = make_iivm_data(n_obs=1000, dim_x=10)
+    dml_data = make_iivm_data(n_obs=500, dim_x=10)
 
     ml_g = DecisionTreeClassifier(random_state=321)
     ml_m = DecisionTreeClassifier(random_state=654)
@@ -42,4 +42,4 @@ def test_doubleml_lpq_optuna_tune(sampler_name, optuna_sampler):
         _assert_tree_params(tuned_params)
 
         # ensure tuning improved RMSE
-        assert tuned_score[learner_name] <= untuned_score[learner_name]
+        assert tuned_score[learner_name] < untuned_score[learner_name]

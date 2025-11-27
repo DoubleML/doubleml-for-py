@@ -22,17 +22,17 @@ _SAMPLER_CASES = [
 
 def _small_tree_params(trial):
     return {
-        "max_depth": trial.suggest_int("max_depth", 1, 10),
-        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 5, 20),
-        "max_leaf_nodes": trial.suggest_int("max_leaf_nodes", 2, 20),
+        "max_depth": trial.suggest_int("max_depth", 1, 20),
+        "min_samples_split": trial.suggest_int("min_samples_split", 2, 20),
+        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
     }
 
 
-def _assert_tree_params(param_dict, depth_range=(1, 10), leaf_range=(2, 100), leaf_nodes_range=(2, 20)):
-    assert set(param_dict.keys()) == {"max_depth", "min_samples_leaf", "max_leaf_nodes"}
+def _assert_tree_params(param_dict, depth_range=(1, 20), leaf_range=(1, 10), split_range=(2, 20)):
+    assert set(param_dict.keys()) == {"max_depth", "min_samples_leaf", "min_samples_split"}
     assert depth_range[0] <= param_dict["max_depth"] <= depth_range[1]
     assert leaf_range[0] <= param_dict["min_samples_leaf"] <= leaf_range[1]
-    assert leaf_nodes_range[0] <= param_dict["max_leaf_nodes"] <= leaf_nodes_range[1]
+    assert split_range[0] <= param_dict["min_samples_split"] <= split_range[1]
 
 
 def _build_param_space(dml_obj, param_fn):
