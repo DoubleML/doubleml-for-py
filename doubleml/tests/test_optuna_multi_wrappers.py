@@ -84,6 +84,7 @@ def _make_tune_kwargs(dml_obj, return_tune_res=True):
     return {
         "ml_param_space": optuna_params,
         "cv": 3,
+        "tune_on_folds": False,
         "set_as_params": False,
         "return_tune_res": return_tune_res,
         "optuna_settings": _basic_optuna_settings({"n_trials": 2}),

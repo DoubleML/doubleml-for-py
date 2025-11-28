@@ -119,6 +119,19 @@ def test_tune_ml_models_invalid_return_tune_res(return_tune_res, msg):
 
 @pytest.mark.ci
 @pytest.mark.parametrize(
+    "tune_on_folds, msg",
+    [
+        ("invalid", "tune_on_folds must be True or False. Got invalid."),
+        (None, "tune_on_folds must be True or False. Got None."),
+    ],
+)
+def test_tune_ml_models_invalid_tune_on_folds(tune_on_folds, msg):
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.tune_ml_models(valid_param_space, tune_on_folds=tune_on_folds)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(
     "optuna_settings, msg",
     [
         ("invalid", "optuna_settings must be a dict or None. Got <class 'str'>."),

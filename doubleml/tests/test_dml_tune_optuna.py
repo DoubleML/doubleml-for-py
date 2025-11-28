@@ -1,6 +1,7 @@
 import numpy as np
 import optuna
 import pytest
+from types import MethodType
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import KFold
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -262,6 +263,88 @@ def test_doubleml_optuna_sets_params_for_all_folds():
             assert m_fold_params is not None
             assert l_fold_params == expected_l
             assert m_fold_params == expected_m
+
+
+@pytest.mark.ci
+def test_doubleml_optuna_tune_on_folds_uses_fold_train_indices():
+    np.random.seed(3158)
+    dml_data = make_plr_CCDDHNR2018(n_obs=60, dim_x=4)
+
+    ml_l = DecisionTreeRegressor(random_state=123)
+    ml_m = DecisionTreeRegressor(random_state=456)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=3, n_rep=2)
+
+    captured_indices = []
+
+    def fake_tuner(self, *args, train_indices=None, **kwargs):
+        captured_indices.append(None if train_indices is None else np.copy(train_indices))
+        return {name: None for name in self.params_names}
+
+    dml_plr._nuisance_tuning_optuna = MethodType(fake_tuner, dml_plr)
+
+    optuna_params = {name: (lambda trial: {}) for name in dml_plr.params_names}
+
+    dml_plr.tune_ml_models(
+        ml_param_space=optuna_params,
+        tune_on_folds=True,
+        set_as_params=False,
+    )
+
+    smpls = dml_plr.smpls
+    expected_indices = []
+    for rep_idx in range(dml_plr.n_rep):
+        for fold_idx in range(dml_plr.n_folds):
+            train_idx, _ = smpls[rep_idx][fold_idx]
+            expected_indices.append(train_idx)
+    assert len(captured_indices) == len(expected_indices)
+    for observed, expected in zip(captured_indices, expected_indices):
+        np.testing.assert_array_equal(observed, expected)
+
+
+@pytest.mark.ci
+def test_doubleml_optuna_tune_on_folds_sets_fold_specific_params():
+    np.random.seed(3159)
+    dml_data = make_plr_CCDDHNR2018(n_obs=80, dim_x=4)
+
+    ml_l = DecisionTreeRegressor(random_state=789)
+    ml_m = DecisionTreeRegressor(random_state=987)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=3, n_rep=2)
+
+    optuna_params = {name: _small_tree_params for name in dml_plr.params_names}
+
+    tune_res = dml_plr.tune_ml_models(
+        ml_param_space=optuna_params,
+        tune_on_folds=True,
+        optuna_settings=_basic_optuna_settings({"n_trials": 1}),
+        return_tune_res=True,
+    )
+
+    assert len(tune_res) == dml_plr._dml_data.n_treat
+    assert len(tune_res[0]) == dml_plr.n_rep
+    for rep_idx in range(dml_plr.n_rep):
+        assert len(tune_res[0][rep_idx]) == dml_plr.n_folds
+        for fold_idx in range(dml_plr.n_folds):
+            fold_res = tune_res[0][rep_idx][fold_idx]
+            assert set(fold_res.keys()) == set(dml_plr.params_names)
+            for learner in dml_plr.params_names:
+                assert isinstance(fold_res[learner], DMLOptunaResult)
+
+    l_params = dml_plr.get_params("ml_l")["d"]
+    m_params = dml_plr.get_params("ml_m")["d"]
+
+    assert len(l_params) == dml_plr.n_rep
+    assert len(m_params) == dml_plr.n_rep
+
+    for rep_idx in range(dml_plr.n_rep):
+        assert len(l_params[rep_idx]) == dml_plr.n_folds
+        assert len(m_params[rep_idx]) == dml_plr.n_folds
+        for fold_idx in range(dml_plr.n_folds):
+            assert isinstance(l_params[rep_idx][fold_idx], dict)
+            assert isinstance(m_params[rep_idx][fold_idx], dict)
+            assert l_params[rep_idx][fold_idx]
+            assert m_params[rep_idx][fold_idx]
 
 
 @pytest.mark.ci

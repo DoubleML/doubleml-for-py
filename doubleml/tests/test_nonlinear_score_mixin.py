@@ -162,7 +162,7 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
     ):
         pass
 
-    def _nuisance_tuning_optuna(self, optuna_params, scoring_methods, cv, optuna_settings):
+    def _nuisance_tuning_optuna(self, optuna_params, scoring_methods, cv, optuna_settings, train_indices=None):
         pass
 
     def _sensitivity_element_est(self, preds):
