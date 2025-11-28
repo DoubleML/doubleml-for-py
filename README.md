@@ -122,7 +122,7 @@ Bibtex-entry:
 ## Acknowledgements
 
 Funding by the Deutsche Forschungsgemeinschaft (DFG, German Research
-Foundation) is acknowledged – Project Number 431701914.
+Foundation) is acknowledged – Project Number 431701914 and Grant GRK 2805/1.
 
 ## References
 
