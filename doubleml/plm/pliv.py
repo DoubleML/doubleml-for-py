@@ -279,6 +279,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         scoring_methods,
         cv,
         optuna_settings,
+        train_indices=None,
     ):
         if self.partialX & (not self.partialZ):
             return self._nuisance_tuning_optuna_partial_x(
@@ -286,6 +287,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 scoring_methods,
                 cv,
                 optuna_settings,
+                train_indices=train_indices,
             )
         elif (not self.partialX) & self.partialZ:
             return self._nuisance_tuning_optuna_partial_z(
@@ -293,6 +295,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 scoring_methods,
                 cv,
                 optuna_settings,
+                train_indices=train_indices,
             )
         else:
             assert self.partialX & self.partialZ
@@ -301,6 +304,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 scoring_methods,
                 cv,
                 optuna_settings,
+                train_indices=train_indices,
             )
 
     def _nuisance_est_partial_x(self, smpls, n_jobs_cv, external_predictions, return_models=False):
@@ -795,10 +799,23 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         scoring_methods,
         cv,
         optuna_settings,
+        train_indices=None,
     ):
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        z_all = self._dml_data.z
+        single_instr = None if self._dml_data.n_instr > 1 else np.ravel(self._dml_data.z)
+
+        if train_indices is not None:
+            train_indices = np.asarray(train_indices)
+            x = x[train_indices, :]
+            y = y[train_indices]
+            d = d[train_indices]
+            if self._dml_data.n_instr > 1:
+                z_all = z_all[train_indices, :]
+            else:
+                single_instr = single_instr[train_indices]
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None, "ml_g": None}
@@ -817,9 +834,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
 
         if self._dml_data.n_instr > 1:
             m_tune_res = {}
-            z_all = self._dml_data.z
+            z_vals = z_all
             for i_instr, instr_var in enumerate(self._dml_data.z_cols):
-                x_instr, this_z = check_X_y(x, z_all[:, i_instr], ensure_all_finite=False)
+                x_instr, this_z = check_X_y(x, z_vals[:, i_instr], ensure_all_finite=False)
                 scoring_key = scoring_methods.get(f"ml_m_{instr_var}", scoring_methods.get("ml_m"))
                 m_tune_res[instr_var] = _dml_tune_optuna(
                     this_z,
@@ -835,7 +852,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             x_m_features = x  # keep reference for later when constructing params
             z_vector = None
         else:
-            x_m_features, z_vector = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
+            x_m_features, z_vector = check_X_y(x, single_instr, ensure_all_finite=False)
             m_tune_res = _dml_tune_optuna(
                 z_vector,
                 x_m_features,
@@ -899,9 +916,16 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         scoring_methods,
         cv,
         optuna_settings,
+        train_indices=None,
     ):
 
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
+        x_concat = np.hstack((self._dml_data.x, self._dml_data.z))
+        xz, d = check_X_y(x_concat, self._dml_data.d, ensure_all_finite=False)
+
+        if train_indices is not None:
+            train_indices = np.asarray(train_indices)
+            xz = xz[train_indices, :]
+            d = d[train_indices]
 
         if scoring_methods is None:
             scoring_methods = {"ml_r": None}
@@ -925,11 +949,20 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         scoring_methods,
         cv,
         optuna_settings,
+        train_indices=None,
     ):
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
+        xz_full = np.hstack((self._dml_data.x, self._dml_data.z))
+        xz, d = check_X_y(xz_full, self._dml_data.d, ensure_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+
+        if train_indices is not None:
+            train_indices = np.asarray(train_indices)
+            x = x[train_indices, :]
+            y = y[train_indices]
+            d = d[train_indices]
+            xz = xz[train_indices, :]
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None}

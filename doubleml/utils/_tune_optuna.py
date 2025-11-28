@@ -131,11 +131,14 @@ class DMLOptunaResult:
 OPTUNA_GLOBAL_SETTING_KEYS = frozenset(_OPTUNA_DEFAULT_SETTINGS.keys())
 
 TUNE_ML_MODELS_DOC = """
-        Hyperparameter-tuning for DoubleML models using Optuna.
+    Hyperparameter-tuning for DoubleML models using Optuna.
 
-        The hyperparameter-tuning is performed using Optuna's Bayesian optimization.
-        Unlike grid/randomized search, Optuna tuning is performed once on the whole dataset
-        using cross-validation, and the same optimal hyperparameters are used for all folds.
+    The hyperparameter-tuning is performed using Optuna's Bayesian optimization.
+    By default, Optuna tuning is performed once on the whole dataset using cross-validation
+    and the same optimal hyperparameters are used for all folds. Setting ``tune_on_folds=True``
+    enables nested cross-validation so that tuning is executed separately inside every outer
+    fold (and repetition) using only the respective training observations. This prevents
+    tuning leakage at the cost of additional computation.
 
         Parameters
         ----------
@@ -179,6 +182,11 @@ TUNE_ML_MODELS_DOC = """
             :class:`sklearn.model_selection.KFold` with the specified number of splits and ``random_state=42`` is used.
             Custom splitters must implement ``split`` (and ideally ``get_n_splits``), or be an iterable yielding
             ``(train_indices, test_indices)`` pairs. Default is ``5``.
+
+        tune_on_folds : bool
+            Indicates whether Optuna tuning should be performed fold-specific (nested) or globally.
+            When ``True``, each outer train fold triggers its own Optuna study that only sees the
+            corresponding training observations, ensuring leakage-free nuisance fits. Default is ``False``.
 
         set_as_params : bool
             Indicates whether the hyperparameters should be set in order to be used when :meth:`fit` is called.
@@ -229,7 +237,9 @@ TUNE_ML_MODELS_DOC = """
 
         tune_res: list
             A list containing detailed tuning results and the proposed hyperparameters.
-            Returned if ``return_tune_res`` is ``True``.
+            Returned if ``return_tune_res`` is ``True``. When ``tune_on_folds=True``, the list is
+            nested with shape ``(n_treatments, n_rep, n_folds)`` where each entry is a dictionary
+            of :class:`doubleml.utils._tune_optuna.DMLOptunaResult` objects per learner.
 
         Examples
         --------

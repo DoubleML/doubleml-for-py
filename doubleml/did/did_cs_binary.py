@@ -772,11 +772,19 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         scoring_methods,
         cv,
         optuna_settings,
+        train_indices=None,
     ):
 
         x, y = check_X_y(self._x_data_subset, self._y_data_subset, ensure_all_finite=False)
         _, d = check_X_y(x, self._g_data_subset, ensure_all_finite=False)
         _, t = check_X_y(x, self._t_data_subset, ensure_all_finite=False)
+
+        if train_indices is not None:
+            train_indices = np.asarray(train_indices)
+            x = x[train_indices, :]
+            y = y[train_indices]
+            d = d[train_indices]
+            t = t[train_indices]
 
         if scoring_methods is None:
             if self.score == "observational":

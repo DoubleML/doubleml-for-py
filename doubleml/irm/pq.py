@@ -487,10 +487,17 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         scoring_methods,
         cv,
         optuna_settings,
+        train_indices=None,
     ):
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+
+        if train_indices is not None:
+            train_indices = np.asarray(train_indices)
+            x = x[train_indices, :]
+            y = y[train_indices]
+            d = d[train_indices]
 
         if scoring_methods is None:
             scoring_methods = {"ml_g": None, "ml_m": None}

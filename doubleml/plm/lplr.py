@@ -545,6 +545,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         scoring_methods,
         cv,
         optuna_settings,
+        train_indices=None,
     ):
         """
         Optuna-based hyperparameter tuning for LPLR nuisance models.
@@ -554,6 +555,13 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         """
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+
+        if train_indices is not None:
+            train_indices = np.asarray(train_indices)
+            x = x[train_indices, :]
+            y = y[train_indices]
+            d = d[train_indices]
+
         x_d_concat = np.hstack((d.reshape(-1, 1), x))
 
         if scoring_methods is None:

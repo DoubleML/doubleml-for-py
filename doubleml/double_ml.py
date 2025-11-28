@@ -955,6 +955,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         ml_param_space,
         scoring_methods=None,
         cv=5,
+        tune_on_folds=False,
         set_as_params=True,
         return_tune_res=False,
         optuna_settings=None,
@@ -968,14 +969,23 @@ class DoubleML(SampleSplittingMixin, ABC):
         cv_splitter = resolve_optuna_cv(cv)
         self._validate_optuna_setting_keys(optuna_settings)
 
+        if not isinstance(tune_on_folds, bool):
+            raise TypeError(f"tune_on_folds must be True or False. Got {str(tune_on_folds)}.")
+
         if not isinstance(set_as_params, bool):
             raise TypeError(f"set_as_params must be True or False. Got {str(set_as_params)}.")
 
         if not isinstance(return_tune_res, bool):
             raise TypeError(f"return_tune_res must be True or False. Got {str(return_tune_res)}.")
 
-        # Optuna tuning is always global (not fold-specific)
-        tuning_res = [None] * self._dml_data.n_treat
+        if tune_on_folds:
+            smpls_all = self.smpls
+            tuning_res = [
+                [[None for _ in range(self.n_folds)] for _ in range(self.n_rep)]
+                for _ in range(self._dml_data.n_treat)
+            ]
+        else:
+            tuning_res = [None for _ in range(self._dml_data.n_treat)]
 
         for i_d in range(self._dml_data.n_treat):
             self._i_treat = i_d
@@ -983,23 +993,60 @@ class DoubleML(SampleSplittingMixin, ABC):
             if self._dml_data.n_treat > 1:
                 self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
-            # tune hyperparameters (globally, not fold-specific)
-            res = self._nuisance_tuning_optuna(
-                expanded_param_space,
-                scoring_methods,
-                cv_splitter,
-                optuna_settings,
-            )
+            if tune_on_folds:
+                param_store = {} if set_as_params else None
+                for i_rep in range(self.n_rep):
+                    self._i_rep = i_rep
+                    rep_smpls = smpls_all[i_rep]
+                    for i_fold, (train_index, _) in enumerate(rep_smpls):
+                        res = self._nuisance_tuning_optuna(
+                            expanded_param_space,
+                            scoring_methods,
+                            cv_splitter,
+                            optuna_settings,
+                            train_indices=train_index,
+                        )
 
-            tuning_res[i_d] = res
-            if set_as_params:
-                for nuisance_model, tuned_result in res.items():
-                    if tuned_result is None:
-                        params_to_set = None
-                    else:
-                        params_to_set = tuned_result.best_params
+                        tuning_res[i_d][i_rep][i_fold] = res
 
-                    self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
+                        if set_as_params:
+                            for nuisance_model, tuned_result in res.items():
+                                params_matrix = param_store.setdefault(
+                                    nuisance_model,
+                                    [
+                                        [None for _ in range(self.n_folds)]
+                                        for _ in range(self.n_rep)
+                                    ],
+                                )
+                                params_matrix[i_rep][i_fold] = (
+                                    None if tuned_result is None else tuned_result.best_params
+                                )
+
+                if set_as_params:
+                    for nuisance_model, params_matrix in param_store.items():
+                        self.set_ml_nuisance_params(
+                            nuisance_model,
+                            self._dml_data.d_cols[i_d],
+                            params_matrix,
+                        )
+            else:
+                # tune hyperparameters (globally, not fold-specific)
+                res = self._nuisance_tuning_optuna(
+                    expanded_param_space,
+                    scoring_methods,
+                    cv_splitter,
+                    optuna_settings,
+                )
+
+                tuning_res[i_d] = res
+                if set_as_params:
+                    for nuisance_model, tuned_result in res.items():
+                        if tuned_result is None:
+                            params_to_set = None
+                        else:
+                            params_to_set = tuned_result.best_params
+
+                        self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
 
         return tuning_res if return_tune_res else self
 
@@ -1203,11 +1250,14 @@ class DoubleML(SampleSplittingMixin, ABC):
         scoring_methods,
         cv,
         optuna_settings,
+        train_indices=None,
     ):
         """
         Optuna-based hyperparameter tuning hook.
 
         Subclasses should override this method to provide Optuna tuning support.
+        When ``train_indices`` is not ``None`` the implementation must restrict
+        tuning to the provided observation indices (nested cross-validation).
         """
         raise NotImplementedError(f"Optuna tuning not implemented for {self.__class__.__name__}.")
 
