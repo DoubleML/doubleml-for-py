@@ -9,6 +9,7 @@ from doubleml.plm.datasets import (
     make_lplr_LZZ2020,
     make_pliv_CHS2015,
     make_pliv_multiway_cluster_CKMS2021,
+    make_plpr_CP2025,
     make_plr_CCDDHNR2018,
     make_plr_turrell2018,
 )
@@ -149,3 +150,10 @@ def test_make_lplr_LZZ2020_variants():
     res = make_lplr_LZZ2020(n_obs=100, balanced_r0=False)
     _, y_unique = np.unique(res.y, return_counts=True)
     assert np.abs(y_unique[0] - y_unique[1]) > 10
+
+
+@pytest.mark.ci
+def test_make_plpr_CP2025_return_types():
+    np.random.seed(3141)
+    res = make_plpr_CP2025(num_id=100)
+    assert isinstance(res, pd.DataFrame)

@@ -17,19 +17,19 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
+    obj_dml_data : :class:`DoubleMLPanelData` object
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
     ml_l : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`\\ell_0(X) = E[Y|X]`.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`\\l_0(X) = E[Y|X]`.
 
     ml_m : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`m_0(X) = E[D|X]`.
-        For binary treatment variables :math:`D` (with values 0 and 1), a classifier implementing ``fit()`` and
-        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
-        ``predict_proba()`` is used otherwise ``predict()``.
+        For binary treatment variables :math:`D` (with values 0 and 1) and the CRE approaches, a classifier
+        implementing ``fit()`` and ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier`
+        returns ``True``, ``predict_proba()`` is used otherwise ``predict()``.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -90,8 +90,8 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
 
     where :math:`Y_{it}` is the outcome variable and :math:`D_{it}` is the policy variable of interest.
     The high-dimensional vector :math:`X_{it} = (X_{it,1}, \\ldots, X_{it,p})` consists of other confounding covariates,
-    :math:`\\alpha_i` and :math:`\\gamma_i` are the unobserved individual heterogeneity correlated with the included covariates,
-    and :math:`\\U_{it}` and :math:` V_{it}` are stochastic errors.
+    :math:`\\alpha_i` and :math:`\\gamma_i` are the unobserved individual heterogeneity correlated with the included
+    covariates, and :math:`\\U_{it}` and :math:`V_{it}` are stochastic errors.
     """
 
     def __init__(
@@ -302,8 +302,8 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             self._d_mean = None
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         m_external = external_predictions["ml_m"] is not None
         l_external = external_predictions["ml_l"] is not None
         if "ml_g" in self._learner:
@@ -430,8 +430,8 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         search_mode,
         n_iter_randomized_search,
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_g": None}
@@ -478,7 +478,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             m_hat = np.full_like(d, np.nan)
             for idx, (train_index, _) in enumerate(smpls):
                 l_hat[train_index] = l_tune_res[idx].predict(x[train_index, :])
-                m_hat[train_index] = m_tune_res[idx].predict(x[train_index, :])
+                m_hat[train_index] = m_tune_res[idx].predict(x_m[train_index, :])
             psi_a = -np.multiply(d - m_hat, d - m_hat)
             psi_b = np.multiply(d - m_hat, y - l_hat)
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
