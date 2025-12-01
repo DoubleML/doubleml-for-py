@@ -82,7 +82,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1")
     sigma2_x = 5
 
     # id and time vectors
-    id = np.repeat(np.arange(1, num_id + 1), num_t)
+    id_var = np.repeat(np.arange(1, num_id + 1), num_t)
     time = np.tile(np.arange(1, num_t + 1), num_id)
 
     # individual fixed effects
@@ -127,7 +127,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1")
 
     x_cols = [f"x{i + 1}" for i in np.arange(dim_x)]
 
-    data = pd.DataFrame(np.column_stack((id, time, y_it, d_it, x_it)), columns=["id", "time", "y", "d"] + x_cols).astype(
+    data = pd.DataFrame(np.column_stack((id_var, time, y_it, d_it, x_it)), columns=["id", "time", "y", "d"] + x_cols).astype(
         {"id": "int64", "time": "int64"}
     )
 
