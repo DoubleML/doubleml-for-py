@@ -106,7 +106,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1")
         l_0 = b * (x_it[:, 0] * x_it[:, 2]) + a * (x_it[:, 2] * np.where(x_it[:, 2] > 0, 1, 0))
         m_0 = a * (x_it[:, 0] * np.where(x_it[:, 0] > 0, 1, 0)) + b * (x_it[:, 0] * x_it[:, 2])
     else:
-        raise ValueError("Invalid dgp")
+        raise ValueError("Invalid dgp type.")
 
     # treatment
     d_it = m_0 + c_i + v_it

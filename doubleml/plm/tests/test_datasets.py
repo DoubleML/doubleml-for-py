@@ -16,6 +16,13 @@ from doubleml.plm.datasets import (
 
 msg_inv_return_type = "Invalid return_type."
 
+msg_inv_dgp_type = "Invalid dgp type."
+
+
+@pytest.fixture(scope="module", params=["dgp1", "dgp2", "dgp3"])
+def dgp_type(request):
+    return request.param
+
 
 @pytest.mark.ci
 def test_make_plr_CCDDHNR2018_return_types():
@@ -153,7 +160,13 @@ def test_make_lplr_LZZ2020_variants():
 
 
 @pytest.mark.ci
-def test_make_plpr_CP2025_return_types():
+def test_make_plpr_CP2025_return_types(dgp_type):
     np.random.seed(3141)
-    res = make_plpr_CP2025(num_id=100)
+    res = make_plpr_CP2025(num_id=100, dgp_type=dgp_type)
     assert isinstance(res, pd.DataFrame)
+
+
+@pytest.mark.ci
+def test_make_plpr_CP2025_invalid_dgp_type():
+    with pytest.raises(ValueError, match=msg_inv_dgp_type):
+        _ = make_plpr_CP2025(num_id=100, dgp_type="dgp4")

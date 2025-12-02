@@ -68,7 +68,7 @@ def dml_plpr_fixture(
 
 
 @pytest.mark.ci
-def test_dml_selection_coef(dml_plpr_fixture):
+def test_dml_plpr_coef(dml_plpr_fixture):
     # true_coef should lie within three standard deviations of the estimate
     coef = dml_plpr_fixture["coef"]
     se = dml_plpr_fixture["se"]
