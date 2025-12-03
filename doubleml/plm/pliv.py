@@ -3,14 +3,15 @@ import warnings
 import numpy as np
 from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV, cross_val_predict
 from sklearn.utils import check_X_y
 
-from ..data.base_data import DoubleMLData
-from ..double_ml import DoubleML
-from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils._checks import _check_finite_predictions
-from ..utils._estimation import _dml_cv_predict, _dml_tune
+from doubleml.data.base_data import DoubleMLData
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import _check_finite_predictions
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 
 
 class DoubleMLPLIV(LinearScoreMixin, DoubleML):
@@ -229,23 +230,78 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
     ):
         if self.partialX & (not self.partialZ):
             res = self._nuisance_tuning_partial_x(
-                smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+                smpls,
+                param_grids,
+                scoring_methods,
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
             )
         elif (not self.partialX) & self.partialZ:
             res = self._nuisance_tuning_partial_z(
-                smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+                smpls,
+                param_grids,
+                scoring_methods,
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
             )
         else:
             assert self.partialX & self.partialZ
             res = self._nuisance_tuning_partial_xz(
-                smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+                smpls,
+                param_grids,
+                scoring_methods,
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
             )
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+        if self.partialX & (not self.partialZ):
+            return self._nuisance_tuning_optuna_partial_x(
+                optuna_params,
+                scoring_methods,
+                cv,
+                optuna_settings,
+            )
+        elif (not self.partialX) & self.partialZ:
+            return self._nuisance_tuning_optuna_partial_z(
+                optuna_params,
+                scoring_methods,
+                cv,
+                optuna_settings,
+            )
+        else:
+            assert self.partialX & self.partialZ
+            return self._nuisance_tuning_optuna_partial_xz(
+                optuna_params,
+                scoring_methods,
+                cv,
+                optuna_settings,
+            )
 
     def _nuisance_est_partial_x(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
@@ -638,7 +694,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             scoring_methods = {"ml_r": None}
 
         train_inds = [train_index for (train_index, _) in smpls]
-        m_tune_res = _dml_tune(
+        r_tune_res = _dml_tune(
             d,
             xz,
             train_inds,
@@ -651,11 +707,11 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_iter_randomized_search,
         )
 
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        r_best_params = [xx.best_params_ for xx in r_tune_res]
 
-        params = {"ml_r": m_best_params}
+        params = {"ml_r": r_best_params}
 
-        tune_res = {"r_tune": m_tune_res}
+        tune_res = {"r_tune": r_tune_res}
 
         res = {"params": params, "tune_res": tune_res}
 
@@ -732,6 +788,189 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna_partial_x(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None, "ml_g": None}
+
+        l_tune_res = _dml_tune_optuna(
+            y,
+            x,
+            self._learner["ml_l"],
+            optuna_params["ml_l"],
+            scoring_methods["ml_l"],
+            cv,
+            optuna_settings,
+            learner_name="ml_l",
+            params_name="ml_l",
+        )
+
+        if self._dml_data.n_instr > 1:
+            m_tune_res = {}
+            z_all = self._dml_data.z
+            for i_instr, instr_var in enumerate(self._dml_data.z_cols):
+                x_instr, this_z = check_X_y(x, z_all[:, i_instr], ensure_all_finite=False)
+                scoring_key = scoring_methods.get(f"ml_m_{instr_var}", scoring_methods.get("ml_m"))
+                m_tune_res[instr_var] = _dml_tune_optuna(
+                    this_z,
+                    x_instr,
+                    self._learner["ml_m"],
+                    optuna_params[f"ml_m_{instr_var}"],
+                    scoring_key,
+                    cv,
+                    optuna_settings,
+                    learner_name="ml_m",
+                    params_name=f"ml_m_{instr_var}",
+                )
+            x_m_features = x  # keep reference for later when constructing params
+            z_vector = None
+        else:
+            x_m_features, z_vector = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
+            m_tune_res = _dml_tune_optuna(
+                z_vector,
+                x_m_features,
+                self._learner["ml_m"],
+                optuna_params["ml_m"],
+                scoring_methods["ml_m"],
+                cv,
+                optuna_settings,
+                learner_name="ml_m",
+                params_name="ml_m",
+            )
+
+        r_tune_res = _dml_tune_optuna(
+            d,
+            x,
+            self._learner["ml_r"],
+            optuna_params["ml_r"],
+            scoring_methods["ml_r"],
+            cv,
+            optuna_settings,
+            learner_name="ml_r",
+            params_name="ml_r",
+        )
+
+        results = {"ml_l": l_tune_res, "ml_r": r_tune_res}
+
+        if self._dml_data.n_instr > 1:
+            for instr_var in self._dml_data.z_cols:
+                results["ml_m_" + instr_var] = m_tune_res[instr_var]
+        else:
+            results["ml_m"] = m_tune_res
+            if "ml_g" in self._learner:
+                l_hat = cross_val_predict(l_tune_res.best_estimator, x, y, cv=cv, method=self._predict_method["ml_l"])
+                m_hat = cross_val_predict(
+                    m_tune_res.best_estimator, x_m_features, z_vector, cv=cv, method=self._predict_method["ml_m"]
+                )
+                r_hat = cross_val_predict(r_tune_res.best_estimator, x, cv=cv, method=self._predict_method["ml_r"])
+                psi_a = -np.multiply(d - r_hat, z_vector - m_hat)
+                psi_b = np.multiply(z_vector - m_hat, y - l_hat)
+                theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+
+                g_tune_res = _dml_tune_optuna(
+                    y - theta_initial * d,
+                    x,
+                    self._learner["ml_g"],
+                    optuna_params["ml_g"],
+                    scoring_methods["ml_g"],
+                    cv,
+                    optuna_settings,
+                    learner_name="ml_g",
+                    params_name="ml_g",
+                )
+
+                results["ml_g"] = g_tune_res
+
+        return results
+
+    def _nuisance_tuning_optuna_partial_z(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_r": None}
+
+        r_tune_res = _dml_tune_optuna(
+            d,
+            xz,
+            self._learner["ml_r"],
+            optuna_params["ml_r"],
+            scoring_methods["ml_r"],
+            cv,
+            optuna_settings,
+            learner_name="ml_r",
+            params_name="ml_r",
+        )
+        return {"ml_r": r_tune_res}
+
+    def _nuisance_tuning_optuna_partial_xz(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None}
+
+        l_tune_res = _dml_tune_optuna(
+            y,
+            x,
+            self._learner["ml_l"],
+            optuna_params["ml_l"],
+            scoring_methods["ml_l"],
+            cv,
+            optuna_settings,
+            learner_name="ml_l",
+            params_name="ml_l",
+        )
+
+        m_tune_res = _dml_tune_optuna(
+            d,
+            xz,
+            self._learner["ml_m"],
+            optuna_params["ml_m"],
+            scoring_methods["ml_m"],
+            cv,
+            optuna_settings,
+            learner_name="ml_m",
+            params_name="ml_m",
+        )
+
+        m_hat = cross_val_predict(m_tune_res.best_estimator, xz, d, cv=cv, method=self._predict_method["ml_m"])
+        r_tune_res = _dml_tune_optuna(
+            m_hat,
+            x,
+            self._learner["ml_r"],
+            optuna_params["ml_r"],
+            scoring_methods["ml_r"],
+            cv,
+            optuna_settings,
+            learner_name="ml_r",
+            params_name="ml_r",
+        )
+        return {"ml_l": l_tune_res, "ml_m": m_tune_res, "ml_r": r_tune_res}
 
     def _sensitivity_element_est(self, preds):
         pass

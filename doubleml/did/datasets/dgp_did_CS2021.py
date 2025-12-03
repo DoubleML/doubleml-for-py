@@ -105,11 +105,35 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
 
     6. Treatment assignment:
 
-       For non-experimental settings (DGP 1-4), the probability of being in treatment group :math:`g` is:
+       For non-experimental settings (DGP 1-4), the probability of being in treatment group :math:`g` is computed as follows:
 
-       .. math::
+       - Compute group-specific logits for each observation:
 
-           P(G_i = g) = \\frac{\\exp(f_{ps,g}(W_{ps}))}{\\sum_{g'} \\exp(f_{ps,g'}(W_{ps}))}
+         .. math::
+
+            \\text{logit}_{i,g} = f_{ps,g}(W_{ps})
+
+         The logits are clipped to the range [-2.5, 2.5] for numerical stability.
+
+       - Convert logits to uncapped probabilities via softmax:
+
+         .. math::
+
+            p^{\\text{uncapped}}_{i,g} = \\frac{\\exp(\\text{logit}_{i,g})}{\\sum_{g'} \\exp(\\text{logit}_{i,g'})}
+
+       - Clip uncapped probabilities to the range [0.05, 0.95]:
+
+         .. math::
+
+            p^{\\text{clipped}}_{i,g} = \\min(\\max(p^{\\text{uncapped}}_{i,g}, 0.05), 0.95)
+
+       - Renormalize clipped probabilities so they sum to 1 for each observation:
+
+         .. math::
+
+            p_{i,g} = \\frac{p^{\text{clipped}}_{i,g}}{\\sum_{g'} p^{\\text{clipped}}_{i,g'}}
+
+       - Assign each observation to a treatment group by sampling from the categorical distribution defined by :math:`p_{i,g}`.
 
        For experimental settings (DGP 5-6), each treatment group (including never-treated) has equal probability:
 
@@ -159,7 +183,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
         `dim_x` (int, default=4):
             Dimension of feature vectors.
 
-        `xi` (float, default=0.9):
+        `xi` (float, default=0.5):
             Scale parameter for the propensity score function.
 
         `n_periods` (int, default=5):
@@ -188,7 +212,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
 
     c = kwargs.get("c", 0.0)
     dim_x = kwargs.get("dim_x", 4)
-    xi = kwargs.get("xi", 0.9)
+    xi = kwargs.get("xi", 0.75)
     n_periods = kwargs.get("n_periods", 5)
     anticipation_periods = kwargs.get("anticipation_periods", 0)
     n_pre_treat_periods = kwargs.get("n_pre_treat_periods", 2)
@@ -228,8 +252,11 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
         p = np.ones(n_treatment_groups) / n_treatment_groups
         d_index = np.random.choice(n_treatment_groups, size=n_obs, p=p)
     else:
-        unnormalized_p = np.exp(_f_ps_groups(features_ps, xi, n_groups=n_treatment_groups))
-        p = unnormalized_p / unnormalized_p.sum(1, keepdims=True)
+        logits = np.clip(_f_ps_groups(features_ps, xi, n_groups=n_treatment_groups), a_min=-2.5, a_max=2.5)
+        unnormalized_p = np.exp(logits)
+        p_uncapped = unnormalized_p / unnormalized_p.sum(1, keepdims=True)
+        p_clipped = np.clip(p_uncapped, a_min=0.05, a_max=0.95)
+        p = p_clipped / p_clipped.sum(1, keepdims=True)
         d_index = np.array([np.random.choice(n_treatment_groups, p=p_row) for p_row in p])
 
     # fixed effects (shape (n_obs, n_time_periods))

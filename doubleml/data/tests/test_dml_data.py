@@ -569,6 +569,7 @@ def test_dml_data_w_missings(generate_data_irm_w_missings):
     assert dml_data.force_all_x_finite == "allow-nan"
 
 
+@pytest.mark.ci
 def test_dml_data_w_missing_d(generate_data1):
     data = generate_data1
     np.random.seed(3141)
