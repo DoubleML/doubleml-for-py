@@ -1153,6 +1153,7 @@ def test_doubleml_sensitivity_inputs():
         _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
 
 
+@pytest.mark.ci
 def test_doubleml_sensitivity_reestimation_warning():
     dml_irm = DoubleMLIRM(
         dml_data_irm, Lasso(), LogisticRegression(), ps_processor_config=PSProcessorConfig(clipping_threshold=0.1)
@@ -1166,6 +1167,7 @@ def test_doubleml_sensitivity_reestimation_warning():
         dml_irm._validate_sensitivity_elements()
 
 
+@pytest.mark.ci
 def test_doubleml_sensitivity_summary():
     dml_irm = DoubleMLIRM(
         dml_data_irm, Lasso(), LogisticRegression(), ps_processor_config=PSProcessorConfig(clipping_threshold=0.1)

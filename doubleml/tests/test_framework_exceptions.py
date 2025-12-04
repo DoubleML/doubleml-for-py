@@ -167,6 +167,7 @@ def test_input_exceptions():
         framework_names.treatment_names = ["test", "test2", "test3"]
 
 
+@pytest.mark.ci
 def test_operation_exceptions():
     # addition
     msg = "Unsupported operand type: <class 'float'>"

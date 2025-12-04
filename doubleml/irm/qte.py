@@ -15,6 +15,7 @@ from doubleml.irm.pq import DoubleMLPQ
 from doubleml.utils._checks import _check_score, _check_zero_one_treatment
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils._estimation import _default_kde
+from doubleml.utils._tune_optuna import TUNE_ML_MODELS_DOC
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -535,6 +536,42 @@ class DoubleMLQTE(SampleSplittingMixin):
         p_val.set_index(pd.Index(self._quantiles), inplace=True)
 
         return p_val
+
+    def tune_ml_models(
+        self,
+        ml_param_space,
+        scoring_methods=None,
+        cv=5,
+        set_as_params=True,
+        return_tune_res=False,
+        optuna_settings=None,
+    ):
+        """Hyperparameter-tuning for DoubleML models using Optuna."""
+
+        tuning_kwargs = {
+            "ml_param_space": ml_param_space,
+            "scoring_methods": scoring_methods,
+            "cv": cv,
+            "set_as_params": set_as_params,
+            "return_tune_res": return_tune_res,
+            "optuna_settings": optuna_settings,
+        }
+
+        tune_res = [] if return_tune_res else None
+
+        for i_quant in range(self.n_quantiles):
+            model_0 = self.modellist_0[i_quant]
+            model_1 = self.modellist_1[i_quant]
+
+            res_0 = model_0.tune_ml_models(**tuning_kwargs)
+            res_1 = model_1.tune_ml_models(**tuning_kwargs)
+
+            if return_tune_res:
+                tune_res.append({"treatment_0": res_0[0], "treatment_1": res_1[0]})
+
+        return tune_res if return_tune_res else self
+
+    tune_ml_models.__doc__ = TUNE_ML_MODELS_DOC
 
     def _fit_quantile(self, i_quant, n_jobs_cv=None, store_predictions=True, store_models=False):
         model_0 = self.modellist_0[i_quant]
