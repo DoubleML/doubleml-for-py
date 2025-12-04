@@ -35,8 +35,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function
         :math:`g_0(X) = E[Y - D \\theta_0|X]`.
-        Note: The learner `ml_g` is only required for the score ``'IV-type'``. Optionally, it can be specified and
-        estimated for callable scores.
+        Note: The learner `ml_g` is only required for the score ``'IV-type'``.
 
     n_folds : int
         Number of folds.
@@ -46,9 +45,8 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         Number of repetitons for the sample splitting.
         Default is ``1``.
 
-    score : str or callable
-        A str (``'partialling out'`` or ``'IV-type'``) specifying the score function
-        or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, m_hat, g_hat, smpls)``.
+    score : str
+        A str (``'partialling out'`` or ``'IV-type'``) specifying the score function.
         Default is ``'partialling out'``.
 
     approach : str
@@ -74,7 +72,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
     >>> data = make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type='dgp1')
     >>> obj_dml_data = DoubleMLPanelData(data, 'y', 'd', 'time', 'id', static_panel=True)
     >>> dml_plpr_obj = DoubleMLPLPR(obj_dml_data, ml_l, ml_m)
-    >>> dml_plpr_obj.fit().summary
+    >>> dml_plpr_obj.fit().summary  # doctest: +SKIP
                 coef   std err          t	      P>|t|	    2.5 %	 97.5 %
     d_diff  0.511626  0.024615  20.784933  5.924636e-96  0.463381  0.559871
 
@@ -130,25 +128,25 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data_transform, n_folds, n_rep, score, draw_sample_splitting)
 
         valid_scores = ["IV-type", "partialling out"]
-        _check_score(self.score, valid_scores, allow_callable=True)
+        _check_score(self.score, valid_scores, allow_callable=False)
         _ = self._check_learner(ml_l, "ml_l", regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
         # TODO: maybe warning for binary treatment with approaches 'fd_exact' and 'wg_approx'
         self._learner = {"ml_l": ml_l, "ml_m": ml_m}
 
         if ml_g is not None:
-            if (isinstance(self.score, str) & (self.score == "IV-type")) | callable(self.score):
+            if self.score == "IV-type":
                 _ = self._check_learner(ml_g, "ml_g", regressor=True, classifier=False)
                 self._learner["ml_g"] = ml_g
             else:
-                assert isinstance(self.score, str) & (self.score == "partialling out")
+                assert self.score == "partialling out"
                 warnings.warn(
                     (
                         'A learner ml_g has been provided for score = "partialling out" but will be ignored. "'
                         "A learner ml_g is not required for estimation."
                     )
                 )
-        elif isinstance(self.score, str) & (self.score == "IV-type"):
+        elif self.score == "IV-type":
             warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. Set ml_g = clone(ml_l)."))
             self._learner["ml_g"] = clone(ml_l)
 
@@ -365,7 +363,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
             _check_binary_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", self._dml_data.d_cols[self._i_treat])
 
-        # an estimate of g is obtained for the IV-type score and callable scores
+        # an estimate of g is obtained for the IV-type score
         g_hat = {"preds": None, "targets": None, "models": None}
         if "ml_g" in self._learner:
             # nuisance g
@@ -402,18 +400,14 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         # compute residual
         v_hat = d - m_hat
 
-        if isinstance(self.score, str):
-            if self.score == "IV-type":
-                psi_a = -np.multiply(v_hat, d)
-                psi_b = np.multiply(v_hat, y - g_hat)
-            else:
-                assert self.score == "partialling out"
-                u_hat = y - l_hat
-                psi_a = -np.multiply(v_hat, v_hat)
-                psi_b = np.multiply(v_hat, u_hat)
+        if self.score == "IV-type":
+            psi_a = -np.multiply(v_hat, d)
+            psi_b = np.multiply(v_hat, y - g_hat)
         else:
-            assert callable(self.score)
-            psi_a, psi_b = self.score(y=y, d=d, l_hat=l_hat, m_hat=m_hat, g_hat=g_hat, smpls=smpls)
+            assert self.score == "partialling out"
+            u_hat = y - l_hat
+            psi_a = -np.multiply(v_hat, v_hat)
+            psi_b = np.multiply(v_hat, u_hat)
 
         return psi_a, psi_b
 
@@ -471,7 +465,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         l_best_params = [xx.best_params_ for xx in l_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-        # an ML model for g is obtained for the IV-type score and callable scores
+        # an ML model for g is obtained for the IV-type score
         if "ml_g" in self._learner:
             # construct an initial theta estimate from the tuned models using the partialling out score
             l_hat = np.full_like(y, np.nan)

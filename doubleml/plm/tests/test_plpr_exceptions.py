@@ -70,7 +70,7 @@ def test_plpr_exception_scores():
     msg = "Invalid score IV. Valid score IV-type or partialling out."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLPR(dml_data, ml_l, ml_m, score="IV")
-    msg = "score should be either a string or a callable. 0 was passed."
+    msg = "score should be a string. 0 was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLPR(dml_data, ml_l, ml_m, score=0)
 
