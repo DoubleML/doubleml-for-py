@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=65", "wheel"]
+requires = ["setuptools>=80", "wheel", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "DoubleML"
-version = "0.11.1"
+dynamic = ["version"]
 description = "Double Machine Learning in Python"
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
@@ -55,6 +55,11 @@ dev = [
 Documentation = "https://docs.doubleml.org"
 Source = "https://github.com/DoubleML/doubleml-for-py"
 "Bug Tracker" = "https://github.com/DoubleML/doubleml-for-py/issues"
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "dirty-tag"
+write_to = "doubleml/_version.py"
 
 [tool.pytest.ini_options]
 markers = [
