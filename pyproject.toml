@@ -57,7 +57,7 @@ Source = "https://github.com/DoubleML/doubleml-for-py"
 "Bug Tracker" = "https://github.com/DoubleML/doubleml-for-py/issues"
 
 [tool.setuptools_scm]
-version_scheme = "post-release"
+version_scheme = "guess-next-dev"
 local_scheme = "dirty-tag"
 write_to = "doubleml/_version.py"
 
