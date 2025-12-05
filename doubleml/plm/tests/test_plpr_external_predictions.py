@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from sklearn.linear_model import LinearRegression
 
-import doubleml as dml
+from doubleml import DoubleMLPanelData, DoubleMLPLPR
 from doubleml.plm.datasets import make_plpr_CP2025
 from doubleml.utils import DMLDummyRegressor
 
@@ -48,7 +48,7 @@ def doubleml_plpr_fixture(plpr_score, plpr_approach, n_rep, set_ml_m_ext, set_ml
     plpr_data = make_plpr_CP2025(num_id=100, theta=0.5, dgp_type="dgp1")
 
     np.random.seed(3141)
-    dml_data_plpr = dml.DoubleMLPanelData(
+    dml_data_plpr = DoubleMLPanelData(
         plpr_data,
         y_col="y",
         d_cols="d",
@@ -62,7 +62,7 @@ def doubleml_plpr_fixture(plpr_score, plpr_approach, n_rep, set_ml_m_ext, set_ml
     if plpr_score == "IV-type":
         kwargs["ml_g"] = LinearRegression()
 
-    dml_plpr = dml.DoubleMLPLPR(ml_m=LinearRegression(), ml_l=LinearRegression(), **kwargs)
+    dml_plpr = DoubleMLPLPR(ml_m=LinearRegression(), ml_l=LinearRegression(), **kwargs)
 
     np.random.seed(3141)
     dml_plpr.fit(store_predictions=True)
@@ -91,7 +91,7 @@ def doubleml_plpr_fixture(plpr_score, plpr_approach, n_rep, set_ml_m_ext, set_ml
         ml_l = DMLDummyRegressor()
 
     # special case if ml_l is not needed
-    dml_plpr_ext = dml.DoubleMLPLPR(ml_m=ml_m, ml_l=ml_l, **kwargs)
+    dml_plpr_ext = DoubleMLPLPR(ml_m=ml_m, ml_l=ml_l, **kwargs)
 
     np.random.seed(3141)
     dml_plpr_ext.fit(external_predictions=ext_predictions)
