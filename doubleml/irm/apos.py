@@ -10,7 +10,7 @@ from sklearn.base import clone
 
 from doubleml.data import DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.double_ml_framework import concat
+from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework, concat
 from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.irm.apo import DoubleMLAPO
 from doubleml.utils._checks import _check_score, _check_weights
@@ -772,12 +772,21 @@ class DoubleMLAPOS(SampleSplittingMixin):
                 if i in skip_index:
                     continue
 
-                current_framework = model.framework - ref_model.framework
+                diff_framework = model.framework - ref_model.framework
                 current_treatment_name = f"{self.treatment_levels[i]} vs {self.treatment_levels[i_ref_lvl]}"
 
                 # update sensitivity elements with sharper bounds
                 current_sensitivity_dict = self._compute_causal_contrast_sensitivity_dict(model=model, ref_model=ref_model)
-                current_framework._check_and_set_sensitivity_elements(current_sensitivity_dict)
+                updated_dml_core = DoubleMLCore(
+                    all_thetas=diff_framework.all_thetas,
+                    all_ses=diff_framework.all_ses,
+                    var_scaling_factors=diff_framework.var_scaling_factors,
+                    scaled_psi=diff_framework.scaled_psi,
+                    is_cluster_data=diff_framework.is_cluster_data,
+                    cluster_dict=diff_framework.cluster_dict,
+                    sensitivity_elements=current_sensitivity_dict["sensitivity_elements"],
+                )
+                current_framework = DoubleMLFramework(updated_dml_core, treatment_names=[current_treatment_name])
 
                 all_acc_frameworks += [current_framework]
                 all_treatment_names += [current_treatment_name]
