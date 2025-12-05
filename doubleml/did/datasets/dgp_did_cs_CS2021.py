@@ -85,11 +85,35 @@ def make_did_cs_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, lambd
 
     6. Treatment assignment:
 
-       For non-experimental settings (DGP 1-4), the probability of being in treatment group :math:`g` is:
+       For non-experimental settings (DGP 1-4), the probability of being in treatment group :math:`g` is computed as follows:
 
-       .. math::
+       - Compute group-specific logits for each observation:
 
-           P(G_i = g) = \\frac{\\exp(f_{ps,g}(W_{ps}))}{\\sum_{g'} \\exp(f_{ps,g'}(W_{ps}))}
+         .. math::
+
+            \\text{logit}_{i,g} = f_{ps,g}(W_{ps})
+
+         The logits are clipped to the range [-2.5, 2.5] for numerical stability.
+
+       - Convert logits to uncapped probabilities via softmax:
+
+         .. math::
+
+            p^{\\text{uncapped}}_{i,g} = \\frac{\\exp(\\text{logit}_{i,g})}{\\sum_{g'} \\exp(\\text{logit}_{i,g'})}
+
+       - Clip uncapped probabilities to the range [0.05, 0.95]:
+
+         .. math::
+
+            p^{\\text{clipped}}_{i,g} = \\min(\\max(p^{\\text{uncapped}}_{i,g}, 0.05), 0.95)
+
+       - Renormalize clipped probabilities so they sum to 1 for each observation:
+
+         .. math::
+
+            p_{i,g} = \\frac{p^{\text{clipped}}_{i,g}}{\\sum_{g'} p^{\\text{clipped}}_{i,g'}}
+
+       - Assign each observation to a treatment group by sampling from the categorical distribution defined by :math:`p_{i,g}`.
 
        For experimental settings (DGP 5-6), each treatment group (including never-treated) has equal probability:
 
@@ -148,7 +172,7 @@ def make_did_cs_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, lambd
         `dim_x` (int, default=4):
             Dimension of feature vectors.
 
-        `xi` (float, default=0.9):
+        `xi` (float, default=0.5):
             Scale parameter for the propensity score function.
 
         `n_periods` (int, default=5):

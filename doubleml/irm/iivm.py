@@ -17,6 +17,7 @@ from doubleml.utils._checks import (
 )
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls, _solve_quadratic_inequality
 from doubleml.utils._propensity_score import _normalize_ipw
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -592,6 +593,112 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+        """
+        Optuna-based hyperparameter tuning for IIVM nuisance models.
+
+        Performs tuning once on the whole dataset using cross-validation,
+        returning the same optimal parameters for all folds.
+        """
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_g0": None, "ml_g1": None, "ml_m": None, "ml_r0": None, "ml_r1": None}
+
+        # Separate data by instrument status for conditional mean tuning
+        mask_z0 = z == 0
+        mask_z1 = z == 1
+
+        x_z0 = x[mask_z0, :]
+        y_z0 = y[mask_z0]
+        g0_tune_res = _dml_tune_optuna(
+            y_z0,
+            x_z0,
+            self._learner["ml_g"],
+            optuna_params["ml_g0"],
+            scoring_methods["ml_g0"],
+            cv,
+            optuna_settings,
+            learner_name="ml_g",
+            params_name="ml_g0",
+        )
+
+        x_z1 = x[mask_z1, :]
+        y_z1 = y[mask_z1]
+        g1_tune_res = _dml_tune_optuna(
+            y_z1,
+            x_z1,
+            self._learner["ml_g"],
+            optuna_params["ml_g1"],
+            scoring_methods["ml_g1"],
+            cv,
+            optuna_settings,
+            learner_name="ml_g",
+            params_name="ml_g1",
+        )
+
+        # Tune propensity score on full dataset
+        m_tune_res = _dml_tune_optuna(
+            z,
+            x,
+            self._learner["ml_m"],
+            optuna_params["ml_m"],
+            scoring_methods["ml_m"],
+            cv,
+            optuna_settings,
+            learner_name="ml_m",
+            params_name="ml_m",
+        )
+
+        r0_tune_res = None
+        r1_tune_res = None
+        if self.subgroups["always_takers"]:
+            d_z0 = d[mask_z0]
+            r0_tune_res = _dml_tune_optuna(
+                d_z0,
+                x_z0,
+                self._learner["ml_r"],
+                optuna_params["ml_r0"],
+                scoring_methods["ml_r0"],
+                cv,
+                optuna_settings,
+                learner_name="ml_r",
+                params_name="ml_r0",
+            )
+
+        if self.subgroups["never_takers"]:
+            d_z1 = d[mask_z1]
+            r1_tune_res = _dml_tune_optuna(
+                d_z1,
+                x_z1,
+                self._learner["ml_r"],
+                optuna_params["ml_r1"],
+                scoring_methods["ml_r1"],
+                cv,
+                optuna_settings,
+                learner_name="ml_r",
+                params_name="ml_r1",
+            )
+
+        results = {
+            "ml_g0": g0_tune_res,
+            "ml_g1": g1_tune_res,
+            "ml_m": m_tune_res,
+            "ml_r0": r0_tune_res,
+            "ml_r1": r1_tune_res,
+        }
+
+        return results
 
     def _sensitivity_element_est(self, preds):
         pass

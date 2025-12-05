@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 import scipy
 from sklearn.base import clone
+from sklearn.model_selection import cross_val_predict
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
@@ -15,6 +16,7 @@ from doubleml.utils._estimation import (
     _dml_tune,
     _double_dml_cv_predict,
 )
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 
 
 class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
@@ -423,8 +425,8 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         x_d_concat = np.hstack((d.reshape(-1, 1), x))
 
         if scoring_methods is None:
@@ -536,3 +538,102 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             deriv = -psi_elements["d"] * expit * (1 - expit) * psi_elements["d_tilde"]
 
         return deriv
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+        """
+        Optuna-based hyperparameter tuning for LPLR nuisance models.
+
+        Performs tuning once on the whole dataset using cross-validation,
+        returning the same optimal parameters for all folds.
+        """
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        x_d_concat = np.hstack((d.reshape(-1, 1), x))
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_m": None, "ml_M": None, "ml_a": None, "ml_t": None}
+
+        M_tune_res = _dml_tune_optuna(
+            y,
+            x_d_concat,
+            self._learner["ml_M"],
+            optuna_params["ml_M"],
+            scoring_methods["ml_M"],
+            cv,
+            optuna_settings,
+            learner_name="ml_M",
+            params_name="ml_M",
+        )
+
+        if self.score == "nuisance_space":
+            mask_y0 = y == 0
+            outcome_ml_m = d[mask_y0]
+            features_ml_m = x[mask_y0, :]
+        elif self.score == "instrument":
+            outcome_ml_m = d
+            features_ml_m = x
+
+        m_tune_res = _dml_tune_optuna(
+            outcome_ml_m,
+            features_ml_m,
+            self._learner["ml_m"],
+            optuna_params["ml_m"],
+            scoring_methods["ml_m"],
+            cv,
+            optuna_settings,
+            learner_name="ml_m",
+            params_name="ml_m",
+        )
+
+        a_tune_res = _dml_tune_optuna(
+            d,
+            x,
+            self._learner["ml_a"],
+            optuna_params["ml_a"],
+            scoring_methods["ml_a"],
+            cv,
+            optuna_settings,
+            learner_name="ml_a",
+            params_name="ml_a",
+        )
+
+        # Create targets for tuning ml_t
+        # Unlike for inference in _nuisance_est, we do not use the double cross-fitting here and use a single model for
+        # predicting M_hat
+        # This presents a small risk of bias in the targets, but enables tuning without tune_on_folds=True
+
+        M_hat = cross_val_predict(
+            estimator=clone(M_tune_res.best_estimator),
+            X=x_d_concat,
+            y=y,
+            cv=cv,
+            method="predict_proba",
+        )[:, 1]
+        M_hat = np.clip(M_hat, 1e-8, 1 - 1e-8)
+        W_hat = scipy.special.logit(M_hat)
+
+        t_tune_res = _dml_tune_optuna(
+            W_hat,
+            x,
+            self._learner["ml_t"],
+            optuna_params["ml_t"],
+            scoring_methods["ml_t"],
+            cv,
+            optuna_settings,
+            learner_name="ml_t",
+            params_name="ml_t",
+        )
+
+        results = {
+            "ml_M": M_tune_res,
+            "ml_m": m_tune_res,
+            "ml_a": a_tune_res,
+            "ml_t": t_tune_res,
+        }
+        return results
