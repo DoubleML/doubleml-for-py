@@ -68,24 +68,28 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      
+
       - name: Wait for TestPyPI indexing
-        run: sleep 30
+        run: sleep 60
 
       - name: Install from TestPyPI
         # --extra-index-url allows pip to find dependencies (pandas, numpy) on the real PyPI
-        run: |
-          pip install --pre --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ DoubleML
+        if: github.event_name == 'release'
+        run: pip install --pre --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ "DoubleML==${{ github.ref_name }}"
+
+      - name: Install from TestPyPI (workflow_dispatch)
+        # For manual runs, install the latest pre-release version
+        if: github.event_name == 'workflow_dispatch'
+        run: pip install --pre --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ DoubleML
 
       - name: Import Smoke Test
         run: python -c "import doubleml; print(f'Successfully imported DoubleML version {doubleml.__version__}')"
-
 
   publish-to-pypi:
     name: Publish to PyPI 🚀
     needs: verify-testpypi
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'  # Do not publish on workflow_dispatch
+    if: github.event_name == 'release' # Do not publish on workflow_dispatch
     environment:
       name: pypi
       url: https://pypi.org/p/DoubleML
@@ -116,7 +120,7 @@ jobs:
         run: sleep 60
 
       - name: Install from PyPI
-        run: pip install DoubleML==${{ github.ref_name }}
+        run: pip install "DoubleML==${{ github.ref_name }}"
 
       - name: Import Smoke Test
         run: python -c "import doubleml; print(f'Successfully imported DoubleML version {doubleml.__version__}')"
