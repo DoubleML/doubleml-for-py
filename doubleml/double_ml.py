@@ -9,11 +9,12 @@ from sklearn.base import is_classifier, is_regressor
 
 from doubleml.data import DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
-from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework
 from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.utils._checks import _check_external_predictions
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
+from doubleml.utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS, TUNE_ML_MODELS_DOC, resolve_optuna_cv
 from doubleml.utils.gain_statistics import gain_statistics
 
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
@@ -625,14 +626,11 @@ class DoubleML(SampleSplittingMixin, ABC):
         scaled_psi_reshape = np.transpose(scaled_psi, (0, 2, 1))
 
         doubleml_dict = {
-            "thetas": self.coef,
             "all_thetas": self.all_coef,
-            "ses": self.se,
             "all_ses": self.all_se,
             "var_scaling_factors": self._var_scaling_factors,
             "scaled_psi": scaled_psi_reshape,
             "is_cluster_data": self._is_cluster_data,
-            "treatment_names": self._dml_data.d_cols,
         }
 
         if self._sensitivity_implemented:
@@ -669,8 +667,8 @@ class DoubleML(SampleSplittingMixin, ABC):
                     },
                 }
             )
-
-        doubleml_framework = DoubleMLFramework(doubleml_dict)
+        dml_core = DoubleMLCore(**doubleml_dict)
+        doubleml_framework = DoubleMLFramework(dml_core=dml_core, treatment_names=self._dml_data.d_cols)
         return doubleml_framework
 
     def bootstrap(self, method="normal", n_rep_boot=500):
@@ -765,6 +763,11 @@ class DoubleML(SampleSplittingMixin, ABC):
         """
         Hyperparameter-tuning for DoubleML models.
 
+        .. deprecated::  0.13.0
+           The ``tune`` method using grid/randomized search is maintained for backward compatibility.
+           For more efficient hyperparameter optimization, use :meth:`tune_ml_models` with Optuna,
+           which provides Bayesian optimization and better performance.
+
         The hyperparameter-tuning is performed using either an exhaustive search over specified parameter values
         implemented in :class:`sklearn.model_selection.GridSearchCV` or via a randomized search implemented in
         :class:`sklearn.model_selection.RandomizedSearchCV`.
@@ -818,6 +821,16 @@ class DoubleML(SampleSplittingMixin, ABC):
             A list containing detailed tuning results and the proposed hyperparameters.
             Returned if ``return_tune_res`` is ``True``.
         """
+        # Deprecation warning for the tune method
+        warnings.warn(
+            "The 'tune' method using grid search or randomized search is maintained for backward compatibility. "
+            "It will be removed in future versions. "
+            "For more advanced hyperparameter optimization, consider using 'tune_ml_models' with Optuna, "
+            "which offers Bayesian optimization and is generally more efficient. "
+            "See the documentation for 'tune_ml_models' for usage examples.",
+            FutureWarning,
+            stacklevel=2,
+        )
 
         if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
             raise ValueError(
@@ -934,6 +947,164 @@ class DoubleML(SampleSplittingMixin, ABC):
         else:
             return self
 
+    def tune_ml_models(
+        self,
+        ml_param_space,
+        scoring_methods=None,
+        cv=5,
+        set_as_params=True,
+        return_tune_res=False,
+        optuna_settings=None,
+    ):
+        """Hyperparameter-tuning for DoubleML models using Optuna."""
+
+        # Validation
+
+        expanded_param_space = self._validate_optuna_param_space(ml_param_space)
+        scoring_methods = self._resolve_scoring_methods(scoring_methods)
+        cv_splitter = resolve_optuna_cv(cv)
+        self._validate_optuna_setting_keys(optuna_settings)
+
+        if not isinstance(set_as_params, bool):
+            raise TypeError(f"set_as_params must be True or False. Got {str(set_as_params)}.")
+
+        if not isinstance(return_tune_res, bool):
+            raise TypeError(f"return_tune_res must be True or False. Got {str(return_tune_res)}.")
+
+        # Optuna tuning is always global (not fold-specific)
+        tuning_res = [None] * self._dml_data.n_treat
+
+        for i_d in range(self._dml_data.n_treat):
+            self._i_treat = i_d
+            # this step could be skipped for the single treatment variable case
+            if self._dml_data.n_treat > 1:
+                self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
+
+            # tune hyperparameters (globally, not fold-specific)
+            res = self._nuisance_tuning_optuna(
+                expanded_param_space,
+                scoring_methods,
+                cv_splitter,
+                optuna_settings,
+            )
+
+            tuning_res[i_d] = res
+            if set_as_params:
+                for nuisance_model, tuned_result in res.items():
+                    if tuned_result is None:
+                        params_to_set = None
+                    else:
+                        params_to_set = tuned_result.best_params
+
+                    self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
+
+        return tuning_res if return_tune_res else self
+
+    tune_ml_models.__doc__ = TUNE_ML_MODELS_DOC
+
+    def _resolve_scoring_methods(self, scoring_methods):
+        """Resolve scoring methods to ensure all learners have an entry."""
+
+        if scoring_methods is None:
+            return None
+
+        if not isinstance(scoring_methods, dict):
+            raise TypeError("scoring_methods must be provided as a dictionary keyed by learner name.")
+
+        invalid_scoring_keys = [key for key in scoring_methods if key not in self.params_names]
+        if invalid_scoring_keys:
+            raise ValueError(
+                "Invalid scoring_methods keys for "
+                + self.__class__.__name__
+                + ": "
+                + ", ".join(sorted(invalid_scoring_keys))
+                + ". Valid keys are: "
+                + ", ".join(self.params_names)
+                + "."
+            )
+
+        resolved = dict(scoring_methods)
+        for learner_name in self.params_names:
+            resolved.setdefault(learner_name, None)
+
+        return resolved
+
+    def _validate_optuna_setting_keys(self, optuna_settings):
+        """Validate learner-level keys provided in optuna_settings."""
+
+        if optuna_settings is not None and not isinstance(optuna_settings, dict):
+            raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
+
+        if not optuna_settings:
+            return
+
+        allowed_learner_keys = set(self.params_names) | set(self.learner_names)
+        invalid_keys = [
+            key for key in optuna_settings if key not in OPTUNA_GLOBAL_SETTING_KEYS and key not in allowed_learner_keys
+        ]
+
+        if invalid_keys:
+            if allowed_learner_keys:
+                valid_keys_msg = ", ".join(sorted(allowed_learner_keys))
+            else:
+                valid_keys_msg = "<none>"
+            raise ValueError(
+                "Invalid optuna_settings keys for "
+                + self.__class__.__name__
+                + ": "
+                + ", ".join(sorted(invalid_keys))
+                + ". Valid learner-specific keys are: "
+                + valid_keys_msg
+                + "."
+            )
+
+        for key in allowed_learner_keys:
+            if key in optuna_settings and not isinstance(optuna_settings[key], dict):
+                raise TypeError(f"Optuna settings for '{key}' must be a dict.")
+
+    def _validate_optuna_param_space(self, ml_param_space):
+        """Validate learner keys provided in the Optuna parameter space dictionary."""
+
+        if not isinstance(ml_param_space, dict) or not ml_param_space:
+            raise ValueError("ml_param_space must be a non-empty dictionary.")
+
+        allowed_param_keys = set(self.params_names) | set(self.learner_names)
+        invalid_keys = [key for key in ml_param_space if key not in allowed_param_keys]
+
+        if invalid_keys:
+            valid_keys_msg = ", ".join(sorted(allowed_param_keys)) if allowed_param_keys else "<none>"
+            raise ValueError(
+                "Invalid ml_param_space keys for "
+                + self.__class__.__name__
+                + ": "
+                + ", ".join(sorted(invalid_keys))
+                + ". Valid keys are: "
+                + valid_keys_msg
+                + "."
+            )
+        final_param_space = {k: None for k in self.params_names}
+
+        # Validate that all parameter spaces are callables
+        for learner_name, param_fn in ml_param_space.items():
+            if param_fn is None:
+                continue
+            if not callable(param_fn):
+                raise TypeError(
+                    f"Parameter space for '{learner_name}' must be a callable function that takes a trial "
+                    f"and returns a dict. Got {type(param_fn).__name__}. "
+                    f"Example: def ml_params(trial): return {{'lr': trial.suggest_float('lr', 0.01, 0.1)}}"
+                )
+
+        # Set Hyperparameter spaces for learners (global / learner_name level)
+        for learner_name in [ln for ln in self.learner_names if ln in ml_param_space.keys()]:
+            for param_key in [pk for pk in self.params_names if learner_name in pk]:
+                final_param_space[param_key] = ml_param_space[learner_name]
+        # Override if param_name specific space is provided
+        for param_key in [pk for pk in self.params_names if pk in ml_param_space.keys()]:
+            final_param_space[param_key] = ml_param_space[param_key]
+
+        return final_param_space
+
     def set_ml_nuisance_params(self, learner, treat_var, params):
         """
         Set hyperparameters for the nuisance models of DoubleML models.
@@ -1011,9 +1182,31 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     @abstractmethod
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
     ):
         pass
+
+    @abstractmethod
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+        """
+        Optuna-based hyperparameter tuning hook.
+
+        Subclasses should override this method to provide Optuna tuning support.
+        """
+        raise NotImplementedError(f"Optuna tuning not implemented for {self.__class__.__name__}.")
 
     @staticmethod
     def _check_learner(learner, learner_name, regressor, classifier):
@@ -1246,8 +1439,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> from doubleml.irm.datasets import make_irm_data
         >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
         >>> np.random.seed(3141)
-        >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-        >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+        >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2, random_state=42)
+        >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2, random_state=42)
         >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
         >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)

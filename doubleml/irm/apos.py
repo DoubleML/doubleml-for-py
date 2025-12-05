@@ -10,18 +10,81 @@ from sklearn.base import clone
 
 from doubleml.data import DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.double_ml_framework import concat
+from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework, concat
 from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.irm.apo import DoubleMLAPO
 from doubleml.utils._checks import _check_score, _check_weights
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
+from doubleml.utils._tune_optuna import TUNE_ML_MODELS_DOC
 from doubleml.utils.gain_statistics import gain_statistics
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
 class DoubleMLAPOS(SampleSplittingMixin):
-    """Double machine learning for interactive regression models with multiple discrete treatments."""
+    """Double machine learning for interactive regression models with multiple discrete
+    treatments.
+
+    Parameters
+    ----------
+    obj_dml_data : :class:`DoubleMLData` object
+        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+
+    ml_g : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(D, X) = E[Y | X, D]`.
+        For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
+        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
+        ``predict_proba()`` is used otherwise ``predict()``.
+
+    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D | X]`.
+
+    treatment_levels : iterable of int or float
+        The treatment levels for which average potential outcomes are evaluated. Each element must be present in the
+        treatment variable ``d`` of ``obj_dml_data``.
+
+    n_folds : int
+        Number of folds.
+        Default is ``5``.
+
+    n_rep : int
+        Number of repetitions for the sample splitting.
+        Default is ``1``.
+
+    score : str
+        A str (``'APO'``) specifying the score function.
+        Default is ``'APO'``.
+
+    weights : array, dict or None
+        A numpy array of weights for each individual observation. If ``None``, then the ``'APO'`` score
+        is applied (corresponds to weights equal to 1).
+        An array has to be of shape ``(n,)``, where ``n`` is the number of observations.
+        A dictionary can be used to specify weights which depend on the treatment variable.
+        In this case, the dictionary has to contain two keys ``weights`` and ``weights_bar``, where the values
+        have to be arrays of shape ``(n,)`` and ``(n, n_rep)``.
+        Default is ``None``.
+
+    normalize_ipw : bool
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``False``.
+
+    trimming_rule : str, optional, deprecated
+        (DEPRECATED) A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Use ``ps_processor_config`` instead. Will be removed in a future version.
+
+    trimming_threshold : float, optional, deprecated
+        (DEPRECATED) The threshold used for trimming.
+        Use ``ps_processor_config`` instead. Will be removed in a future version.
+
+    ps_processor_config : PSProcessorConfig, optional
+        Configuration for propensity score processing (clipping, calibration, etc.).
+
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
+    """
 
     def __init__(
         self,
@@ -709,12 +772,21 @@ class DoubleMLAPOS(SampleSplittingMixin):
                 if i in skip_index:
                     continue
 
-                current_framework = model.framework - ref_model.framework
+                diff_framework = model.framework - ref_model.framework
                 current_treatment_name = f"{self.treatment_levels[i]} vs {self.treatment_levels[i_ref_lvl]}"
 
                 # update sensitivity elements with sharper bounds
                 current_sensitivity_dict = self._compute_causal_contrast_sensitivity_dict(model=model, ref_model=ref_model)
-                current_framework._check_and_set_sensitivity_elements(current_sensitivity_dict)
+                updated_dml_core = DoubleMLCore(
+                    all_thetas=diff_framework.all_thetas,
+                    all_ses=diff_framework.all_ses,
+                    var_scaling_factors=diff_framework.var_scaling_factors,
+                    scaled_psi=diff_framework.scaled_psi,
+                    is_cluster_data=diff_framework.is_cluster_data,
+                    cluster_dict=diff_framework.cluster_dict,
+                    sensitivity_elements=current_sensitivity_dict["sensitivity_elements"],
+                )
+                current_framework = DoubleMLFramework(updated_dml_core, treatment_names=[current_treatment_name])
 
                 all_acc_frameworks += [current_framework]
                 all_treatment_names += [current_treatment_name]
@@ -863,3 +935,32 @@ class DoubleMLAPOS(SampleSplittingMixin):
             modellist[i_level] = model
 
         return modellist
+
+    def tune_ml_models(
+        self,
+        ml_param_space,
+        scoring_methods=None,
+        cv=5,
+        set_as_params=True,
+        return_tune_res=False,
+        optuna_settings=None,
+    ):
+        """Hyperparameter-tuning for DoubleML models using Optuna."""
+
+        tuning_kwargs = {
+            "ml_param_space": ml_param_space,
+            "scoring_methods": scoring_methods,
+            "cv": cv,
+            "set_as_params": set_as_params,
+            "return_tune_res": return_tune_res,
+            "optuna_settings": optuna_settings,
+        }
+
+        tune_res = [] if return_tune_res else None
+        for model in self._modellist:
+            res = model.tune_ml_models(**tuning_kwargs)
+            if return_tune_res:
+                tune_res.append(res[0])
+        return tune_res if return_tune_res else self
+
+    tune_ml_models.__doc__ = TUNE_ML_MODELS_DOC

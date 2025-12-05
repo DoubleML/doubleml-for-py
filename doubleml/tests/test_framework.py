@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
-from doubleml.double_ml_framework import DoubleMLFramework, concat
+from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework, concat
 from doubleml.irm.datasets import make_irm_data
 from doubleml.irm.irm import DoubleMLIRM
 
@@ -28,7 +28,8 @@ def dml_framework_fixture(n_rep, n_thetas):
     psi_a = np.ones(shape=(n_obs, n_thetas, n_rep))
     psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
     doubleml_dict = generate_dml_dict(psi_a, psi_b)
-    dml_framework_obj = DoubleMLFramework(doubleml_dict)
+    dml_core = DoubleMLCore(**doubleml_dict)
+    dml_framework_obj = DoubleMLFramework(dml_core=dml_core)
 
     ci = dml_framework_obj.confint(joint=False, level=0.95)
     dml_framework_obj.bootstrap(method="normal")
@@ -44,7 +45,8 @@ def dml_framework_fixture(n_rep, n_thetas):
     psi_a_2 = np.ones(shape=(n_obs, n_thetas, n_rep))
     psi_b_2 = np.random.normal(size=(n_obs, n_thetas, n_rep)) + 1.0
     doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
-    dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+    dml_core_2 = DoubleMLCore(**doubleml_dict_2)
+    dml_framework_obj_2 = DoubleMLFramework(dml_core=dml_core_2)
     dml_framework_obj_sub_obj = dml_framework_obj - dml_framework_obj_2
     ci_sub_obj = dml_framework_obj_sub_obj.confint(joint=False, level=0.95)
     dml_framework_obj_sub_obj.bootstrap(method="normal")

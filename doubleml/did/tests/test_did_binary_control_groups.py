@@ -1,3 +1,4 @@
+import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
@@ -17,6 +18,7 @@ args = {
 }
 
 
+@pytest.mark.ci
 def test_control_groups_different():
     dml_did_never_treated = dml.did.DoubleMLDIDBinary(control_group="never_treated", **args)
     dml_did_not_yet_treated = dml.did.DoubleMLDIDBinary(control_group="not_yet_treated", **args)

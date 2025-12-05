@@ -12,6 +12,7 @@ from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_score
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d, _predict_zero_one_propensity
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -571,6 +572,100 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         }
 
         return {"params": params, "tune_res": tune_res}
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        x, s = check_X_y(x, self._dml_data.s, ensure_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {
+                "ml_g_d0": None,
+                "ml_g_d1": None,
+                "ml_pi": None,
+                "ml_m": None,
+            }
+
+        def get_param_and_scoring(key):
+            return optuna_params[key], scoring_methods[key]
+
+        if self._score == "nonignorable":
+            raise NotImplementedError("Optuna tuning for nonignorable score is not implemented yet. ")
+        else:
+            mask_d0_s1 = np.logical_and(d == 0, s == 1)
+            mask_d1_s1 = np.logical_and(d == 1, s == 1)
+
+            g_d0_param, g_d0_scoring = get_param_and_scoring("ml_g_d0")
+            g_d1_param, g_d1_scoring = get_param_and_scoring("ml_g_d1")
+
+            x_d0 = x[mask_d0_s1, :]
+            y_d0 = y[mask_d0_s1]
+            g_d0_tune_res = _dml_tune_optuna(
+                y_d0,
+                x_d0,
+                self._learner["ml_g"],
+                g_d0_param,
+                g_d0_scoring,
+                cv,
+                optuna_settings,
+                learner_name="ml_g",
+                params_name="ml_g_d0",
+            )
+
+            x_d1 = x[mask_d1_s1, :]
+            y_d1 = y[mask_d1_s1]
+            g_d1_tune_res = _dml_tune_optuna(
+                y_d1,
+                x_d1,
+                self._learner["ml_g"],
+                g_d1_param,
+                g_d1_scoring,
+                cv,
+                optuna_settings,
+                learner_name="ml_g",
+                params_name="ml_g_d1",
+            )
+
+            x_d_feat = np.column_stack((x, d))
+            pi_tune_res = _dml_tune_optuna(
+                s,
+                x_d_feat,
+                self._learner["ml_pi"],
+                optuna_params["ml_pi"],
+                scoring_methods["ml_pi"],
+                cv,
+                optuna_settings,
+                learner_name="ml_pi",
+                params_name="ml_pi",
+            )
+
+            m_tune_res = _dml_tune_optuna(
+                d,
+                x,
+                self._learner["ml_m"],
+                optuna_params["ml_m"],
+                scoring_methods["ml_m"],
+                cv,
+                optuna_settings,
+                learner_name="ml_m",
+                params_name="ml_m",
+            )
+
+            results = {
+                "ml_g_d0": g_d0_tune_res,
+                "ml_g_d1": g_d1_tune_res,
+                "ml_pi": pi_tune_res,
+                "ml_m": m_tune_res,
+            }
+
+        return results
 
     def _sensitivity_element_est(self, preds):
         pass

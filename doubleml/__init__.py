@@ -3,7 +3,7 @@ import importlib.metadata
 from .data import DoubleMLClusterData, DoubleMLData, DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from .did.did import DoubleMLDID
 from .did.did_cs import DoubleMLDIDCS
-from .double_ml_framework import DoubleMLFramework, concat
+from .double_ml_framework import DoubleMLCore, DoubleMLFramework, concat
 from .irm.apo import DoubleMLAPO
 from .irm.apos import DoubleMLAPOS
 from .irm.cvar import DoubleMLCVAR
@@ -22,6 +22,7 @@ from .utils.policytree import DoubleMLPolicyTree
 
 __all__ = [
     "concat",
+    "DoubleMLCore",
     "DoubleMLFramework",
     "DoubleMLPLR",
     "DoubleMLPLIV",

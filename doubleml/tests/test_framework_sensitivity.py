@@ -79,15 +79,15 @@ def test_dml_framework_sensitivity_shapes(dml_framework_sensitivity_fixture):
     for obj in object_list:
         assert dml_framework_sensitivity_fixture[obj]._sensitivity_implemented
         for key in var_keys:
-            assert dml_framework_sensitivity_fixture[obj]._sensitivity_elements[key].shape == (1, n_thetas, n_rep)
+            assert dml_framework_sensitivity_fixture[obj].sensitivity_elements[key].shape == (1, n_thetas, n_rep)
         for key in score_keys:
-            assert dml_framework_sensitivity_fixture[obj]._sensitivity_elements[key].shape == (n_obs, n_thetas, n_rep)
+            assert dml_framework_sensitivity_fixture[obj].sensitivity_elements[key].shape == (n_obs, n_thetas, n_rep)
 
     # separate test for concat
     for key in var_keys:
-        assert dml_framework_sensitivity_fixture["dml_framework_obj_concat"]._sensitivity_elements[key].shape == (1, 2, n_rep)
+        assert dml_framework_sensitivity_fixture["dml_framework_obj_concat"].sensitivity_elements[key].shape == (1, 2, n_rep)
     for key in score_keys:
-        assert dml_framework_sensitivity_fixture["dml_framework_obj_concat"]._sensitivity_elements[key].shape == (
+        assert dml_framework_sensitivity_fixture["dml_framework_obj_concat"].sensitivity_elements[key].shape == (
             n_obs,
             2,
             n_rep,

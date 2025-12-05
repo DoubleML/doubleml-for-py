@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
-from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework
 from doubleml.tests._utils import generate_dml_dict
 
 
@@ -24,7 +24,8 @@ def mock_framework(n_rep, n_thetas):
     psi_a = np.ones(shape=(n_obs, n_thetas, n_rep))
     psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
     doubleml_dict = generate_dml_dict(psi_a, psi_b)
-    return DoubleMLFramework(doubleml_dict)
+    dml_core = DoubleMLCore(**doubleml_dict)
+    return DoubleMLFramework(dml_core)
 
 
 @pytest.fixture
@@ -67,7 +68,8 @@ def test_invalid_framework_dim():
     psi_a = np.ones(shape=(10, 2, 1))
     psi_b = np.random.normal(size=(10, 2, 1))
     doubleml_dict = generate_dml_dict(psi_a, psi_b)
-    framework = DoubleMLFramework(doubleml_dict)
+    dml_core = DoubleMLCore(**doubleml_dict)
+    framework = DoubleMLFramework(dml_core=dml_core)
 
     # Test with invalid framework dimension
     with pytest.raises(ValueError, match="All frameworks must be one-dimensional"):
