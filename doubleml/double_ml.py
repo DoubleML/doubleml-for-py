@@ -1177,7 +1177,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         pass
 
     @abstractmethod
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models, external_predictions):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models):
         pass
 
     @abstractmethod

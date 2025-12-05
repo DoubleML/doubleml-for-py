@@ -41,6 +41,7 @@ dml_objs = [
     (dml_lplr_obj, DoubleMLLPLR),
     (dml_lplr_obj_binary, DoubleMLLPLR),
 ]
+# TODO: plpr with cluster data return type tests? n_obs is changed for fd_exact approach
 
 
 @pytest.mark.ci
