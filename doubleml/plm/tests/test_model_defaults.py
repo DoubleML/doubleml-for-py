@@ -2,17 +2,17 @@ import numpy as np
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
-from doubleml import DoubleMLLPLR, DoubleMLPanelData, DoubleMLPLPR
+import doubleml as dml
 from doubleml.double_ml import DoubleML
 from doubleml.plm.datasets import make_lplr_LZZ2020, make_plpr_CP2025
 from doubleml.utils._check_defaults import _check_basic_defaults_after_fit, _check_basic_defaults_before_fit, _fit_bootstrap
 
 dml_data_lplr = make_lplr_LZZ2020(n_obs=100)
 
-dml_lplr_obj = DoubleMLLPLR(dml_data_lplr, LogisticRegression(), LinearRegression(), LinearRegression())
+dml_lplr_obj = dml.DoubleMLLPLR(dml_data_lplr, LogisticRegression(), LinearRegression(), LinearRegression())
 
 plpr_data = make_plpr_CP2025(num_id=100, dgp_type="dgp1")
-dml_data_plpr = DoubleMLPanelData(
+dml_data_plpr = dml.DoubleMLPanelData(
     plpr_data,
     y_col="y",
     d_cols="d",
@@ -21,7 +21,7 @@ dml_data_plpr = DoubleMLPanelData(
     static_panel=True,
 )
 
-dml_plpr_obj = DoubleMLPLPR(dml_data_plpr, LinearRegression(), LinearRegression())
+dml_plpr_obj = dml.DoubleMLPLPR(dml_data_plpr, LinearRegression(), LinearRegression())
 
 
 @pytest.mark.ci
