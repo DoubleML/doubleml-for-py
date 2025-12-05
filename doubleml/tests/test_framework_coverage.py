@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from doubleml.double_ml_framework import DoubleMLFramework, concat
+from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework, concat
 
 from ._utils import generate_dml_dict
 
@@ -56,8 +56,10 @@ def test_dml_framework_coverage_fixture(n_rep, n_thetas):
         doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
 
         # combine objects and estimate parameters
-        dml_framework_obj_1 = DoubleMLFramework(doubleml_dict)
-        dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+        dml_core_1 = DoubleMLCore(**doubleml_dict)
+        dml_core_2 = DoubleMLCore(**doubleml_dict_2)
+        dml_framework_obj_1 = DoubleMLFramework(dml_core=dml_core_1)
+        dml_framework_obj_2 = DoubleMLFramework(dml_core=dml_core_2)
 
         true_thetas = np.vstack((np.repeat(0.0, n_thetas), np.repeat(-1.0, n_thetas))).transpose()
         ci = dml_framework_obj_1.confint(joint=False, level=0.95)

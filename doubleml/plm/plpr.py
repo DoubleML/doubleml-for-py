@@ -3,13 +3,15 @@ import warnings
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
+from sklearn.model_selection import cross_val_predict
 from sklearn.utils import check_X_y
 
-from ..data.panel_data import DoubleMLPanelData
-from ..double_ml import DoubleML
-from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
-from ..utils._estimation import _dml_cv_predict, _dml_tune
+from doubleml.data.panel_data import DoubleMLPanelData
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 
 
 class DoubleMLPLPR(LinearScoreMixin, DoubleML):
@@ -499,3 +501,77 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        optuna_params,
+        scoring_methods,
+        cv,
+        optuna_settings,
+    ):
+        """
+        Optuna-based hyperparameter tuning for PLPR nuisance models.
+
+        Performs tuning once on the whole dataset using cross-validation,
+        returning the same optimal parameters for all folds.
+        """
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_l": None, "ml_m": None, "ml_g": None}
+
+        l_tune_res = _dml_tune_optuna(
+            y,
+            x,
+            self._learner["ml_l"],
+            optuna_params["ml_l"],
+            scoring_methods["ml_l"],
+            cv,
+            optuna_settings,
+            learner_name="ml_l",
+            params_name="ml_l",
+        )
+
+        if self._approach == "cre_normal":
+            d_mean = self._d_mean[:, self._i_treat]
+            x_m = np.column_stack((x, d_mean))
+        else:
+            x_m = x
+        m_tune_res = _dml_tune_optuna(
+            d,
+            x_m,
+            self._learner["ml_m"],
+            optuna_params["ml_m"],
+            scoring_methods["ml_m"],
+            cv,
+            optuna_settings,
+            learner_name="ml_m",
+            params_name="ml_m",
+        )
+
+        results = {"ml_l": l_tune_res, "ml_m": m_tune_res}
+
+        # an ML model for g is obtained for the IV-type score
+        if "ml_g" in self._learner:
+            # construct an initial theta estimate from the tuned models using the partialling out score
+            # use cross-fitting for tuning ml_g
+            l_hat = cross_val_predict(l_tune_res.best_estimator, x, y, cv=cv, method=self._predict_method["ml_l"])
+            m_hat = cross_val_predict(m_tune_res.best_estimator, x_m, d, cv=cv, method=self._predict_method["ml_m"])
+            psi_a = -np.multiply(d - m_hat, d - m_hat)
+            psi_b = np.multiply(d - m_hat, y - l_hat)
+            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+            g_tune_res = _dml_tune_optuna(
+                y - theta_initial * d,
+                x,
+                self._learner["ml_g"],
+                optuna_params["ml_g"],
+                scoring_methods["ml_g"],
+                cv,
+                optuna_settings,
+                learner_name="ml_g",
+                params_name="ml_g",
+            )
+            results["ml_g"] = g_tune_res
+
+        return results

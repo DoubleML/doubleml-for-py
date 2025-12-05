@@ -25,7 +25,8 @@ dependencies = [
     "optuna>=4.6.0",
     "matplotlib>=3.9.0",
     "seaborn>=0.13",
-    "plotly>=5.0.0"
+    "plotly>=5.0.0",
+    "mypy>=1.18.0"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -114,3 +115,30 @@ ignore = [
     # isinstance checks
     "E721",
 ]
+
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "."
+packages = ["doubleml"]
+exclude = [
+    "^tests/|^test_",
+]
+
+# Essential checks only:
+warn_return_any = false
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+
+# Output formatting:
+show_error_codes = true
+pretty = true
+color_output = true
+
+# Handle third-party libraries:
+ignore_missing_imports = true
