@@ -13,6 +13,8 @@
 import os
 import sys
 
+import doubleml
+
 sys.path.insert(0, os.path.abspath(".."))
 
 
@@ -23,7 +25,7 @@ copyright = "2021, Bach, P., Chernozhukov, V., Klaassen, S., Kurz, M. S., and Sp
 author = "Bach, P., Chernozhukov, V., Klaassen, S., Kurz, M. S., and Spindler, M."
 
 # The full version, including alpha/beta/rc tags
-release = "0.12.dev0"
+release = doubleml.__version__
 
 
 # -- General configuration ---------------------------------------------------
