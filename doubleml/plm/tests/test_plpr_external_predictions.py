@@ -96,7 +96,12 @@ def doubleml_plpr_fixture(plpr_score, plpr_approach, n_rep, set_ml_m_ext, set_ml
     np.random.seed(3141)
     dml_plpr_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": dml_plpr.coef[0], "coef_ext": dml_plpr_ext.coef[0]}
+    res_dict = {
+        "coef_normal": dml_plpr.coef[0],
+        "coef_ext": dml_plpr_ext.coef[0],
+        "se_normal": dml_plpr.se[0],
+        "se_ext": dml_plpr_ext.se[0],
+    }
 
     return res_dict
 
@@ -104,3 +109,4 @@ def doubleml_plpr_fixture(plpr_score, plpr_approach, n_rep, set_ml_m_ext, set_ml
 @pytest.mark.ci
 def test_doubleml_plpr_coef(doubleml_plpr_fixture):
     assert math.isclose(doubleml_plpr_fixture["coef_normal"], doubleml_plpr_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(doubleml_plpr_fixture["se_normal"], doubleml_plpr_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-4)
