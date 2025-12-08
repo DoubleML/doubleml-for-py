@@ -20,7 +20,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
     Parameters
     ----------
     obj_dml_data : :class:`DoubleMLPanelData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+        The :class:`DoubleMLPanelData` object providing the data and specifying the variables for the causal model.
 
     ml_l : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -53,7 +53,11 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
 
     approach : str
         A str (``'cre_general'``, ``'cre_normal'``, ``'fd_exact'``, ``'wg_approx'``) specifying the type of
-        static panel approach in Clarke and Polselli (2025).
+        static panel approach in Clarke and Polselli (2025). ``'cre_general'`` indicates the correlated random
+        effect approach in the general case, while ``'cre_normal'`` assumes that the conditional distribution
+        :math:`D_{i1}, \\dots, D_{iT} | X_{i1}, \\dots X_{iT}` is multivariate normal. ``'fd_exact'`` for the
+        first-difference transformation exact approach, and ``'wg_approx'`` for the within-group transformation
+        approximate approach.
         Default is ``'fd_exact'``.
 
     draw_sample_splitting : bool
@@ -114,9 +118,9 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         self._approach = approach
 
         # pass transformed data as DoubleMLPanelData to init
-        self._data_transform, self._transform_cols = self._transform_data()
+        data_transform, self._transform_cols = self._transform_data()
         obj_dml_data_transform = DoubleMLPanelData(
-            self._data_transform,
+            data_transform,
             y_col=self._transform_cols["y_col"],
             d_cols=self._transform_cols["d_cols"],
             t_col=self._original_dml_data._t_col,
@@ -133,7 +137,6 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         _check_score(self.score, valid_scores, allow_callable=False)
         _ = self._check_learner(ml_l, "ml_l", regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
-        # TODO: maybe warning for binary treatment with approaches 'fd_exact' and 'wg_approx'
         self._learner = {"ml_l": ml_l, "ml_m": ml_m}
 
         if ml_g is not None:
@@ -185,7 +188,6 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         """
         Includes information on the original data before transformation.
         """
-        # TODO: adjust header length of additional info in double_ml.py
         data_original_summary = (
             f"Cluster variable(s): {self._original_dml_data.cluster_cols}\n"
             f"\nPre-Transformation Data Summary: \n"
@@ -206,16 +208,31 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
     @property
     def data_transform(self):
         """
-        The transformed static panel data.
+        The transformed static panel data object.
         """
-        return self._data_transform
+        return self._dml_data
+
+    @property
+    def data_original(self):
+        """
+        The original static panel data object.
+        """
+        return self._original_dml_data
 
     @property
     def transform_cols(self):
         """
-        The column names of the transformed static panel data.
+        The column names of the transformed static panel data object.
         """
         return self._transform_cols
+
+    @property
+    def d_mean(self):
+        """
+        The group mean of the treatment used for approaches ``'cre_general'`` and ``'cre_normal'``.
+        ``None`` for approaches ``'fd_exact'``, ``'wg_approx'``.
+        """
+        return self._d_mean
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
@@ -243,13 +260,13 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         return
 
     def _transform_data(self):
-        df = self._original_dml_data.data
-
         y_col = self._original_dml_data.y_col
         d_cols = self._original_dml_data.d_cols
         x_cols = self._original_dml_data.x_cols
         t_col = self._original_dml_data.t_col
         id_col = self._original_dml_data.id_col
+
+        df = self._original_dml_data.data.sort_values([id_col, t_col]).copy()
 
         if self._approach in ["cre_general", "cre_normal"]:
             df_id_means = df[[id_col] + x_cols].groupby(id_col).transform("mean")
@@ -257,9 +274,25 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             data = pd.concat([df, df_means], axis=1)
             cols = {"y_col": y_col, "d_cols": d_cols, "x_cols": x_cols + [f"{x}_mean" for x in x_cols]}
         elif self._approach == "fd_exact":
-            # TODO: potential issues with unbalanced panels/missing periods, right now the
-            # last available is used for the lag and first difference. Maybe reindex to a complete time grid per id.
-            df = df.sort_values([id_col, t_col]).copy()
+            # potential issues with unbalanced panels/missing periods. Reindex to a complete time grid per id.
+
+            # all unique ids and time periods
+            ids = self._original_dml_data.id_var_unique
+            times = self._original_dml_data.t_values
+            # build multiIndex
+            full_index = pd.MultiIndex.from_product([ids, times], names=[id_col, t_col])
+            current_index = pd.MultiIndex.from_frame(df[[id_col, t_col]])
+            missing_time_periods = full_index.difference(current_index)
+            if len(missing_time_periods) > 0:
+                warnings.warn(
+                    (
+                        f"The panel data contains missing (id, time) combinations: {list(missing_time_periods)}. "
+                        "Missing periods have been inserted with NaN values. As a consequence, first-difference "
+                        "and lagged variables for these periods will also be NaN, and these rows will be dropped."
+                    )
+                )
+            # reindex, insert missing rows with NaN
+            df = df.set_index([id_col, t_col]).reindex(full_index).reset_index()
             shifted = df[[id_col] + x_cols].groupby(id_col).shift(1).add_suffix("_lag")
             first_diff = df[[id_col] + [y_col] + d_cols].groupby(id_col).diff().add_suffix("_diff")
             df_fd = pd.concat([df, shifted], axis=1)
@@ -267,8 +300,8 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             df_fd[[y_col] + d_cols] = first_diff
             cols_rename_dict = {y_col: f"{y_col}_diff"} | {col: f"{col}_diff" for col in d_cols}
             df_fd = df_fd.rename(columns=cols_rename_dict)
-            # drop rows for first period
-            data = df_fd.dropna(subset=[x_cols[0] + "_lag"]).reset_index(drop=True)
+            # drop missing-panel rows and first periods: if either x or x_lag is missing
+            data = df_fd.dropna(subset=[x_cols[0], x_cols[0] + "_lag"]).reset_index(drop=True)
             cols = {
                 "y_col": f"{y_col}_diff",
                 "d_cols": [f"{d}_diff" for d in d_cols],
