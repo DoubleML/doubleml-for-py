@@ -43,6 +43,15 @@ dml_data_binary = dml.DoubleMLPanelData(
     id_col="id",
     static_panel=True,
 )
+non_panel_dml_data = dml.DoubleMLData(plpr_data, y_col="y", d_cols="d")
+non_static_panel_dml_data = dml.DoubleMLPanelData(
+    plpr_data,
+    y_col="y",
+    d_cols="d",
+    t_col="time",
+    id_col="id",
+    static_panel=False,
+)
 ml_l = Lasso(alpha=0.1)
 ml_m = Lasso(alpha=0.1)
 ml_g = Lasso(alpha=0.1)
@@ -55,7 +64,14 @@ def test_plpr_exception_data():
     msg = "The data must be of DoubleMLPanelData type. <class 'pandas.core.frame.DataFrame'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml.DoubleMLPLPR(pd.DataFrame(), ml_l, ml_m)
-
+    # not a panel data object
+    msg = "The data must be of DoubleMLPanelData type. <class 'doubleml.data.base_data.DoubleMLData'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml.DoubleMLPLPR(non_panel_dml_data, ml_l, ml_m)
+    # not static panel
+    msg = "For the PLPR model, the DoubleMLPanelData object requires the static_panel flag to be set to True."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml.DoubleMLPLPR(non_static_panel_dml_data, ml_l, ml_m)
     # instrument
     msg = (
         r"Incompatible data. x30 have been set as instrumental variable\(s\). "
