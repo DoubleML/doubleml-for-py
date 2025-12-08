@@ -75,6 +75,9 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1")
     doi:`10.1093/ectj/utaf011 <https://doi.org/10.1093/ectj/utaf011>`_.
     """
 
+    if dim_x < 3:
+        raise ValueError("dim_x must be at least 3.")
+
     # parameters
     a = 0.25
     b = 0.5

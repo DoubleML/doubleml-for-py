@@ -170,3 +170,10 @@ def test_make_plpr_CP2025_return_types(dgp_type):
 def test_make_plpr_CP2025_invalid_dgp_type():
     with pytest.raises(ValueError, match=msg_inv_dgp_type):
         _ = make_plpr_CP2025(num_id=100, dgp_type="dgp4")
+
+
+@pytest.mark.ci
+def test_make_plpr_CP2025_invalid_dim_x():
+    msg = "dim_x must be at least 3."
+    with pytest.raises(ValueError, match=msg):
+        _ = make_plpr_CP2025(num_id=100, dim_x=2)
