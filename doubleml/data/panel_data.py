@@ -165,7 +165,7 @@ class DoubleMLPanelData(DoubleMLData):
             f"Static panel data: {self.static_panel}\n"
         )
 
-        data_summary += f"No. Unique Ids: {self.n_ids}\n" f"No. Observations: {self.n_obs}\n"
+        data_summary += f"No. Unique Ids: {self.n_ids}\n" f"No. Observations: {self.n_obs}"
         return data_summary
 
     @classmethod

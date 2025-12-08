@@ -199,7 +199,7 @@ class DoubleMLData(DoubleMLBaseData):
 
         if hasattr(self, "is_cluster_data") and self.is_cluster_data:
             data_summary += f"Is cluster data: {self.is_cluster_data}\n"
-        data_summary += f"No. Observations: {self.n_obs}\n"
+        data_summary += f"No. Observations: {self.n_obs}"
         return data_summary
 
     @classmethod

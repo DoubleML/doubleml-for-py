@@ -192,7 +192,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         additional_info = self._format_additional_info_str()
         if additional_info:
-            representation += f"\n\n------------------ Additional Information ------------------\n" f"{additional_info}"
+            representation += f"\n\n------------------ Additional Information -------------\n" f"{additional_info}"
         return representation
 
     @property
