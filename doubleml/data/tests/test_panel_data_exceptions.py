@@ -93,10 +93,10 @@ def test_overlapping_variables_exception(sample_data):
         DoubleMLPanelData(data=sample_data, y_col="y", d_cols="id", t_col="time", id_col="id")  # Using id as treatment
 
     # Test time variable overlapping
-    # using t_col="time", id_col="time" gives invalid data type for time variable exception first
+    # using t_col="id", id_col="id" gives invalid data type for time variable exception first
     msg = r"At least one variable/column is set as time variable \(``t_col``\) and identifier variable \(``id_col``\)."
     with pytest.raises(ValueError, match=msg):
-        DoubleMLPanelData(data=sample_data, y_col="y", d_cols="treatment", t_col="time", id_col="time")  # Using id as time
+        DoubleMLPanelData(data=sample_data, y_col="y", d_cols="treatment", t_col="time", id_col="time")  # Using time as id
 
 
 @pytest.mark.ci
