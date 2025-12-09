@@ -392,4 +392,9 @@ class DoubleMLPanelData(DoubleMLData):
     def _set_time_var(self):
         """Set the time variable array."""
         if hasattr(self, "_data") and self.t_col in self.data.columns:
-            self._t = self.data.loc[:, self.t_col]
+            t_values = self.data.loc[:, self.t_col]
+            expected_dtypes = (np.integer, np.floating, np.datetime64)
+            if not any(np.issubdtype(t_values.dtype, dt) for dt in expected_dtypes):
+                raise ValueError(f"Invalid data type for time variable: expected one of {expected_dtypes}.")
+            else:
+                self._t = t_values
