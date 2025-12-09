@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1"):
+def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1", time_type="int"):
     """
     Generates synthetic data for a partially linear panel regression model, based on Clarke and Polselli (2025).
     The data generating process is defined as
@@ -62,6 +62,8 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1")
         The value of the causal parameter.
     dgp_type :
         The type of DGP design to be used. Default is ``'dgp1'``, other options are ``'dgp2'`` and ``'dgp3'``.
+    time_type :
+        The data type of the time variable. Default is ``'int'``, other options are ``'float'`` and ``'datetime'``.
 
     Returns
     -------
@@ -85,8 +87,20 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1")
     sigma2_x = 5
 
     # id and time vectors
+    expected_time_types = ("int", "float", "datetime")
+    if time_type not in expected_time_types:
+        raise ValueError(f"time_type must be one of {expected_time_types}. Got {time_type}.")
+
     id_var = np.repeat(np.arange(1, num_id + 1), num_t)
     time = np.tile(np.arange(1, num_t + 1), num_id)
+
+    if time_type == "int":
+        pass
+    elif time_type == "float":
+        time = time.astype(float)
+    else:
+        assert time_type == "datetime"
+        time = pd.to_datetime([f"2020-{m:02d}-01" for m in time])
 
     # individual fixed effects
     a_i = np.repeat(np.random.normal(0, np.sqrt(sigma2_a), num_id), num_t)
@@ -130,8 +144,8 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1")
 
     x_cols = [f"x{i + 1}" for i in np.arange(dim_x)]
 
-    data = pd.DataFrame(np.column_stack((id_var, time, y_it, d_it, x_it)), columns=["id", "time", "y", "d"] + x_cols).astype(
-        {"id": "int64", "time": "int64"}
+    data = pd.DataFrame(
+        {"id": id_var, "time": time, "y": y_it, "d": d_it, **{col: x_it[:, i] for i, col in enumerate(x_cols)}}
     )
 
     return data

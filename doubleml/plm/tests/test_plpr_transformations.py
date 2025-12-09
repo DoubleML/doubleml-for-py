@@ -151,6 +151,6 @@ def test_plpr_wg_approx_transformation():
 
 @pytest.mark.ci
 def test_plpr_fd_exact_unbalanced():
-    msg_warn = r"The panel data contains missing \(id, time\) combinations: \[\(3, 1\)\]. "
+    msg_warn = r"The panel data contains 1 missing \(id, time\) combinations. "
     with pytest.warns(UserWarning, match=msg_warn):
         _ = dml.DoubleMLPLPR(df_unbalanced_dml_data, ml_l, ml_m, approach="fd_exact", n_folds=2)

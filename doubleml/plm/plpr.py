@@ -286,7 +286,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             if len(missing_time_periods) > 0:
                 warnings.warn(
                     (
-                        f"The panel data contains missing (id, time) combinations: {list(missing_time_periods)}. "
+                        f"The panel data contains {len(missing_time_periods)} missing (id, time) combinations. "
                         "Missing periods have been inserted with NaN values. As a consequence, first-difference "
                         "and lagged variables for these periods will also be NaN, and these rows will be dropped."
                     )
