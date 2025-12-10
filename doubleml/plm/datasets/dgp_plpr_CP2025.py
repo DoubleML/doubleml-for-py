@@ -9,26 +9,30 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
 
     .. math::
 
-        Y_{it} &= D_{it} \\theta + l_0(X_{it}) + \\alpha_i + U_{it}, & &U_{it} \\sim \\mathcal{N}(0,1),
+        Y_{it} &= D_{it} \\theta + g_0(X_{it}) + \\alpha_i + U_{it}, & &U_{it} \\sim \\mathcal{N}(0,1),
 
         D_{it} &= m_0(X_{it}) + c_i + V_{it}, & &V_{it} \\sim \\mathcal{N}(0,1),
+
+
+    with
+
+    .. math::
 
         \\alpha_i &= 0.25 \\left(\\frac{1}{T} \\sum_{t=1}^{T} D_{it} - \\bar{D} \\right)
         + 0.25 \\frac{1}{T} \\sum_{t=1}^{T} \\sum_{k \\in \\mathcal{K}} X_{it,k} + a_i
 
-
-    with :math:`a_i \\sim \\mathcal{N}(0,0.95)`, :math:`X_{it,p} \\sim \\mathcal{N}(0,5)`, :math:`c_i \\sim \\mathcal{N}(0,1)`.
+    and :math:`a_i \\sim \\mathcal{N}(0,0.95)`, :math:`X_{it,p} \\sim \\mathcal{N}(0,5)`, :math:`c_i \\sim \\mathcal{N}(0,1)`.
     Where :math:`k \\in \\mathcal{K} = \\{1,3\\}` is the number of relevant (non-zero) confounding variables, and :math:`p` is
     the number of total confounding variables.
 
-    Clarke and Polselli (2025) consider three functional forms of the confounders to model the nuisance functions :math:`l_0`
+    Clarke and Polselli (2025) consider three functional forms of the confounders to model the nuisance functions :math:`g_0`
     and :math:`m_0` with varying levels of non-linearity and non-smoothness:
 
     Design 1. (dgp1): Linear in the nuisance parameters
 
     .. math::
 
-        l_0(X_{it}) &= a X_{it,1} + X_{it,3}
+        g_0(X_{it}) &= a X_{it,1} + X_{it,3}
 
         m_0(X_{it}) &= a X_{it,1} + X_{it,3}
 
@@ -36,7 +40,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
 
     .. math::
 
-        l_0(X_{it}) &= \\frac{\\exp(X_{it,1})}{1 + \\exp(X_{it,1})} + a \\cos(X_{it,3})
+        g_0(X_{it}) &= \\frac{\\exp(X_{it,1})}{1 + \\exp(X_{it,1})} + a \\cos(X_{it,3})
 
         m_0(X_{it}) &= \\cos(X_{it,1}) + a \\frac{\\exp(X_{it,3})}{1 + \\exp(X_{it,3})}
 
@@ -44,7 +48,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
 
     .. math::
 
-        l_0(X_{it}) &= b (X_{it,1} \\cdot X_{it,3}) + a (X_{it,3} \\cdot 1\\{X_{it,3} > 0\\})
+        g_0(X_{it}) &= b (X_{it,1} \\cdot X_{it,3}) + a (X_{it,3} \\cdot 1\\{X_{it,3} > 0\\})
 
         m_0(X_{it}) &= a (X_{it,1} \\cdot 1\\{X_{it,1} > 0\\}) + b (X_{it,1} \\cdot X_{it,3}),
 
