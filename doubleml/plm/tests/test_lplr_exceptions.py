@@ -156,7 +156,7 @@ def test_lplr_exception_set_ml_nuisance_params():
         dml_lplr.set_ml_nuisance_params("ml_M", "y", {"alpha": 0.1})
 
 
-class _DummyNoSetParams:
+class _DummyNoSetParams(BaseEstimator):
     def fit(self):
         pass
 
