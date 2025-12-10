@@ -9,11 +9,19 @@ from doubleml.plm.datasets import (
     make_lplr_LZZ2020,
     make_pliv_CHS2015,
     make_pliv_multiway_cluster_CKMS2021,
+    make_plpr_CP2025,
     make_plr_CCDDHNR2018,
     make_plr_turrell2018,
 )
 
 msg_inv_return_type = "Invalid return_type."
+
+msg_inv_dgp_type = "Invalid dgp type."
+
+
+@pytest.fixture(scope="module", params=["dgp1", "dgp2", "dgp3"])
+def dgp_type(request):
+    return request.param
 
 
 @pytest.mark.ci
@@ -149,3 +157,35 @@ def test_make_lplr_LZZ2020_variants():
     res = make_lplr_LZZ2020(n_obs=100, balanced_r0=False)
     _, y_unique = np.unique(res.y, return_counts=True)
     assert np.abs(y_unique[0] - y_unique[1]) > 10
+
+
+@pytest.fixture(scope="module", params=["int", "float", "datetime"])
+def time_type(request):
+    return request.param
+
+
+@pytest.mark.ci
+def test_make_plpr_CP2025_return_types(dgp_type, time_type):
+    np.random.seed(3141)
+    res = make_plpr_CP2025(num_id=100, dgp_type=dgp_type, time_type=time_type)
+    assert isinstance(res, pd.DataFrame)
+
+
+@pytest.mark.ci
+def test_make_plpr_CP2025_invalid_dgp_type(time_type):
+    with pytest.raises(ValueError, match=msg_inv_dgp_type):
+        _ = make_plpr_CP2025(num_id=100, dgp_type="dgp4", time_type=time_type)
+
+
+@pytest.mark.ci
+def test_make_plpr_CP2025_invalid_dim_x(time_type):
+    msg = "dim_x must be at least 3."
+    with pytest.raises(ValueError, match=msg):
+        _ = make_plpr_CP2025(num_id=100, dim_x=2, time_type=time_type)
+
+
+@pytest.mark.ci
+def test_make_plpr_CP2025_invalid_time_type(dgp_type):
+    msg = r"time_type must be one of \('int', 'float', 'datetime'\). Got 1."
+    with pytest.raises(ValueError, match=msg):
+        _ = make_plpr_CP2025(num_id=100, dgp_type=dgp_type, time_type=1)

@@ -62,6 +62,19 @@ def test_time_col_none_exception(sample_data):
 
 
 @pytest.mark.ci
+def test_time_var_data_type_exception(sample_data):
+    # Test exception when time var is not int, float or datetime
+    msg = (
+        r"Invalid data type for time variable: expected one of \(<class 'numpy.integer'>, <class 'numpy.floating'>, "
+        r"<class 'numpy.datetime64'>\)"
+    )
+    with pytest.raises(ValueError, match=msg):
+        data_time_type = sample_data.copy()
+        data_time_type["time"] = data_time_type["time"].astype(str)
+        DoubleMLPanelData(data=data_time_type, y_col="y", d_cols="treatment", t_col="time", id_col="id")
+
+
+@pytest.mark.ci
 def test_overlapping_variables_exception(sample_data):
     # Test exception when id_col overlaps with another variable
     msg = r"At least one variable/column is set as outcome variable \(``y_col``\) and identifier variable \(``id_col``\)."
@@ -80,9 +93,10 @@ def test_overlapping_variables_exception(sample_data):
         DoubleMLPanelData(data=sample_data, y_col="y", d_cols="id", t_col="time", id_col="id")  # Using id as treatment
 
     # Test time variable overlapping
+    # using t_col="id", id_col="id" gives invalid data type for time variable exception first
     msg = r"At least one variable/column is set as time variable \(``t_col``\) and identifier variable \(``id_col``\)."
     with pytest.raises(ValueError, match=msg):
-        DoubleMLPanelData(data=sample_data, y_col="y", d_cols="treatment", t_col="id", id_col="id")  # Using id as time
+        DoubleMLPanelData(data=sample_data, y_col="y", d_cols="treatment", t_col="time", id_col="time")  # Using time as id
 
 
 @pytest.mark.ci
