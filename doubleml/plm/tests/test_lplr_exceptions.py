@@ -241,7 +241,7 @@ def test_lplr_exception_learner():
 def test_lplr_exception_and_warning_learner():
     # invalid ml_M (must be a classifier with predict_proba)
     with pytest.raises(TypeError):
-        _ = DoubleMLLPLR(dml_data, _DummyNoClassifier(), ml_t, ml_m)
+        _ = DoubleMLLPLR(dml_data, Lasso(), ml_t, ml_m)
     msg = "Invalid learner provided for ml_M: " + r"Lasso\(\) has no method .predict_proba\(\)."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPLR(dml_data, Lasso(), ml_t, ml_m)
