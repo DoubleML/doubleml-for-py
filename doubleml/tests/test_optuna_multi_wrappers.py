@@ -23,7 +23,7 @@ def _build_apos_object():
     dml_data = dml.DoubleMLData(df, "y", "d")
 
     ml_g = LinearRegression()
-    ml_m = LogisticRegression(max_iter=200, multi_class="auto")
+    ml_m = LogisticRegression(max_iter=200)
 
     return dml.DoubleMLAPOS(
         dml_data,
@@ -38,7 +38,7 @@ def _build_apos_object():
 def _build_qte_object():
     np.random.seed(3141)
     dml_data = make_irm_data(n_obs=80, dim_x=5)
-    ml = LogisticRegression(max_iter=200, multi_class="auto")
+    ml = LogisticRegression(max_iter=200)
 
     return dml.DoubleMLQTE(
         dml_data,
@@ -57,7 +57,7 @@ def _build_did_multi_object():
     dml_panel = DoubleMLPanelData(df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=x_cols)
 
     ml_g = LinearRegression()
-    ml_m = LogisticRegression(max_iter=200, multi_class="auto")
+    ml_m = LogisticRegression(max_iter=200)
 
     return dml.did.DoubleMLDIDMulti(
         obj_dml_data=dml_panel,
