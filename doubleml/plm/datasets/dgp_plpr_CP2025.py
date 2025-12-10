@@ -18,7 +18,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
 
     .. math::
 
-        \\alpha_i &= 0.25 \\left(\\frac{1}{T} \\sum_{t=1}^{T} D_{it} - \\bar{D} \\right)
+        \\alpha_i = 0.25 \\left(\\frac{1}{T} \\sum_{t=1}^{T} D_{it} - \\bar{D} \\right)
         + 0.25 \\frac{1}{T} \\sum_{t=1}^{T} \\sum_{k \\in \\mathcal{K}} X_{it,k} + a_i
 
     and :math:`a_i \\sim \\mathcal{N}(0,0.95)`, :math:`X_{it,p} \\sim \\mathcal{N}(0,5)`, :math:`c_i \\sim \\mathcal{N}(0,1)`.
