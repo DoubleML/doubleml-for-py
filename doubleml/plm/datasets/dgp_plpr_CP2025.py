@@ -7,7 +7,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
     Generates synthetic data for a partially linear panel regression model, based on Clarke and Polselli (2025).
     The data generating process is defined as
 
-        .. math::
+    .. math::
 
         Y_{it} &= D_{it} \\theta + l_0(X_{it}) + \\alpha_i + U_{it}, & &U_{it} \\sim \\mathcal{N}(0,1),
 
@@ -26,7 +26,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
 
     Design 1. (dgp1): Linear in the nuisance parameters
 
-        .. math::
+    .. math::
 
         l_0(X_{it}) &= a X_{it,1} + X_{it,3}
 
@@ -34,7 +34,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
 
     Design 2. (dgp2): Non-linear and smooth in the nuisance parameters
 
-        .. math::
+    .. math::
 
         l_0(X_{it}) &= \\frac{\\exp(X_{it,1})}{1 + \\exp(X_{it,1})} + a \\cos(X_{it,3})
 
@@ -42,7 +42,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
 
     Design 3. (dgp3): Non-linear and discontinuous in the nuisance parameters
 
-        .. math::
+    .. math::
 
         l_0(X_{it}) &= b (X_{it,1} \\cdot X_{it,3}) + a (X_{it,3} \\cdot 1\\{X_{it,3} > 0\\})
 
