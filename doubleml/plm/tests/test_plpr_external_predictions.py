@@ -109,4 +109,8 @@ def doubleml_plpr_fixture(plpr_score, plpr_approach, n_rep, set_ml_m_ext, set_ml
 @pytest.mark.ci
 def test_doubleml_plpr_coef(doubleml_plpr_fixture):
     assert math.isclose(doubleml_plpr_fixture["coef_normal"], doubleml_plpr_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_doubleml_plpr_se(doubleml_plpr_fixture):
     assert math.isclose(doubleml_plpr_fixture["se_normal"], doubleml_plpr_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-4)
