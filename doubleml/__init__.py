@@ -1,5 +1,3 @@
-import importlib.metadata
-
 from .data import DoubleMLClusterData, DoubleMLData, DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from .did.did import DoubleMLDID
 from .did.did_cs import DoubleMLDIDCS
@@ -49,4 +47,12 @@ __all__ = [
     "DoubleMLPLPR",
 ]
 
-__version__ = importlib.metadata.version("doubleml")
+try:
+    from ._version import version as __version__
+except ImportError:
+    import importlib.metadata
+
+    try:
+        __version__ = importlib.metadata.version("doubleml")
+    except importlib.metadata.PackageNotFoundError:
+        __version__ = "0.0.0+unknown"

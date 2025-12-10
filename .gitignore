@@ -31,3 +31,6 @@ MANIFEST
 *.vscode
 .flake8
 .coverage
+
+# Setuptools SCM
+doubleml/_version.py
