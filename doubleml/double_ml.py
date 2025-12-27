@@ -12,6 +12,7 @@ from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.double_ml_framework import DoubleMLCore, DoubleMLFramework
 from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.utils._checks import _check_external_predictions
+from doubleml.utils.maketables_mixin import MakeTablesMixin
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
 from doubleml.utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS, TUNE_ML_MODELS_DOC, resolve_optuna_cv
@@ -20,7 +21,7 @@ from doubleml.utils.gain_statistics import gain_statistics
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
 
 
-class DoubleML(SampleSplittingMixin, ABC):
+class DoubleML(MakeTablesMixin, SampleSplittingMixin, ABC):
     """Double Machine Learning."""
 
     def __init__(self, obj_dml_data, n_folds, n_rep, score, draw_sample_splitting, double_sample_splitting=False):
