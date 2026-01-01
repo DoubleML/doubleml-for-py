@@ -238,6 +238,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
     def _check_data(self, obj_dml_data):
+        # TODO: maybe check for ids with only 1 row
         if not isinstance(obj_dml_data, DoubleMLPanelData):
             raise TypeError(f"The data must be of DoubleMLPanelData type. {str(type(obj_dml_data))} was passed.")
         if not obj_dml_data.static_panel:

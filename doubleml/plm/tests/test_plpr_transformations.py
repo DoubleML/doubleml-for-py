@@ -154,3 +154,85 @@ def test_plpr_fd_exact_unbalanced():
     msg_warn = r"The panel data contains 1 missing \(id, time\) combinations. "
     with pytest.warns(UserWarning, match=msg_warn):
         _ = dml.DoubleMLPLPR(df_unbalanced_dml_data, ml_l, ml_m, approach="fd_exact", n_folds=2)
+
+
+@pytest.mark.ci
+def test_plpr_time_float_cre_transformation(cre_approach):
+    df_float = df.copy()
+    df_float["time"] = df_float["time"].astype(float)
+    df_dml = dml.DoubleMLPanelData(
+        df_float,
+        y_col="y",
+        d_cols="d",
+        t_col="time",
+        id_col="id",
+        static_panel=True,
+    )
+    dml_obj = dml.DoubleMLPLPR(df_dml, ml_l, ml_m, approach=cre_approach, n_folds=2)
+    assert np.array_equal(dml_obj.data_transform.y, cre_array[:, 0])
+    assert np.array_equal(dml_obj.data_transform.d, cre_array[:, 1])
+    assert np.array_equal(dml_obj.data_transform.x, cre_array[:, 2:])
+
+
+@pytest.mark.ci
+def test_plpr_time_float_fd_wg_transformation():
+    df_float = df.copy()
+    df_float["time"] = df_float["time"].astype(float)
+    df_dml = dml.DoubleMLPanelData(
+        df_float,
+        y_col="y",
+        d_cols="d",
+        t_col="time",
+        id_col="id",
+        static_panel=True,
+    )
+    dml_fd = dml.DoubleMLPLPR(df_dml, ml_l, ml_m, approach="fd_exact", n_folds=2)
+    assert np.array_equal(dml_fd.data_transform.y, fd_array[:, 0])
+    assert np.array_equal(dml_fd.data_transform.d, fd_array[:, 1])
+    assert np.array_equal(dml_fd.data_transform.x, fd_array[:, 2:])
+
+    dml_wg = dml.DoubleMLPLPR(df_dml, ml_l, ml_m, approach="wg_approx", n_folds=2)
+    assert np.array_equal(dml_wg.data_transform.y, wg_array[:, 0])
+    assert np.array_equal(dml_wg.data_transform.d, wg_array[:, 1])
+    assert np.array_equal(dml_wg.data_transform.x, wg_array[:, 2:])
+
+
+@pytest.mark.ci
+def test_plpr_time_datetime_cre_transformation(cre_approach):
+    df_dt = df.copy()
+    df_dt["time"] = pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01", "2020-02-01"])
+    df_dml = dml.DoubleMLPanelData(
+        df_dt,
+        y_col="y",
+        d_cols="d",
+        t_col="time",
+        id_col="id",
+        static_panel=True,
+    )
+    dml_obj = dml.DoubleMLPLPR(df_dml, ml_l, ml_m, approach=cre_approach, n_folds=2)
+    assert np.array_equal(dml_obj.data_transform.y, cre_array[:, 0])
+    assert np.array_equal(dml_obj.data_transform.d, cre_array[:, 1])
+    assert np.array_equal(dml_obj.data_transform.x, cre_array[:, 2:])
+
+
+@pytest.mark.ci
+def test_plpr_time_datetime_fd_wg_transformation():
+    df_dt = df.copy()
+    df_dt["time"] = pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01", "2020-02-01"])
+    df_dml = dml.DoubleMLPanelData(
+        df_dt,
+        y_col="y",
+        d_cols="d",
+        t_col="time",
+        id_col="id",
+        static_panel=True,
+    )
+    dml_fd = dml.DoubleMLPLPR(df_dml, ml_l, ml_m, approach="fd_exact", n_folds=2)
+    assert np.array_equal(dml_fd.data_transform.y, fd_array[:, 0])
+    assert np.array_equal(dml_fd.data_transform.d, fd_array[:, 1])
+    assert np.array_equal(dml_fd.data_transform.x, fd_array[:, 2:])
+
+    dml_wg = dml.DoubleMLPLPR(df_dml, ml_l, ml_m, approach="wg_approx", n_folds=2)
+    assert np.array_equal(dml_wg.data_transform.y, wg_array[:, 0])
+    assert np.array_equal(dml_wg.data_transform.d, wg_array[:, 1])
+    assert np.array_equal(dml_wg.data_transform.x, wg_array[:, 2:])

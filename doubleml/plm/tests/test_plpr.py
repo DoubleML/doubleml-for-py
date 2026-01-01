@@ -23,11 +23,17 @@ def approach(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=["int", "float", "datetime"])
+def time_type(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
 def dml_plpr_fixture(
     learner,
     score,
     approach,
+    time_type,
 ):
     n_folds = 5
     theta = 0.5
@@ -37,7 +43,7 @@ def dml_plpr_fixture(
     ml_g = clone(learner)
 
     np.random.seed(3141)
-    plpr_data = make_plpr_CP2025(theta=theta)
+    plpr_data = make_plpr_CP2025(theta=theta, time_type=time_type)
     obj_dml_data = dml.DoubleMLPanelData(
         plpr_data,
         y_col="y",
