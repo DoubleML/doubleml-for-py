@@ -46,7 +46,14 @@ class MakeTablesMixin:
     --------
     >>> from doubleml import DoubleMLPLR
     >>> # After fitting a DoubleML model
-    >>> dml_plr.fit()
+    >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
+    >>> from sklearn.ensemble import RandomForestRegressor
+    >>> from sklearn.base import clone
+    >>> np.random.seed(3141)
+    >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_m = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=500, dim_x=20)
+    >>> dml_plr = DoubleMLPLR(obj_dml_data, ml_g, ml_m).fit()
     >>> # Access maketables attributes
     >>> coef_table = dml_plr.__maketables_coef_table__
     >>> n_obs = dml_plr.__maketables_stat__('N')
@@ -134,10 +141,6 @@ class MakeTablesMixin:
         statistics like R-squared, AIC, and BIC are not applicable and will return None.
         Currently only 'N' (number of observations) is supported.
 
-        Examples
-        --------
-        >>> n_obs = dml_model.__maketables_stat__('N')
-        >>> r2 = dml_model.__maketables_stat__('r2')  # Returns None
         """
         stats_map = {
             "N": self.n_obs if hasattr(self, "n_obs") else None,
@@ -159,11 +162,6 @@ class MakeTablesMixin:
         Retrieves the dependent variable name from the DoubleMLData object's y_col attribute.
         Falls back to "Y" if the attribute is not available.
 
-        Examples
-        --------
-        >>> depvar = dml_model.__maketables_depvar__
-        >>> print(depvar)
-        'Y'
         """
         if hasattr(self, "_dml_data") and hasattr(self._dml_data, "y_col"):
             return self._dml_data.y_col
@@ -186,10 +184,5 @@ class MakeTablesMixin:
         to include in the table by default. Users can override this when calling
         ETable() by specifying the model_stats parameter.
 
-        Examples
-        --------
-        >>> default_stats = dml_model.__maketables_default_stat_keys__
-        >>> print(default_stats)
-        ['N']
         """
         return ["N"]
