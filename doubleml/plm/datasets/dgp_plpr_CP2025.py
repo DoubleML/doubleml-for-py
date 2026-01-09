@@ -118,13 +118,13 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
 
     # functional forms in nuisance functions
     if dgp_type == "dgp1":
-        l_0 = a * x_it[:, 0] + x_it[:, 2]
+        g_0 = a * x_it[:, 0] + x_it[:, 2]
         m_0 = a * x_it[:, 0] + x_it[:, 2]
     elif dgp_type == "dgp2":
-        l_0 = np.divide(np.exp(x_it[:, 0]), 1 + np.exp(x_it[:, 0])) + a * np.cos(x_it[:, 2])
+        g_0 = np.divide(np.exp(x_it[:, 0]), 1 + np.exp(x_it[:, 0])) + a * np.cos(x_it[:, 2])
         m_0 = np.cos(x_it[:, 0]) + a * np.divide(np.exp(x_it[:, 2]), 1 + np.exp(x_it[:, 2]))
     elif dgp_type == "dgp3":
-        l_0 = b * (x_it[:, 0] * x_it[:, 2]) + a * (x_it[:, 2] * np.where(x_it[:, 2] > 0, 1, 0))
+        g_0 = b * (x_it[:, 0] * x_it[:, 2]) + a * (x_it[:, 2] * np.where(x_it[:, 2] > 0, 1, 0))
         m_0 = a * (x_it[:, 0] * np.where(x_it[:, 0] > 0, 1, 0)) + b * (x_it[:, 0] * x_it[:, 2])
     else:
         raise ValueError("Invalid dgp type.")
@@ -144,7 +144,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
         return alpha_term
 
     # outcome
-    y_it = d_it * theta + l_0 + alpha_i(x_it, d_it, a_i, num_id, num_t) + u_it
+    y_it = d_it * theta + g_0 + alpha_i(x_it, d_it, a_i, num_id, num_t) + u_it
 
     x_cols = [f"x{i + 1}" for i in np.arange(dim_x)]
 
