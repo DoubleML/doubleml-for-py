@@ -238,7 +238,6 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
     def _check_data(self, obj_dml_data):
-        # TODO: maybe check for ids with only 1 row
         if not isinstance(obj_dml_data, DoubleMLPanelData):
             raise TypeError(f"The data must be of DoubleMLPanelData type. {str(type(obj_dml_data))} was passed.")
         if not obj_dml_data.static_panel:
@@ -269,6 +268,15 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
 
         df = self._original_dml_data.data.sort_values([id_col, t_col]).copy()
 
+        # check for ids with only one row
+        id_counts = df[id_col].value_counts()
+        single_row_ids = id_counts[id_counts == 1].index
+        if not single_row_ids.empty:
+            warnings.warn(
+                f"The data contains {len(single_row_ids)} id(s) with only one row. These row(s) have been dropped.",
+            )
+            df = df[~df[id_col].isin(single_row_ids)].reset_index(drop=True)
+
         if self._approach in ["cre_general", "cre_normal"]:
             df_id_means = df[[id_col] + x_cols].groupby(id_col).transform("mean")
             df_means = df_id_means.add_suffix("_mean")
@@ -278,8 +286,9 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             # potential issues with unbalanced panels/missing periods. Reindex to a complete time grid per id.
 
             # all unique ids and time periods
-            ids = self._original_dml_data.id_var_unique
-            times = self._original_dml_data.t_values
+            ids = df[id_col].unique()
+            # sort unique times to ensure correct order after reindexing
+            times = np.sort(df[t_col].unique())
             # build multiIndex
             full_index = pd.MultiIndex.from_product([ids, times], names=[id_col, t_col])
             current_index = pd.MultiIndex.from_frame(df[[id_col, t_col]])
