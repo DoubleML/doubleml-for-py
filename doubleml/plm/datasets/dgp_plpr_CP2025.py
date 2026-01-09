@@ -106,7 +106,7 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
         assert time_type == "datetime"
         time = pd.to_datetime([f"2020-{m:02d}-01" for m in time])
 
-    # individual fixed effects
+    # individual terms
     a_i = np.repeat(np.random.normal(0, np.sqrt(sigma2_a), num_id), num_t)
     c_i = np.repeat(np.random.standard_normal(num_id), num_t)
 
