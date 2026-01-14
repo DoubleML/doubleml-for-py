@@ -305,6 +305,10 @@ def _predict_zero_one_propensity(learner, X):
 
 
 def _get_bracket_guess(score, coef_start, coef_bounds):
+    # Ensure coef_start is a scalar (handles 1-element arrays from optimizers)
+    if isinstance(coef_start, np.ndarray):
+        coef_start = coef_start.item()
+
     max_bracket_length = coef_bounds[1] - coef_bounds[0]
     b_guess = coef_bounds
     delta = 0.1
@@ -312,7 +316,7 @@ def _get_bracket_guess(score, coef_start, coef_bounds):
     while (not s_different) & (delta <= 1.0):
         a = np.maximum(coef_start - delta * max_bracket_length / 2, coef_bounds[0])
         b = np.minimum(coef_start + delta * max_bracket_length / 2, coef_bounds[1])
-        b_guess = (a, b)
+        b_guess = (float(a), float(b))
         f_a = score(b_guess[0])
         f_b = score(b_guess[1])
         s_different = np.sign(f_a) != np.sign(f_b)
