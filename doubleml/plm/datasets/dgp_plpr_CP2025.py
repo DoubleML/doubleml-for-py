@@ -56,17 +56,17 @@ def make_plpr_CP2025(num_id=250, num_t=10, dim_x=30, theta=0.5, dgp_type="dgp1",
 
     Parameters
     ----------
-    num_id :
+    num_id : int
         The number of units in the panel.
-    num_t :
+    num_t : int
         The number of time periods in the panel.
-    num_x :
+    dim_x : int
         The number of confounding variables.
-    theta :
+    theta : float
         The value of the causal parameter.
-    dgp_type :
+    dgp_type : str
         The type of DGP design to be used. Default is ``'dgp1'``, other options are ``'dgp2'`` and ``'dgp3'``.
-    time_type :
+    time_type : str
         The data type of the time variable. Default is ``'int'``, other options are ``'float'`` and ``'datetime'``.
 
     Returns
