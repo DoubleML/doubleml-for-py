@@ -43,7 +43,8 @@ def check_basic_property_types_and_shapes(dml_obj, n_obs, n_treat, n_rep, n_fold
     assert dml_obj.n_rep == n_rep
     assert dml_obj.n_folds == n_folds
     assert dml_obj._dml_data.n_obs == n_obs
-    assert dml_obj.n_rep_boot == n_rep_boot
+    if not dml_obj._is_cluster_data:
+        assert dml_obj.n_rep_boot == n_rep_boot
 
     assert isinstance(dml_obj.all_coef, np.ndarray)
     assert dml_obj.all_coef.shape == (n_treat, n_rep)
@@ -51,8 +52,9 @@ def check_basic_property_types_and_shapes(dml_obj, n_obs, n_treat, n_rep, n_fold
     assert isinstance(dml_obj.all_se, np.ndarray)
     assert dml_obj.all_se.shape == (n_treat, n_rep)
 
-    assert isinstance(dml_obj.boot_t_stat, np.ndarray)
-    assert dml_obj.boot_t_stat.shape == (n_rep_boot, n_treat, n_rep)
+    if not dml_obj._is_cluster_data:
+        assert isinstance(dml_obj.boot_t_stat, np.ndarray)
+        assert dml_obj.boot_t_stat.shape == (n_rep_boot, n_treat, n_rep)
 
     assert isinstance(dml_obj.coef, np.ndarray)
     assert dml_obj.coef.shape == (n_treat,)

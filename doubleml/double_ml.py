@@ -192,7 +192,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         additional_info = self._format_additional_info_str()
         if additional_info:
-            representation += f"\n\n------------------ Additional Information ------------------\n" f"{additional_info}"
+            representation += f"\n\n------------------ Additional Information -------------\n" f"{additional_info}"
         return representation
 
     @property
@@ -1177,7 +1177,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         pass
 
     @abstractmethod
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models, external_predictions):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models):
         pass
 
     @abstractmethod

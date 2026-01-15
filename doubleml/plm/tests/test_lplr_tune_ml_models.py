@@ -30,7 +30,7 @@ def ml_a(request):
 def test_doubleml_lplr_optuna_tune(sampler_name, optuna_sampler, score, ml_a):
     np.random.seed(3141)
     alpha = 0.5
-    dml_data = make_lplr_LZZ2020(n_obs=200, dim_x=15, alpha=alpha)
+    dml_data = make_lplr_LZZ2020(n_obs=500, dim_x=15, alpha=alpha)
 
     ml_M = DecisionTreeClassifier(random_state=123)
     ml_t = DecisionTreeRegressor(random_state=234)

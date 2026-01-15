@@ -13,6 +13,7 @@ from .irm.qte import DoubleMLQTE
 from .irm.ssm import DoubleMLSSM
 from .plm.lplr import DoubleMLLPLR
 from .plm.pliv import DoubleMLPLIV
+from .plm.plpr import DoubleMLPLPR
 from .plm.plr import DoubleMLPLR
 from .utils.blp import DoubleMLBLP
 from .utils.policytree import DoubleMLPolicyTree
@@ -43,6 +44,7 @@ __all__ = [
     "DoubleMLPolicyTree",
     "DoubleMLSSM",
     "DoubleMLLPLR",
+    "DoubleMLPLPR",
 ]
 
 try:

@@ -157,14 +157,26 @@ def test_panel_data_str():
     assert "Time variable: t" in dml_str
     assert "Id variable: id" in dml_str
     assert "No. Observations:" in dml_str
+    assert "Static panel data:" in dml_str
+
+
+@pytest.fixture(scope="module", params=[True, False])
+def static_panel(request):
+    return request.param
 
 
 @pytest.mark.ci
-def test_panel_data_properties():
+def test_panel_data_properties(static_panel):
     np.random.seed(3141)
     df = make_did_SZ2020(n_obs=100, return_type="DoubleMLPanelData")._data
     dml_data = DoubleMLPanelData(
-        data=df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=[f"Z{i + 1}" for i in np.arange(4)]
+        data=df,
+        y_col="y",
+        d_cols="d",
+        t_col="t",
+        id_col="id",
+        x_cols=[f"Z{i + 1}" for i in np.arange(4)],
+        static_panel=static_panel,
     )
 
     assert np.array_equal(dml_data.id_var, df["id"].values)
@@ -176,3 +188,10 @@ def test_panel_data_properties():
     assert dml_data.n_groups == len(np.unique(df["d"].values))
     assert np.array_equal(dml_data.t_values, np.sort(np.unique(df["t"].values)))
     assert dml_data.n_t_periods == len(np.unique(df["t"].values))
+
+    if static_panel:
+        assert dml_data.static_panel is True
+        assert dml_data.cluster_cols == ["id"]
+    else:
+        assert dml_data.static_panel is False
+        assert dml_data.cluster_cols is None

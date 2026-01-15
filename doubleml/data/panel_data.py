@@ -41,6 +41,13 @@ class DoubleMLPanelData(DoubleMLData):
         The instrumental variable(s).
         Default is ``None``.
 
+    static_panel : bool
+        Indicates whether the data model corresponds to a static
+        panel data approach (``True``) or to staggered adoption panel data
+        (``False``). In the latter case, the treatment groups/values are defined in terms of the first time of
+        treatment exposure.
+        Default is ``False``.
+
     use_other_treat_as_covariate : bool
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
@@ -82,21 +89,29 @@ class DoubleMLPanelData(DoubleMLData):
         id_col,
         x_cols=None,
         z_cols=None,
+        static_panel=False,
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
         datetime_unit="M",
     ):
         DoubleMLBaseData.__init__(self, data)
 
+        self._static_panel = static_panel
+
         # we need to set id_col (needs _data) before call to the super __init__ because of the x_cols setter
         self.id_col = id_col
-        self._datetime_unit = _is_valid_datetime_unit(datetime_unit)
         self._set_id_var()
-
         # Set time column before calling parent constructor
         self.t_col = t_col
+        self._datetime_unit = _is_valid_datetime_unit(datetime_unit)
 
-        # Call parent constructor
+        if not self.static_panel:
+            cluster_cols = None
+            force_all_d_finite = False
+        else:
+            cluster_cols = id_col
+            force_all_d_finite = True
+
         DoubleMLData.__init__(
             self,
             data=data,
@@ -104,9 +119,10 @@ class DoubleMLPanelData(DoubleMLData):
             d_cols=d_cols,
             x_cols=x_cols,
             z_cols=z_cols,
+            cluster_cols=cluster_cols,
             use_other_treat_as_covariate=use_other_treat_as_covariate,
             force_all_x_finite=force_all_x_finite,
-            force_all_d_finite=False,
+            force_all_d_finite=force_all_d_finite,
         )
 
         # reset index to ensure a simple RangeIndex
@@ -115,14 +131,14 @@ class DoubleMLPanelData(DoubleMLData):
         # Set time variable array after data is loaded
         self._set_time_var()
 
-        if self.n_treat != 1:
-            raise ValueError("Only one treatment column is allowed for panel data.")
-
         self._check_disjoint_sets_id_col()
 
         # intialize the unique values of g and t
         self._g_values = np.sort(np.unique(self.d))  # unique values of g
         self._t_values = np.sort(np.unique(self.t))  # unique values of t
+
+        if self.n_treat != 1:
+            raise ValueError("Only one treatment column is allowed for panel data.")
 
     def __str__(self):
         data_summary = self._data_summary_str()
@@ -146,9 +162,10 @@ class DoubleMLPanelData(DoubleMLData):
             f"Instrument variable(s): {self.z_cols}\n"
             f"Time variable: {self.t_col}\n"
             f"Id variable: {self.id_col}\n"
+            f"Static panel data: {self.static_panel}\n"
         )
 
-        data_summary += f"No. Unique Ids: {self.n_ids}\n" f"No. Observations: {self.n_obs}\n"
+        data_summary += f"No. Unique Ids: {self.n_ids}\n" f"No. Observations: {self.n_obs}"
         return data_summary
 
     @classmethod
@@ -296,6 +313,11 @@ class DoubleMLPanelData(DoubleMLData):
         """
         return len(self.t_values)
 
+    @property
+    def static_panel(self):
+        """Indicates whether the data model corresponds to a static panel data approach."""
+        return self._static_panel
+
     def _get_optional_col_sets(self):
         base_optional_col_sets = super()._get_optional_col_sets()
         id_col_set = {self.id_col}
@@ -370,4 +392,9 @@ class DoubleMLPanelData(DoubleMLData):
     def _set_time_var(self):
         """Set the time variable array."""
         if hasattr(self, "_data") and self.t_col in self.data.columns:
-            self._t = self.data.loc[:, self.t_col]
+            t_values = self.data.loc[:, self.t_col]
+            expected_dtypes = (np.integer, np.floating, np.datetime64)
+            if not any(np.issubdtype(t_values.dtype, dt) for dt in expected_dtypes):
+                raise ValueError(f"Invalid data type for time variable: expected one of {expected_dtypes}.")
+            else:
+                self._t = t_values
