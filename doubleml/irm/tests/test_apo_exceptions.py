@@ -25,7 +25,7 @@ def test_apo_exception_data():
     msg = (
         r"The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLDIDData or DoubleMLSSMData or "
         r"DoubleMLRDDData type\. Empty DataFrame\nColumns: \[\]\nIndex: \[\] of type "
-        r"<class 'pandas\.core\.frame\.DataFrame'> was passed\."
+        r"<class 'pandas\.DataFrame'> was passed\."
     )
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLAPO(pd.DataFrame(), ml_g, ml_m, treatment_level=0)

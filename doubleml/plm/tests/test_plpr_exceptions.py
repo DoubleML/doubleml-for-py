@@ -61,7 +61,7 @@ dml_plpr_iv_type = dml.DoubleMLPLPR(dml_data, ml_l, ml_m, ml_g, score="IV-type")
 
 @pytest.mark.ci
 def test_plpr_exception_data():
-    msg = "The data must be of DoubleMLPanelData type. <class 'pandas.core.frame.DataFrame'> was passed."
+    msg = "The data must be of DoubleMLPanelData type. <class 'pandas.DataFrame'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml.DoubleMLPLPR(pd.DataFrame(), ml_l, ml_m)
     # not a panel data object

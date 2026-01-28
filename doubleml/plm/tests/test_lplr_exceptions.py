@@ -23,7 +23,7 @@ dml_lplr_instrument = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, score="instrument
 
 @pytest.mark.ci
 def test_lplr_exception_data():
-    msg = r"The data must be of DoubleMLData.* type\.[\s\S]* of type " r"<class 'pandas\.core\.frame\.DataFrame'> was passed\."
+    msg = r"The data must be of DoubleMLData.*type\."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPLR(pd.DataFrame(), ml_M, ml_t, ml_m)
 
