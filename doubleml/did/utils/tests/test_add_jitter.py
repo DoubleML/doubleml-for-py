@@ -44,6 +44,7 @@ def test_add_jitter_numeric_no_duplicates(numeric_df_no_duplicates):
     # No jitter should be added when there are no duplicates
     np.testing.assert_allclose(result["jittered_x"], result["x"])
 
+
 @pytest.mark.ci
 def test_add_jitter_numeric_with_duplicates(numeric_df_with_duplicates):
     """Test that jitter is added correctly to numeric values with duplicates."""
