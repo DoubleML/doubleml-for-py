@@ -98,8 +98,8 @@ def test_doubleml_exception_policytree():
     with pytest.raises(TypeError, match=msg):
         dml_policytree_predict.predict(features=1)
     msg = (
-        r"The features must have the keys Index\(\[\'a\', \'b\', \'c\'\], dtype\=\'object\'\). "
-        r"Features with keys Index\(\[\'d\'\], dtype=\'object\'\) were passed."
+        r"The features must have the keys Index\(\[\'a\', \'b\', \'c\'\], dtype\=\'str\'\). "
+        r"Features with keys Index\(\[\'d\'\], dtype=\'str\'\) were passed."
     )
     with pytest.raises(KeyError, match=msg):
         dml_policytree_predict.predict(features=pd.DataFrame({"d": [3, 4]}))

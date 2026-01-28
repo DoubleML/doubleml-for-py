@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -41,7 +42,7 @@ def test_add_jitter_numeric_no_duplicates(numeric_df_no_duplicates):
     """Test that no jitter is added when there are no duplicates."""
     result = add_jitter(numeric_df_no_duplicates, "x")
     # No jitter should be added when there are no duplicates
-    pd.testing.assert_series_equal(result["jittered_x"], result["x"], check_names=False)
+    np.testing.assert_allclose(result["jittered_x"], result["x"])
 
 
 @pytest.mark.ci
@@ -121,7 +122,7 @@ def test_add_jitter_explicit_datetime_flag():
     df = pd.DataFrame({"x": ["2023-01-01", "2023-01-01", "2023-01-02"], "y": [10, 15, 20]})
 
     # Without specifying is_datetime, it would treat as strings
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         _ = add_jitter(df, "x")
 
     # With is_datetime=True, it should convert and jitter as datetimes

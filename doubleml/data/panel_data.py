@@ -394,7 +394,11 @@ class DoubleMLPanelData(DoubleMLData):
         if hasattr(self, "_data") and self.t_col in self.data.columns:
             t_values = self.data.loc[:, self.t_col]
             expected_dtypes = (np.integer, np.floating, np.datetime64)
-            if not any(np.issubdtype(t_values.dtype, dt) for dt in expected_dtypes):
+            try:
+                valid_type = any(np.issubdtype(t_values.dtype, dt) for dt in expected_dtypes)
+            except TypeError:
+                valid_type = False
+            if not valid_type:
                 raise ValueError(f"Invalid data type for time variable: expected one of {expected_dtypes}.")
             else:
                 self._t = t_values
