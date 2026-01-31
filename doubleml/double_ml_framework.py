@@ -32,7 +32,7 @@ class DoubleMLCore:
     cluster_dict: Optional[Dict] = None
     sensitivity_elements: Optional[Dict[str, np.ndarray]] = None
     """
-    Core container for DoubleML results .
+    Internal container for DoubleML raw estimation results.
 
     This class stores the main results and diagnostics from a DoubleML estimation, including parameter estimates,
     standard errors, normalized scores, and (optionally) sensitivity and clustering information. It performs
