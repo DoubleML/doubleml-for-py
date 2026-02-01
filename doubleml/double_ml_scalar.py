@@ -76,6 +76,10 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
         self._score = score
 
+        # Learner names (set by subclass) and learner storage (set via set_learners)
+        self._learner_names: List[str] = []
+        self._learners: Dict[str, object] = {}
+
         # Resampling parameters (set via draw_sample_splitting)
         self._n_folds: Optional[int] = None
         self._n_rep: Optional[int] = None
@@ -178,6 +182,50 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             raise ValueError("Sample splitting has not been performed. Call draw_sample_splitting() first.")
         return self._smpls
 
+    @property
+    def learner_names(self) -> List[str]:
+        """
+        Names of the required learners for this model.
+
+        Returns
+        -------
+        list of str
+            List of required learner names.
+        """
+        return self._learner_names
+
+    @property
+    def learners(self) -> Dict[str, object]:
+        """
+        The learners used for nuisance estimation.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping learner names to estimator instances.
+        """
+        return self._learners
+
+    @abstractmethod
+    def set_learners(self, **kwargs) -> Self:
+        """
+        Set the learners for nuisance estimation.
+
+        Subclasses must implement this method with explicit keyword arguments
+        for each learner (e.g., ``ml_l``, ``ml_m``, ``ml_g`` for PLR).
+
+        Parameters
+        ----------
+        **kwargs
+            Learner keyword arguments specific to the subclass.
+
+        Returns
+        -------
+        self : Self
+            The estimator with learners set.
+        """
+        pass
+
     # ==================== Concrete fit() Method (Template) ====================
 
     def fit(
@@ -256,6 +304,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         """
         if self._smpls is None:
             raise ValueError("Sample splitting has not been initialized. Call draw_sample_splitting() first.")
+
+        # Validate that all required learners are available
+        self._check_learners_available(external_predictions)
 
         # Initialize prediction arrays
         self._predictions = self._initialize_predictions_dict()
@@ -383,14 +434,41 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         """
         Initialize dictionary for storing predictions.
 
-        Subclasses can override this to define their specific prediction storage structure.
+        Creates a prediction array of shape ``(n_obs, n_rep)`` for each learner
+        in :attr:`learner_names`, filled with ``NaN``. Subclasses can override
+        this for custom prediction storage.
 
         Returns
         -------
         dict
-            Empty dictionary (subclasses should override).
+            Dictionary mapping learner names to NaN-filled arrays.
         """
-        return {}
+        n_obs = self._n_obs
+        n_rep = self.n_rep
+        return {name: np.full((n_obs, n_rep), np.nan) for name in self._learner_names}
+
+    def _check_learners_available(self, external_predictions=None) -> None:
+        """
+        Validate that all required learners are set or covered by external predictions.
+
+        Parameters
+        ----------
+        external_predictions : dict or None
+            External predictions that may cover some learners.
+
+        Raises
+        ------
+        ValueError
+            If a required learner is missing and not covered by external predictions.
+        """
+        ext_keys = set(external_predictions.keys()) if external_predictions is not None else set()
+
+        for name in self._learner_names:
+            if name not in self._learners and name not in ext_keys:
+                raise ValueError(
+                    f"Learner '{name}' is required but not set and no external predictions provided for it. "
+                    f"Call set_learners({name}=...) or provide external_predictions."
+                )
 
     def _construct_framework(self) -> DoubleMLFramework:
         """

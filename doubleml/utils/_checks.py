@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+from sklearn.base import is_classifier, is_regressor
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import has_fit_parameter
 
@@ -511,6 +512,78 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
         smpls_cluster = None
 
     return smpls, smpls_cluster, n_rep, n_folds
+
+
+def _check_learner(learner, learner_name, regressor=True, classifier=True):
+    """
+    Validate that a learner has the required interface for DoubleML estimation.
+
+    Parameters
+    ----------
+    learner : object
+        The learner to validate.
+    learner_name : str
+        Name of the learner (for error messages).
+    regressor : bool
+        Whether regressors are accepted. Default is ``True``.
+    classifier : bool
+        Whether classifiers are accepted. Default is ``True``.
+
+    Returns
+    -------
+    bool
+        ``True`` if the learner is a classifier, ``False`` otherwise.
+
+    Raises
+    ------
+    TypeError
+        If the learner is a class instead of an instance, or lacks
+        required methods (fit, set_params, get_params, predict/predict_proba).
+    """
+    err_msg_prefix = f"Invalid learner provided for {learner_name}: "
+    warn_msg_prefix = f"Learner provided for {learner_name} is probably invalid: "
+
+    if isinstance(learner, type):
+        raise TypeError(err_msg_prefix + "provide an instance of a learner instead of a class.")
+
+    if not hasattr(learner, "fit"):
+        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .fit().")
+    if not hasattr(learner, "set_params"):
+        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .set_params().")
+    if not hasattr(learner, "get_params"):
+        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .get_params().")
+
+    if regressor & classifier:
+        if is_classifier(learner):
+            learner_is_classifier = True
+        elif is_regressor(learner):
+            learner_is_classifier = False
+        else:
+            warnings.warn(
+                warn_msg_prefix
+                + f"{str(learner)} is (probably) neither a regressor nor a classifier. "
+                + "Method predict is used for prediction."
+            )
+            learner_is_classifier = False
+    elif classifier:
+        if not is_classifier(learner):
+            warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no classifier.")
+        learner_is_classifier = True
+    else:
+        assert regressor  # classifier, regressor or both must be True
+        if not is_regressor(learner):
+            warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no regressor.")
+        learner_is_classifier = False
+
+    # check existence of the prediction method
+    if learner_is_classifier:
+        if not hasattr(learner, "predict_proba"):
+            raise TypeError(err_msg_prefix + f"{str(learner)} has no method .predict_proba().")
+    else:
+        if not hasattr(learner, "predict"):
+            raise TypeError(err_msg_prefix + f"{str(learner)} has no method .predict().")
+
+    return learner_is_classifier
 
 
 def _check_supports_sample_weights(learner, learner_name):

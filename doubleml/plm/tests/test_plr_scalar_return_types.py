@@ -18,7 +18,8 @@ obj_dml_data = make_plr_CCDDHNR2018(n_obs=N_OBS, dim_x=10, alpha=0.5)
 @pytest.fixture(scope="module")
 def fitted_dml_obj():
     np.random.seed(3141)
-    dml_obj = PLR(obj_dml_data, LinearRegression(), LinearRegression())
+    dml_obj = PLR(obj_dml_data)
+    dml_obj.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression())
     dml_obj.draw_sample_splitting(n_folds=N_FOLDS, n_rep=N_REP)
     dml_obj.fit()
     dml_obj.bootstrap(n_rep_boot=N_REP_BOOT)
@@ -108,6 +109,13 @@ def test_n_properties(fitted_dml_obj):
 
 
 @pytest.mark.ci
+def test_learner_names(fitted_dml_obj):
+    assert fitted_dml_obj.learner_names == ["ml_l", "ml_m"]
+    assert "ml_l" in fitted_dml_obj.learners
+    assert "ml_m" in fitted_dml_obj.learners
+
+
+@pytest.mark.ci
 def test_str_repr(fitted_dml_obj):
     assert isinstance(str(fitted_dml_obj), str)
     assert isinstance(repr(fitted_dml_obj), str)
@@ -116,7 +124,7 @@ def test_str_repr(fitted_dml_obj):
 @pytest.mark.ci
 def test_before_fit_raises():
     np.random.seed(3141)
-    dml_obj = PLR(obj_dml_data, LinearRegression(), LinearRegression())
+    dml_obj = PLR(obj_dml_data)
     with pytest.raises(ValueError, match="framework is not yet initialized"):
         _ = dml_obj.coef
     with pytest.raises(ValueError, match="Predictions not available. Call fit"):

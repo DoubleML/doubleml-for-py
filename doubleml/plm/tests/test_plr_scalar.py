@@ -29,7 +29,11 @@ def dml_plr_scalar_fixture(learner, score):
     np.random.seed(3141)
     obj_dml_data = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=theta)
 
-    dml_obj = PLR(obj_dml_data, ml_l, ml_m, ml_g, score=score)
+    dml_obj = PLR(obj_dml_data, score=score)
+    if score == "IV-type":
+        dml_obj.set_learners(ml_l=ml_l, ml_m=ml_m, ml_g=ml_g)
+    else:
+        dml_obj.set_learners(ml_l=ml_l, ml_m=ml_m)
     dml_obj.draw_sample_splitting(n_folds=n_folds)
     dml_obj.fit()
 
@@ -60,7 +64,8 @@ def dml_plr_scalar_rep_fixture():
     np.random.seed(3141)
     obj_dml_data = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=theta)
 
-    dml_obj = PLR(obj_dml_data, LinearRegression(), LinearRegression())
+    dml_obj = PLR(obj_dml_data)
+    dml_obj.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression())
     dml_obj.draw_sample_splitting(n_folds=n_folds, n_rep=n_rep)
     dml_obj.fit()
 

@@ -44,12 +44,12 @@ def doubleml_plr_scalar_fixture(plr_score, n_rep, set_ml_m_ext, set_ml_l_ext, se
     np.random.seed(3141)
     dml_data = DoubleMLData.from_arrays(x=x, y=y, d=d)
 
-    kwargs = {"obj_dml_data": dml_data, "score": plr_score}
-    if plr_score == "IV-type":
-        kwargs["ml_g"] = LinearRegression()
-
     # Fit reference model
-    dml_plr = PLR(ml_m=LinearRegression(), ml_l=LinearRegression(), **kwargs)
+    dml_plr = PLR(dml_data, score=plr_score)
+    if plr_score == "IV-type":
+        dml_plr.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression(), ml_g=LinearRegression())
+    else:
+        dml_plr.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression())
     np.random.seed(3141)
     dml_plr.draw_sample_splitting(n_folds=n_folds, n_rep=n_rep)
     dml_plr.fit()
@@ -63,12 +63,19 @@ def doubleml_plr_scalar_fixture(plr_score, n_rep, set_ml_m_ext, set_ml_l_ext, se
 
     if plr_score == "IV-type" and set_ml_g_ext:
         ext_predictions["ml_g"] = dml_plr.predictions["ml_g"]
-        kwargs["ml_g"] = LinearRegression()
-    elif plr_score == "IV-type":
-        kwargs["ml_g"] = LinearRegression()
 
-    # Fit model with external predictions
-    dml_plr_ext = PLR(ml_m=LinearRegression(), ml_l=LinearRegression(), **kwargs)
+    # Fit model with external predictions — only set learners that are needed
+    dml_plr_ext = PLR(dml_data, score=plr_score)
+    learner_kwargs = {}
+    if not set_ml_l_ext:
+        learner_kwargs["ml_l"] = LinearRegression()
+    if not set_ml_m_ext:
+        learner_kwargs["ml_m"] = LinearRegression()
+    if plr_score == "IV-type" and not set_ml_g_ext:
+        learner_kwargs["ml_g"] = LinearRegression()
+    if learner_kwargs:
+        dml_plr_ext.set_learners(**learner_kwargs)
+
     np.random.seed(3141)
     dml_plr_ext.draw_sample_splitting(n_folds=n_folds, n_rep=n_rep)
     dml_plr_ext.fit(external_predictions=ext_predictions if ext_predictions else None)

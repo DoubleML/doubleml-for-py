@@ -47,7 +47,8 @@ def comparison_fixture(learner, score, n_rep):
 
     # New PLR
     np.random.seed(seed)
-    dml_new = PLR(obj_dml_data, learner, learner, learner, score=score)
+    dml_new = PLR(obj_dml_data, score=score)
+    dml_new.set_learners(ml_l=learner, ml_m=learner, ml_g=learner)
     dml_new.draw_sample_splitting(n_folds=n_folds, n_rep=n_rep)
     dml_new.fit()
 
