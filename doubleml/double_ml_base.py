@@ -3,7 +3,7 @@ Abstract base class for Double Machine Learning estimators.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Dict, Optional, Self
 
 import numpy as np
 import pandas as pd
@@ -43,10 +43,6 @@ class DoubleMLBase(ABC):
         Summary table with estimates, standard errors, confidence intervals, and p-values.
     psi : np.ndarray
         Influence function values (shape: (n_obs, n_thetas, n_rep)).
-    smpls : list
-        Sample splitting indices used for cross-fitting.
-    n_folds : int
-        Number of folds used for cross-fitting.
     n_rep : int
         Number of repetitions for sample splitting.
     """
@@ -72,9 +68,6 @@ class DoubleMLBase(ABC):
 
         # Framework is initialized after fit()
         self._framework: Optional[DoubleMLFramework] = None
-
-        # Sample splits are initialized via draw_sample_splitting()
-        self._smpls: Optional[List] = None
 
     # ==================== Properties (Delegating to Framework) ====================
 
@@ -197,18 +190,17 @@ class DoubleMLBase(ABC):
         return self.framework.scaled_psi
 
     @property
-    def smpls(self) -> List:
+    @abstractmethod
+    def n_rep(self) -> int:
         """
-        Sample splitting indices used for cross-fitting.
+        Number of repetitions for sample splitting.
 
         Returns
         -------
-        list
-            List of sample splitting indices for each repetition.
+        int
+            Number of repetitions.
         """
-        if self._smpls is None:
-            raise ValueError("Sample splitting has not been performed. " "Call draw_sample_splitting() first.")
-        return self._smpls
+        pass
 
     @property
     def n_obs(self) -> int:
@@ -244,7 +236,7 @@ class DoubleMLBase(ABC):
         """
         return self.framework.confint(joint=joint, level=level)
 
-    def bootstrap(self, method: str = "normal", n_rep_boot: int = 500) -> "DoubleMLBase":
+    def bootstrap(self, method: str = "normal", n_rep_boot: int = 500) -> Self:
         """
         Multiplier bootstrap for DoubleML models.
 
@@ -326,7 +318,7 @@ class DoubleMLBase(ABC):
     # ==================== Abstract Methods ====================
 
     @abstractmethod
-    def fit(self, **kwargs) -> "DoubleMLBase":
+    def fit(self, **kwargs) -> Self:
         """
         Estimate the DoubleML model.
 
@@ -341,21 +333,6 @@ class DoubleMLBase(ABC):
         -------
         self : DoubleMLBase
             The fitted DoubleML estimator.
-        """
-        pass
-
-    @abstractmethod
-    def draw_sample_splitting(self) -> "DoubleMLBase":
-        """
-        Draw sample splitting for cross-fitting.
-
-        This method must be implemented by subclasses to generate sample splits
-        using an appropriate resampling strategy.
-
-        Returns
-        -------
-        self : DoubleMLBase
-            The DoubleML estimator with initialized sample splits.
         """
         pass
 

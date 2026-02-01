@@ -3,7 +3,7 @@ Abstract base class for scalar DoubleML models (single parameter estimation).
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Self
 
 import numpy as np
 
@@ -30,21 +30,15 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     obj_dml_data : DoubleMLBaseData
         The data object for the double machine learning model.
         Must contain exactly one treatment variable.
-    n_folds : int, optional
-        Number of folds for cross-fitting. Default is 5.
-    n_rep : int, optional
-        Number of repetitions for sample splitting. Default is 1.
     score : str, optional
         The score function to use. Default is model-specific.
-    draw_sample_splitting : bool, optional
-        Whether to draw sample splits on initialization. Default is True.
 
     Attributes
     ----------
     n_folds : int
-        Number of folds for cross-fitting.
+        Number of folds for cross-fitting (set via draw_sample_splitting).
     n_rep : int
-        Number of repetitions for sample splitting.
+        Number of repetitions for sample splitting (set via draw_sample_splitting).
     score : str
         The score function being used.
     """
@@ -52,10 +46,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     def __init__(
         self,
         obj_dml_data: DoubleMLBaseData,
-        n_folds: int = 5,
-        n_rep: int = 1,
         score: str = "default",
-        draw_sample_splitting: bool = True,
     ):
         """
         Initialize DoubleMLScalar.
@@ -64,21 +55,13 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ----------
         obj_dml_data : DoubleMLBaseData
             The data object. Must have exactly one treatment column.
-        n_folds : int, optional
-            Number of folds for cross-fitting. Default is 5.
-        n_rep : int, optional
-            Number of repetitions for sample splitting. Default is 1.
         score : str, optional
             The score function to use. Default is 'default'.
-        draw_sample_splitting : bool, optional
-            Whether to draw sample splits on initialization. Default is True.
 
         Raises
         ------
         ValueError
             If obj_dml_data contains more than one treatment column.
-        TypeError
-            If parameters have incorrect types.
         """
         # Validate single treatment column
         if len(obj_dml_data.d_cols) != 1:
@@ -91,17 +74,12 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         # Call parent constructor
         super().__init__(obj_dml_data)
 
-        # Validate and store resampling parameters
-        if not isinstance(n_folds, int) or n_folds < 2:
-            raise ValueError(f"n_folds must be an integer >= 2. Got {n_folds}.")
-        if not isinstance(n_rep, int) or n_rep < 1:
-            raise ValueError(f"n_rep must be an integer >= 1. Got {n_rep}.")
-        if not isinstance(draw_sample_splitting, bool):
-            raise TypeError(f"draw_sample_splitting must be bool. Got {type(draw_sample_splitting)}.")
-
-        self._n_folds = n_folds
-        self._n_rep = n_rep
         self._score = score
+
+        # Resampling parameters (set via draw_sample_splitting)
+        self._n_folds: Optional[int] = None
+        self._n_rep: Optional[int] = None
+        self._smpls: Optional[List] = None
 
         # Initialize storage for predictions and results
         self._predictions: Optional[Dict[str, np.ndarray]] = None
@@ -115,10 +93,6 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._i_rep: Optional[int] = None
         self._i_fold: Optional[int] = None
 
-        # Draw sample splitting if requested
-        if draw_sample_splitting:
-            self.draw_sample_splitting()
-
     # ==================== Properties ====================
 
     @property
@@ -130,7 +104,14 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         int
             Number of folds.
+
+        Raises
+        ------
+        ValueError
+            If sample splitting has not been performed yet.
         """
+        if self._n_folds is None:
+            raise ValueError("n_folds not set. Call draw_sample_splitting() first.")
         return self._n_folds
 
     @property
@@ -142,7 +123,14 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         int
             Number of repetitions.
+
+        Raises
+        ------
+        ValueError
+            If sample splitting has not been performed yet.
         """
+        if self._n_rep is None:
+            raise ValueError("n_rep not set. Call draw_sample_splitting() first.")
         return self._n_rep
 
     @property
@@ -160,7 +148,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     @property
     def predictions(self) -> Dict[str, np.ndarray]:
         """
-        Predictions from nuisance models (if stored during fit).
+        Predictions from nuisance models.
 
         Returns
         -------
@@ -170,51 +158,115 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         Raises
         ------
         ValueError
-            If predictions were not stored during fit.
+            If the model has not been fitted yet.
         """
         if self._predictions is None:
-            raise ValueError("Predictions not available. Call fit() with store_predictions=True.")
+            raise ValueError("Predictions not available. Call fit() first.")
         return self._predictions
+
+    @property
+    def smpls(self) -> List:
+        """
+        Sample splitting indices used for cross-fitting.
+
+        Returns
+        -------
+        list
+            List of sample splitting indices for each repetition.
+        """
+        if self._smpls is None:
+            raise ValueError("Sample splitting has not been performed. Call draw_sample_splitting() first.")
+        return self._smpls
 
     # ==================== Concrete fit() Method (Template) ====================
 
-    def fit(self, n_jobs_cv: Optional[int] = None, store_predictions: bool = True, **kwargs) -> "DoubleMLScalar":
+    def fit(
+        self,
+        n_folds: int = 5,
+        n_rep: int = 1,
+        n_jobs_cv: Optional[int] = None,
+        external_predictions: Optional[Dict[str, np.ndarray]] = None,
+        **kwargs,
+    ) -> Self:
         """
         Estimate the DoubleML model.
 
-        This is the concrete implementation of the fit() method using the template method pattern.
-        It orchestrates the estimation by:
-        1. Ensuring sample splitting is initialized
-        2. Initializing storage arrays
-        3. Looping over repetitions and folds
-        4. Calling abstract _nuisance_est() for each fold (implemented by subclasses)
-        5. Computing score elements via _get_score_elements() (implemented by subclasses)
-        6. Estimating parameters via _est_causal_pars_and_se() (from score mixin)
-        7. Constructing the DoubleMLFramework
+        Calls :meth:`draw_sample_splitting` (if not yet done),
+        :meth:`fit_nuisance_models`, and :meth:`estimate_causal_parameters`.
+
+        Parameters
+        ----------
+        n_folds : int, optional
+            Number of folds for cross-fitting. Default is 5.
+            Only used if sample splitting has not been drawn yet.
+        n_rep : int, optional
+            Number of repetitions for sample splitting. Default is 1.
+            Only used if sample splitting has not been drawn yet.
+        n_jobs_cv : int, optional
+            Number of jobs for parallel processing during cross-validation.
+            Currently not used (reserved for future parallelization).
+        external_predictions : dict or None, optional
+            Dictionary of pre-computed nuisance predictions to use instead of fitting
+            learners. Keys are learner names (e.g., ``'ml_l'``, ``'ml_m'``), values are
+            arrays of shape ``(n_obs, n_rep)``. Learners not in the dict are fitted normally.
+            Default is ``None``.
+        **kwargs : dict
+            Additional keyword arguments (for future extensibility).
+
+        Returns
+        -------
+        self : Self
+            The fitted estimator.
+        """
+        if self._smpls is None:
+            self.draw_sample_splitting(n_folds=n_folds, n_rep=n_rep)
+        self.fit_nuisance_models(n_jobs_cv=n_jobs_cv, external_predictions=external_predictions)
+        self.estimate_causal_parameters()
+        return self
+
+    def fit_nuisance_models(
+        self,
+        n_jobs_cv: Optional[int] = None,
+        external_predictions: Optional[Dict[str, np.ndarray]] = None,
+    ) -> Self:
+        """
+        Fit nuisance models via cross-fitting.
+
+        Requires sample splitting to be initialized via :meth:`draw_sample_splitting`
+        before calling this method.
 
         Parameters
         ----------
         n_jobs_cv : int, optional
             Number of jobs for parallel processing during cross-validation.
             Currently not used (reserved for future parallelization).
-        store_predictions : bool, optional
-            Whether to store predictions from nuisance models. Default is True.
-        **kwargs : dict
-            Additional keyword arguments (for future extensibility).
+        external_predictions : dict or None, optional
+            Dictionary of pre-computed nuisance predictions. Keys are learner names,
+            values are arrays of shape ``(n_obs, n_rep)``. Default is ``None``.
 
         Returns
         -------
-        self : DoubleMLScalar
-            The fitted estimator.
+        self : Self
+            The estimator with fitted nuisance models and stored predictions.
+
+        Raises
+        ------
+        ValueError
+            If sample splitting has not been initialized.
         """
-        # Step 1: Ensure sample splitting is initialized
         if self._smpls is None:
-            self.draw_sample_splitting()
+            raise ValueError("Sample splitting has not been initialized. Call draw_sample_splitting() first.")
 
-        # Step 2: Initialize storage arrays
-        self._initialize_arrays(store_predictions=store_predictions)
+        # Initialize prediction arrays
+        self._predictions = self._initialize_predictions_dict()
 
-        # Step 3: Cross-fitting loop over repetitions and folds
+        # Pre-fill external predictions
+        if external_predictions is not None:
+            for key, values in external_predictions.items():
+                if key in self._predictions:
+                    self._predictions[key][:] = values
+
+        # Cross-fitting loop over repetitions and folds
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
 
@@ -224,41 +276,87 @@ class DoubleMLScalar(DoubleMLBase, ABC):
                 # Get train/test indices for this fold
                 train_idx, test_idx = self._smpls[i_rep][i_fold]
 
-                # Step 4: Call abstract method - subclass implements nuisance estimation
+                # Call abstract method - subclass implements nuisance estimation
                 self._nuisance_est(
                     train_idx=train_idx,
                     test_idx=test_idx,
                     i_rep=i_rep,
                     i_fold=i_fold,
+                    external_predictions=external_predictions,
                 )
 
-        # Step 5: Get score elements - subclass implements
+        return self
+
+    def estimate_causal_parameters(self) -> Self:
+        """
+        Estimate causal parameters from nuisance predictions.
+
+        Computes score elements, estimates parameters and standard errors, and
+        constructs the DoubleMLFramework. Must be called after :meth:`fit_nuisance_models`.
+
+        Returns
+        -------
+        self : Self
+            The estimator with estimated causal parameters.
+
+        Raises
+        ------
+        ValueError
+            If nuisance models have not been fitted yet.
+        """
+        if self._predictions is None:
+            raise ValueError("Predictions not available. Call fit_nuisance_models() first.")
+
+        # Initialize result arrays
+        self._initialize_result_arrays()
+
+        # Get score elements - subclass implements
         psi_elements = self._get_score_elements()
 
-        # Step 6: Estimate causal parameters - from score mixin
+        # Estimate causal parameters - from score mixin
         self._est_causal_pars_and_se(psi_elements)
 
-        # Step 7: Construct framework
+        # Construct framework
         self._framework = self._construct_framework()
 
         return self
 
-    def draw_sample_splitting(self) -> "DoubleMLScalar":
+    def draw_sample_splitting(self, n_folds: int = 5, n_rep: int = 1) -> Self:
         """
         Draw sample splitting for cross-fitting.
 
         Uses DoubleMLResampling to generate K-fold cross-validation splits
         with multiple repetitions.
 
+        Parameters
+        ----------
+        n_folds : int, optional
+            Number of folds for cross-fitting. Default is 5.
+        n_rep : int, optional
+            Number of repetitions for sample splitting. Default is 1.
+
         Returns
         -------
-        self : DoubleMLScalar
+        self : Self
             The estimator with initialized sample splits.
+
+        Raises
+        ------
+        ValueError
+            If n_folds or n_rep have invalid values.
         """
+        if not isinstance(n_folds, int) or n_folds < 2:
+            raise ValueError(f"n_folds must be an integer >= 2. Got {n_folds}.")
+        if not isinstance(n_rep, int) or n_rep < 1:
+            raise ValueError(f"n_rep must be an integer >= 1. Got {n_rep}.")
+
+        self._n_folds = n_folds
+        self._n_rep = n_rep
+
         # Create resampler
         resampler = DoubleMLResampling(
-            n_folds=self.n_folds,
-            n_rep=self.n_rep,
+            n_folds=n_folds,
+            n_rep=n_rep,
             n_obs=self._n_obs,
         )
 
@@ -269,29 +367,16 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
     # ==================== Private Helper Methods ====================
 
-    def _initialize_arrays(self, store_predictions: bool = True) -> None:
-        """
-        Initialize storage arrays for predictions and results.
-
-        Parameters
-        ----------
-        store_predictions : bool
-            Whether to allocate arrays for storing predictions.
-        """
+    def _initialize_result_arrays(self) -> None:
+        """Initialize storage arrays for causal parameter estimation results."""
         n_obs = self._n_obs
         n_rep = self.n_rep
         n_thetas = 1  # Scalar model estimates single parameter
 
-        # Initialize predictions storage if requested
-        if store_predictions:
-            self._predictions = self._initialize_predictions_dict()
-
-        # Initialize result arrays using framework convention
-        # These will be filled by _est_causal_pars_and_se()
         # Shapes follow framework: (n_thetas, n_rep) for params, (n_obs, n_thetas, n_rep) for scores
-        self._all_thetas = np.zeros((n_thetas, n_rep))  # (n_thetas=1, n_rep)
+        self._all_thetas = np.zeros((n_thetas, n_rep))
         self._all_ses = np.zeros((n_thetas, n_rep))
-        self._psi = np.zeros((n_obs, n_thetas, n_rep))  # (n_obs, n_thetas=1, n_rep)
+        self._psi = np.zeros((n_obs, n_thetas, n_rep))
         self._psi_deriv = np.zeros((n_obs, n_thetas, n_rep))
 
     def _initialize_predictions_dict(self) -> Dict[str, np.ndarray]:
@@ -305,8 +390,6 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         dict
             Empty dictionary (subclasses should override).
         """
-        # Default: return empty dict
-        # Subclasses should override to create arrays for their specific nuisance components
         return {}
 
     def _construct_framework(self) -> DoubleMLFramework:
@@ -346,15 +429,17 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         test_idx: np.ndarray,
         i_rep: int,
         i_fold: int,
+        external_predictions: Optional[Dict[str, np.ndarray]] = None,
     ) -> None:
         """
         Estimate nuisance parameters for one fold.
 
         This is the main method subclasses must implement. It should:
-        1. Extract training and test data using train_idx and test_idx
-        2. Fit nuisance models (e.g., outcome model, treatment model) on training data
-        3. Predict on test data
-        4. Store predictions in self._predictions
+        1. Check external_predictions for pre-computed values (skip fitting if present)
+        2. Extract training and test data using train_idx and test_idx
+        3. Fit nuisance models on training data
+        4. Predict on test data
+        5. Store predictions in self._predictions
 
         Parameters
         ----------
@@ -366,12 +451,10 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             Repetition index (0 to n_rep-1).
         i_fold : int
             Fold index (0 to n_folds-1).
-
-        Notes
-        -----
-        Subclasses should store predictions in self._predictions, for example:
-            self._predictions['ml_l'][test_idx, i_rep] = l_hat
-            self._predictions['ml_m'][test_idx, i_rep] = m_hat
+        external_predictions : dict or None, optional
+            If provided, a dictionary of external predictions. Learners whose names
+            appear as keys should not be fitted; their predictions are already
+            pre-filled in self._predictions.
         """
         pass
 
@@ -443,7 +526,8 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         header = f"{'=' * 20} {class_name} Object {'=' * 20}"
 
         info = f"Score function: {self.score}\n"
-        info += f"Resampling: {self.n_folds}-fold CV, {self.n_rep} repetitions\n"
+        if self._n_folds is not None:
+            info += f"Resampling: {self._n_folds}-fold CV, {self._n_rep} repetitions\n"
 
         if self._framework is not None:
             summary_str = str(self.summary)

@@ -110,17 +110,15 @@ class LinearScoreMixin(DoubleMLScalar):
         # Store in framework shape: (n_obs, n_thetas=1, n_rep)
         self._psi_deriv = psi_a[:, np.newaxis, :]  # (n_obs, 1, n_rep)
 
-        # Compute standard errors
-        # SE = std(ψ) / sqrt(n)
-        se = np.std(psi, axis=0) / np.sqrt(n_obs)  # (n_rep,)
+        # Compute standard errors using sandwich variance estimator
+        # Var(θ̂) = E[ψ²] / (n · J²), where J = E[ψ_a]
+        # SE = sqrt(E[ψ²]) / (|J| · sqrt(n))
+        gamma_hat = np.mean(psi**2, axis=0)  # (n_rep,)
+        se = np.sqrt(gamma_hat) / (np.abs(mean_psi_a) * np.sqrt(n_obs))  # (n_rep,)
         self._all_ses = se[np.newaxis, :]  # (1, n_rep)
 
-        # Compute variance scaling factors
-        # This is 1 / E[∂ψ/∂θ]^2 = 1 / E[ψ_a]^2
-        var_scaling_factors = 1.0 / (mean_psi_a**2)  # (n_rep,)
-
-        # Take mean across repetitions and store in framework shape: (n_thetas=1,)
-        self._var_scaling_factors = np.array([np.mean(var_scaling_factors)])  # (1,)
+        # Variance scaling factor: n / J² (used by framework for aggregation)
+        self._var_scaling_factors = np.array([n_obs])  # (1,)
 
     def _compute_score(self, psi_elements: Dict[str, np.ndarray], coef: float) -> np.ndarray:
         """
