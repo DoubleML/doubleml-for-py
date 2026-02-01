@@ -94,7 +94,7 @@ class PLR(LinearScoreMixin):
             preds["ml_g"] = np.full((n_obs, n_rep), np.nan)
         return preds
 
-    def _nuisance_est(self, train_idx, test_idx, i_rep, i_fold):
+    def _nuisance_est(self, train_idx, test_idx, i_rep, i_fold, external_predictions=None):
         x = self._dml_data.x
         y = self._dml_data.y
         d = self._dml_data.d
@@ -103,19 +103,26 @@ class PLR(LinearScoreMixin):
         y_train = y[train_idx]
         d_train = d[train_idx]
 
+        # Check which learners have external predictions
+        l_external = external_predictions is not None and "ml_l" in external_predictions
+        m_external = external_predictions is not None and "ml_m" in external_predictions
+        g_external = external_predictions is not None and "ml_g" in external_predictions
+
         # Fit and predict ml_l: E[Y|X]
-        ml_l = clone(self._learner["ml_l"])
-        ml_l.fit(x_train, y_train)
-        self._predictions["ml_l"][test_idx, i_rep] = ml_l.predict(x_test)
+        if not l_external:
+            ml_l = clone(self._learner["ml_l"])
+            ml_l.fit(x_train, y_train)
+            self._predictions["ml_l"][test_idx, i_rep] = ml_l.predict(x_test)
 
         # Fit and predict ml_m: E[D|X]
-        ml_m = clone(self._learner["ml_m"])
-        ml_m.fit(x_train, d_train)
-        self._predictions["ml_m"][test_idx, i_rep] = ml_m.predict(x_test)
+        if not m_external:
+            ml_m = clone(self._learner["ml_m"])
+            ml_m.fit(x_train, d_train)
+            self._predictions["ml_m"][test_idx, i_rep] = ml_m.predict(x_test)
 
         # For IV-type: fit ml_g after last fold when all ml_l/ml_m predictions are available
         is_last_fold = i_fold == self.n_folds - 1
-        if is_last_fold and "ml_g" in self._learner and "ml_g" in self._predictions:
+        if is_last_fold and "ml_g" in self._learner and "ml_g" in self._predictions and not g_external:
             # Compute initial theta from full cross-fitted predictions
             l_hat = self._predictions["ml_l"][:, i_rep]
             m_hat = self._predictions["ml_m"][:, i_rep]
