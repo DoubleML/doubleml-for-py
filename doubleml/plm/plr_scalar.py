@@ -2,14 +2,17 @@
 Partially Linear Regression (PLR) model based on the new DoubleMLScalar hierarchy.
 """
 
+from __future__ import annotations
+
 import warnings
+from typing import Dict, List, Optional, Self
 
 import numpy as np
 from sklearn.base import clone
 
 from ..data.base_data import DoubleMLData
 from ..double_ml_linear_score import LinearScoreMixin
-from ..utils._checks import _check_learner
+from ..utils._learner import LearnerSpec, predict_nuisance
 
 
 class PLR(LinearScoreMixin):
@@ -21,16 +24,48 @@ class PLR(LinearScoreMixin):
     ----------
     obj_dml_data : DoubleMLData
         The data object providing the data and specifying the variables for the causal model.
-    score : str, optional
+    score : str
         The score function (``'partialling out'`` or ``'IV-type'``).
         Default is ``'partialling out'``.
+    ml_l : estimator, optional
+        Learner for E[Y|X]. Can be regressor or classifier.
+    ml_m : estimator, optional
+        Learner for E[D|X]. Can be regressor or classifier.
+    ml_g : estimator, optional
+        Learner for E[Y - D*theta|X]. Only for IV-type. Must be regressor.
     """
+
+    # Define learner specifications for PLR
+    _LEARNER_SPECS: Dict[str, LearnerSpec] = {
+        "ml_l": LearnerSpec("ml_l", allow_regressor=True, allow_classifier=True, binary_data_check="outcome"),
+        "ml_m": LearnerSpec("ml_m", allow_regressor=True, allow_classifier=True, binary_data_check="treatment"),
+        "ml_g": LearnerSpec("ml_g", allow_regressor=True, allow_classifier=False),
+    }
 
     def __init__(
         self,
-        obj_dml_data,
-        score="partialling out",
+        obj_dml_data: DoubleMLData,
+        score: str = "partialling out",
+        ml_l: Optional[object] = None,
+        ml_m: Optional[object] = None,
+        ml_g: Optional[object] = None,
     ):
+        """
+        Initialize PLR model.
+
+        Parameters
+        ----------
+        obj_dml_data : DoubleMLData
+            The data object.
+        score : str
+            Score function ('partialling out' or 'IV-type').
+        ml_l : estimator, optional
+            Learner for E[Y|X]. Can be regressor or classifier.
+        ml_m : estimator, optional
+            Learner for E[D|X]. Can be regressor or classifier.
+        ml_g : estimator, optional
+            Learner for E[Y - D*theta|X]. Only for IV-type. Must be regressor.
+        """
         # Validate data
         self._check_data(obj_dml_data)
 
@@ -44,12 +79,24 @@ class PLR(LinearScoreMixin):
             score=score,
         )
 
-        # Set required learner names based on score
-        self._learner_names = ["ml_l", "ml_m"]
-        if score == "IV-type":
-            self._learner_names.append("ml_g")
+        # Set learners if provided
+        if any(learner is not None for learner in [ml_l, ml_m, ml_g]):
+            self.set_learners(ml_l=ml_l, ml_m=ml_m, ml_g=ml_g)
 
-    def set_learners(self, ml_l=None, ml_m=None, ml_g=None):
+    @property
+    def required_learners(self) -> List[str]:
+        """Required learners for current score."""
+        names = ["ml_l", "ml_m"]
+        if self.score == "IV-type":
+            names.append("ml_g")
+        return names
+
+    def set_learners(
+        self,
+        ml_l: Optional[object] = None,
+        ml_m: Optional[object] = None,
+        ml_g: Optional[object] = None,
+    ) -> Self:
         """
         Set the learners for nuisance estimation.
 
@@ -71,25 +118,47 @@ class PLR(LinearScoreMixin):
         self : PLR
             The estimator with learners set.
         """
-        if ml_l is not None:
-            _check_learner(ml_l, "ml_l", regressor=True, classifier=True)
-            self._learners["ml_l"] = clone(ml_l)
+        for name, learner in [("ml_l", ml_l), ("ml_m", ml_m), ("ml_g", ml_g)]:
+            if learner is None:
+                continue
+            if name not in self.required_learners:
+                warnings.warn(f"Learner '{name}' not required for score='{self.score}', ignored.")
+                continue
+            self._register_learner(name, learner)
 
-        if ml_m is not None:
-            _check_learner(ml_m, "ml_m", regressor=True, classifier=True)
-            self._learners["ml_m"] = clone(ml_m)
-
-        if ml_g is not None:
-            if self.score == "IV-type":
-                _check_learner(ml_g, "ml_g", regressor=True, classifier=False)
-                self._learners["ml_g"] = clone(ml_g)
-            else:
-                warnings.warn(
-                    "A learner ml_g has been provided for score = 'partialling out' but will be ignored. "
-                    "A learner ml_g is not required for estimation."
-                )
-
+        # IV-type: clone ml_l to ml_g if only one provided
+        self._handle_iv_cloning()
         return self
+
+    def _handle_iv_cloning(self) -> None:
+        """For IV-type score: clone ml_l to ml_g or vice versa if one is missing."""
+        if self.score != "IV-type":
+            return
+        if "ml_g" not in self.required_learners:
+            return
+
+        has_l = "ml_l" in self._learners
+        has_g = "ml_g" in self._learners
+
+        if has_l and not has_g:
+            warnings.warn("For score='IV-type', ml_g not set. Cloning ml_l to ml_g.")
+            # Clone the learner and register with same info
+            from ..utils._learner import LearnerInfo
+
+            ml_l_info = self._learners["ml_l"]
+            self._learners["ml_g"] = LearnerInfo(
+                learner=clone(ml_l_info.learner),
+                is_classifier=ml_l_info.is_classifier,
+            )
+        elif has_g and not has_l:
+            warnings.warn("For score='IV-type', ml_l not set. Cloning ml_g to ml_l.")
+            from ..utils._learner import LearnerInfo
+
+            ml_g_info = self._learners["ml_g"]
+            self._learners["ml_l"] = LearnerInfo(
+                learner=clone(ml_g_info.learner),
+                is_classifier=ml_g_info.is_classifier,
+            )
 
     @staticmethod
     def _check_data(obj_dml_data):
@@ -103,7 +172,14 @@ class PLR(LinearScoreMixin):
                 "To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR."
             )
 
-    def _nuisance_est(self, train_idx, test_idx, i_rep, i_fold, external_predictions=None):
+    def _nuisance_est(
+        self,
+        train_idx: np.ndarray,
+        test_idx: np.ndarray,
+        i_rep: int,
+        i_fold: int,
+        external_predictions: Optional[Dict[str, np.ndarray]] = None,
+    ) -> None:
         x = self._dml_data.x
         y = self._dml_data.y
         d = self._dml_data.d
@@ -119,23 +195,31 @@ class PLR(LinearScoreMixin):
 
         # Fit and predict ml_l: E[Y|X]
         if not l_external:
-            ml_l = clone(self._learners["ml_l"])
+            ml_l_info = self._learners["ml_l"]
+            ml_l = clone(ml_l_info.learner)
             ml_l.fit(x_train, y_train)
-            self._predictions["ml_l"][test_idx, i_rep] = ml_l.predict(x_test)
+            self._predictions["ml_l"][test_idx, i_rep] = predict_nuisance(ml_l, x_test, ml_l_info.is_classifier)
 
         # Fit and predict ml_m: E[D|X]
         if not m_external:
-            ml_m = clone(self._learners["ml_m"])
+            ml_m_info = self._learners["ml_m"]
+            ml_m = clone(ml_m_info.learner)
             ml_m.fit(x_train, d_train)
-            self._predictions["ml_m"][test_idx, i_rep] = ml_m.predict(x_test)
+            self._predictions["ml_m"][test_idx, i_rep] = predict_nuisance(ml_m, x_test, ml_m_info.is_classifier)
 
         # For IV-type: fit ml_g after last fold when all ml_l/ml_m predictions are available
         is_last_fold = i_fold == self.n_folds - 1
         if is_last_fold and self.score == "IV-type" and not g_external:
-            # If ml_g not explicitly set, default to clone of ml_l
+            # If ml_g not explicitly set, clone ml_l (already handled in _handle_iv_cloning)
             if "ml_g" not in self._learners:
                 warnings.warn("For score = 'IV-type', learners ml_l and ml_g should be specified. Set ml_g = clone(ml_l).")
-                self._learners["ml_g"] = clone(self._learners["ml_l"])
+                from ..utils._learner import LearnerInfo
+
+                ml_l_info = self._learners["ml_l"]
+                self._learners["ml_g"] = LearnerInfo(
+                    learner=clone(ml_l_info.learner),
+                    is_classifier=ml_l_info.is_classifier,
+                )
 
             # Compute initial theta from full cross-fitted predictions
             l_hat = self._predictions["ml_l"][:, i_rep]
@@ -145,13 +229,14 @@ class PLR(LinearScoreMixin):
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
 
             # Second pass: fit ml_g with cross-fitting across all folds
+            ml_g_info = self._learners["ml_g"]
             for j_fold in range(self.n_folds):
                 train_j, test_j = self._smpls[i_rep][j_fold]
-                ml_g = clone(self._learners["ml_g"])
+                ml_g = clone(ml_g_info.learner)
                 ml_g.fit(x[train_j], y[train_j] - theta_initial * d[train_j])
-                self._predictions["ml_g"][test_j, i_rep] = ml_g.predict(x[test_j])
+                self._predictions["ml_g"][test_j, i_rep] = predict_nuisance(ml_g, x[test_j], ml_g_info.is_classifier)
 
-    def _get_score_elements(self):
+    def _get_score_elements(self) -> Dict[str, np.ndarray]:
         y = self._dml_data.y
         d = self._dml_data.d
 

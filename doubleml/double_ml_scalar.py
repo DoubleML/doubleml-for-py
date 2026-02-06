@@ -3,7 +3,7 @@ Abstract base class for scalar DoubleML models (single parameter estimation).
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Self
+from typing import ClassVar, Dict, List, Optional, Self
 
 import numpy as np
 
@@ -11,6 +11,7 @@ from .data.base_data import DoubleMLBaseData
 from .double_ml_base import DoubleMLBase
 from .double_ml_framework import DoubleMLCore as DoubleMLCoreData
 from .double_ml_framework import DoubleMLFramework
+from .utils._learner import LearnerInfo, LearnerSpec, validate_learner
 from .utils.resampling import DoubleMLResampling
 
 
@@ -42,6 +43,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     score : str
         The score function being used.
     """
+
+    # Subclasses define all possible learners for the model
+    _LEARNER_SPECS: ClassVar[Dict[str, LearnerSpec]]
 
     def __init__(
         self,
@@ -76,9 +80,8 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
         self._score = score
 
-        # Learner names (set by subclass) and learner storage (set via set_learners)
-        self._learner_names: List[str] = []
-        self._learners: Dict[str, object] = {}
+        # Learner storage: single dict for all learner state
+        self._learners: Dict[str, LearnerInfo] = {}
 
         # Resampling parameters (set via draw_sample_splitting)
         self._n_folds: Optional[int] = None
@@ -183,31 +186,112 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         return self._smpls
 
     @property
-    def learner_names(self) -> List[str]:
+    @abstractmethod
+    def required_learners(self) -> List[str]:
         """
-        Names of the required learners for this model.
+        Names of the required learners for current configuration.
+
+        Subclasses implement this as a property that returns the learner names
+        needed based on the current score function or model configuration.
 
         Returns
         -------
         list of str
             List of required learner names.
         """
-        return self._learner_names
+        pass
 
     @property
     def learners(self) -> Dict[str, object]:
         """
-        The learners used for nuisance estimation.
+        Access registered learner objects by name.
 
         Returns
         -------
         dict
             Dictionary mapping learner names to estimator instances.
         """
-        return self._learners
+        return {name: info.learner for name, info in self._learners.items()}
+
+    def get_params(self, learner_name: str) -> Dict:
+        """
+        Get parameters of a registered learner.
+
+        Parameters
+        ----------
+        learner_name : str
+            Name of the learner.
+
+        Returns
+        -------
+        dict
+            Dictionary of learner parameters.
+
+        Raises
+        ------
+        ValueError
+            If the learner is not registered.
+        """
+        if learner_name not in self._learners:
+            raise ValueError(f"Learner '{learner_name}' not registered.")
+        return self._learners[learner_name].learner.get_params()
+
+    def set_params(self, learner_name: str, **params: object) -> Self:
+        """
+        Set parameters of a registered learner.
+
+        Parameters
+        ----------
+        learner_name : str
+            Name of the learner.
+        **params
+            Parameters to set on the learner.
+
+        Returns
+        -------
+        self : Self
+            The estimator with updated learner parameters.
+
+        Raises
+        ------
+        ValueError
+            If the learner is not registered.
+        """
+        if learner_name not in self._learners:
+            raise ValueError(f"Learner '{learner_name}' not registered.")
+        self._learners[learner_name].learner.set_params(**params)
+        return self
+
+    def _register_learner(self, name: str, learner: object) -> None:
+        """
+        Validate and register a single learner.
+
+        Parameters
+        ----------
+        name : str
+            Name of the learner (must be in _LEARNER_SPECS).
+        learner : object
+            The learner instance to register.
+
+        Raises
+        ------
+        ValueError
+            If the learner name is not defined in _LEARNER_SPECS.
+        """
+        if name not in self._LEARNER_SPECS:
+            raise ValueError(f"Learner '{name}' not defined for this model.")
+
+        spec = self._LEARNER_SPECS[name]
+        info = validate_learner(
+            learner,
+            spec,
+            binary_outcome=self._dml_data.binary_outcome,
+            binary_treatment=self._dml_data.binary_treats.all(),
+        )
+        self._learners[name] = info
 
     @abstractmethod
-    def set_learners(self, **kwargs) -> Self:
+    def set_learners(self, **kwargs: object) -> Self:
         """
         Set the learners for nuisance estimation.
 
@@ -435,7 +519,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         Initialize dictionary for storing predictions.
 
         Creates a prediction array of shape ``(n_obs, n_rep)`` for each learner
-        in :attr:`learner_names`, filled with ``NaN``. Subclasses can override
+        in :attr:`required_learners`, filled with ``NaN``. Subclasses can override
         this for custom prediction storage.
 
         Returns
@@ -445,9 +529,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         """
         n_obs = self._n_obs
         n_rep = self.n_rep
-        return {name: np.full((n_obs, n_rep), np.nan) for name in self._learner_names}
+        return {name: np.full((n_obs, n_rep), np.nan) for name in self.required_learners}
 
-    def _check_learners_available(self, external_predictions=None) -> None:
+    def _check_learners_available(self, external_predictions: Optional[Dict[str, np.ndarray]] = None) -> None:
         """
         Validate that all required learners are set or covered by external predictions.
 
@@ -463,7 +547,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         """
         ext_keys = set(external_predictions.keys()) if external_predictions is not None else set()
 
-        for name in self._learner_names:
+        for name in self.required_learners:
             if name not in self._learners and name not in ext_keys:
                 raise ValueError(
                     f"Learner '{name}' is required but not set and no external predictions provided for it. "

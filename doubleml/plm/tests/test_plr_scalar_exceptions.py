@@ -81,7 +81,7 @@ def test_plr_scalar_exception_estimate_causal_without_predictions():
 @pytest.mark.ci
 def test_plr_scalar_warning_ml_g_partialling_out():
     dml_obj = PLR(obj_dml_data, score="partialling out")
-    with pytest.warns(UserWarning, match="will be ignored"):
+    with pytest.warns(UserWarning, match="not required for score.*ignored"):
         dml_obj.set_learners(ml_l=ml_l, ml_m=ml_m, ml_g=ml_g)
 
 

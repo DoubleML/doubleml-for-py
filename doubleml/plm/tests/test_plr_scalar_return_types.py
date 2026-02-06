@@ -109,8 +109,8 @@ def test_n_properties(fitted_dml_obj):
 
 
 @pytest.mark.ci
-def test_learner_names(fitted_dml_obj):
-    assert fitted_dml_obj.learner_names == ["ml_l", "ml_m"]
+def test_required_learners(fitted_dml_obj):
+    assert fitted_dml_obj.required_learners == ["ml_l", "ml_m"]
     assert "ml_l" in fitted_dml_obj.learners
     assert "ml_m" in fitted_dml_obj.learners
 
@@ -119,6 +119,31 @@ def test_learner_names(fitted_dml_obj):
 def test_str_repr(fitted_dml_obj):
     assert isinstance(str(fitted_dml_obj), str)
     assert isinstance(repr(fitted_dml_obj), str)
+
+
+@pytest.mark.ci
+def test_get_params(fitted_dml_obj):
+    params = fitted_dml_obj.get_params("ml_l")
+    assert isinstance(params, dict)
+    # LinearRegression has 'fit_intercept' param
+    assert "fit_intercept" in params
+
+
+@pytest.mark.ci
+def test_set_params(fitted_dml_obj):
+    # Note: This modifies the fitted object, but we're just testing the method works
+    result = fitted_dml_obj.set_params("ml_l", fit_intercept=False)
+    assert result is fitted_dml_obj  # Returns self
+    params = fitted_dml_obj.get_params("ml_l")
+    assert params["fit_intercept"] is False
+    # Reset for other tests
+    fitted_dml_obj.set_params("ml_l", fit_intercept=True)
+
+
+@pytest.mark.ci
+def test_get_params_invalid_learner(fitted_dml_obj):
+    with pytest.raises(ValueError, match="not registered"):
+        fitted_dml_obj.get_params("ml_invalid")
 
 
 @pytest.mark.ci
