@@ -17,8 +17,8 @@ DoubleMLBase (ABC)
     │   │   θ̂ = -E[ψ_b] / E[ψ_a]
     │   │
     │   ├── PLR          (partialling out, IV-type)
+    │   ├── IRM          (ATE, ATTE)
     │   ├── PLIV         (planned)
-    │   ├── IRM          (planned)
     │   └── DID          (planned)
     │
     └── NonLinearScoreMixin (planned)
