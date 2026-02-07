@@ -4,7 +4,7 @@ Interactive Regression Model (IRM) based on the new DoubleMLScalar hierarchy.
 
 from __future__ import annotations
 
-from typing import ClassVar, Dict, List, Optional, Self, Union
+from typing import ClassVar, Self
 
 import numpy as np
 from sklearn.base import clone
@@ -78,7 +78,7 @@ class IRM(LinearScoreMixin):
     """
 
     # Define learner specifications for IRM
-    _LEARNER_SPECS: ClassVar[Dict[str, LearnerSpec]] = {
+    _LEARNER_SPECS: ClassVar[dict[str, LearnerSpec]] = {
         "ml_g0": LearnerSpec("ml_g0", allow_regressor=True, allow_classifier=True, binary_data_check="outcome"),
         "ml_g1": LearnerSpec("ml_g1", allow_regressor=True, allow_classifier=True, binary_data_check="outcome"),
         "ml_m": LearnerSpec("ml_m", allow_regressor=False, allow_classifier=True),
@@ -88,11 +88,11 @@ class IRM(LinearScoreMixin):
         self,
         obj_dml_data: DoubleMLData,
         score: str = "ATE",
-        ml_g: Optional[object] = None,
-        ml_m: Optional[object] = None,
+        ml_g: object | None = None,
+        ml_m: object | None = None,
         normalize_ipw: bool = False,
-        weights: Optional[Union[np.ndarray, Dict]] = None,
-        ps_processor_config: Optional[PSProcessorConfig] = None,
+        weights: np.ndarray | dict | None = None,
+        ps_processor_config: PSProcessorConfig | None = None,
     ):
         """
         Initialize IRM model.
@@ -165,12 +165,12 @@ class IRM(LinearScoreMixin):
         return self._ps_processor
 
     @property
-    def weights(self) -> Dict:
+    def weights(self) -> dict:
         """Weights for weighted ATE/ATTE."""
         return self._weights
 
     @property
-    def required_learners(self) -> List[str]:
+    def required_learners(self) -> list[str]:
         """Required learners for IRM: ml_g0, ml_g1, and ml_m."""
         return ["ml_g0", "ml_g1", "ml_m"]
 
@@ -178,10 +178,10 @@ class IRM(LinearScoreMixin):
 
     def set_learners(
         self,
-        ml_g: Optional[object] = None,
-        ml_g0: Optional[object] = None,
-        ml_g1: Optional[object] = None,
-        ml_m: Optional[object] = None,
+        ml_g: object | None = None,
+        ml_g0: object | None = None,
+        ml_g1: object | None = None,
+        ml_m: object | None = None,
     ) -> Self:
         """
         Set the learners for nuisance estimation.
@@ -269,7 +269,7 @@ class IRM(LinearScoreMixin):
         test_idx: np.ndarray,
         i_rep: int,
         i_fold: int,
-        external_predictions: Optional[Dict[str, np.ndarray]] = None,
+        external_predictions: dict[str, np.ndarray] | None = None,
     ) -> None:
         x = self._dml_data.x
         y = self._dml_data.y
@@ -308,7 +308,7 @@ class IRM(LinearScoreMixin):
 
     # ==================== Score Elements ====================
 
-    def _get_score_elements(self) -> Dict[str, np.ndarray]:
+    def _get_score_elements(self) -> dict[str, np.ndarray]:
         y = self._dml_data.y
         d = self._dml_data.d
 
@@ -371,17 +371,18 @@ class IRM(LinearScoreMixin):
                 "needs to be specified as treatment variable."
             )
 
-    def _initialize_weights(self, weights: Optional[Union[np.ndarray, Dict]]) -> None:
+    def _initialize_weights(self, weights: np.ndarray | dict | None) -> None:
         """Initialize weights storage."""
         if weights is None:
             weights = np.ones(self._dml_data.n_obs)
         if isinstance(weights, np.ndarray):
             self._weights = {"weights": weights}
         else:
-            assert isinstance(weights, dict)
+            if not isinstance(weights, dict):
+                raise TypeError(f"weights must be np.ndarray or dict, got {type(weights).__name__}")
             self._weights = weights
 
-    def _get_weights(self, m_hat: np.ndarray) -> tuple:
+    def _get_weights(self, m_hat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Compute weights and weights_bar for score computation.
 
@@ -408,8 +409,7 @@ class IRM(LinearScoreMixin):
             else:
                 weights_bar = weights.copy()
         else:
-            # ATTE
-            assert self.score == "ATTE"
+            # ATTE (score validated in __init__)
             w = self._weights["weights"]
             subgroup = w * d
             subgroup_probability = np.mean(subgroup)
