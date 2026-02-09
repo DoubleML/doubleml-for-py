@@ -16,7 +16,6 @@ from ..utils._checks import _check_score, _check_weights
 from ..utils._learner import LearnerSpec, predict_nuisance
 from ..utils._propensity_score import _propensity_score_adjustment
 from ..utils.propensity_score_processing import PSProcessor, PSProcessorConfig
-from ..utils.resampling import DoubleMLResampling
 
 
 class IRM(LinearScoreMixin):
@@ -126,6 +125,9 @@ class IRM(LinearScoreMixin):
             score=score,
         )
 
+        # Enable stratified sample splitting for binary treatment
+        self._stratify_variable = self._dml_data.d
+
         # Normalize IPW
         if not isinstance(normalize_ipw, bool):
             raise TypeError("Normalization indicator has to be boolean. " f"Object of type {str(type(normalize_ipw))} passed.")
@@ -220,46 +222,6 @@ class IRM(LinearScoreMixin):
                 self._register_learner(name, learner)
 
         self._reset_fit_state()
-        return self
-
-    # ==================== Sample Splitting ====================
-
-    def draw_sample_splitting(self, n_folds: int = 5, n_rep: int = 1) -> Self:
-        """
-        Draw stratified sample splitting for cross-fitting.
-
-        Uses stratified K-fold splitting to ensure each fold contains both
-        treatment groups (D=0 and D=1).
-
-        Parameters
-        ----------
-        n_folds : int, optional
-            Number of folds for cross-fitting. Default is 5.
-        n_rep : int, optional
-            Number of repetitions for sample splitting. Default is 1.
-
-        Returns
-        -------
-        self : IRM
-            The estimator with initialized sample splits.
-        """
-        if not isinstance(n_folds, int) or n_folds < 2:
-            raise ValueError(f"n_folds must be an integer >= 2. Got {n_folds}.")
-        if not isinstance(n_rep, int) or n_rep < 1:
-            raise ValueError(f"n_rep must be an integer >= 1. Got {n_rep}.")
-
-        self._n_folds = n_folds
-        self._n_rep = n_rep
-
-        # Create stratified resampler
-        resampler = DoubleMLResampling(
-            n_folds=n_folds,
-            n_rep=n_rep,
-            n_obs=self._n_obs,
-            stratify=self._dml_data.d,
-        )
-
-        self._smpls = resampler.split_samples()
         return self
 
     # ==================== Nuisance Estimation ====================

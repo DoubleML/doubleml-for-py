@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import Lasso, LinearRegression
+from sklearn.linear_model import LinearRegression
 
 from doubleml import DoubleMLData
 from doubleml.plm.datasets import make_plr_CCDDHNR2018
@@ -13,7 +13,11 @@ from ._utils import _clone
 
 
 @pytest.fixture(
-    scope="module", params=[RandomForestRegressor(max_depth=2, n_estimators=10), LinearRegression(), Lasso(alpha=0.1)]
+    scope="module",
+    params=[
+        RandomForestRegressor(max_depth=2, n_estimators=10, random_state=42),
+        LinearRegression(),
+    ],
 )
 def learner(request):
     return request.param

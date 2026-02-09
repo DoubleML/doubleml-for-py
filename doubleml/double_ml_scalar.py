@@ -90,6 +90,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._n_rep: int | None = None
         self._smpls: list | None = None
         self._smpls_cluster: list | None = None
+        self._stratify_variable: np.ndarray | None = None  # For stratified sample splitting
 
         # Initialize storage for predictions and results
         self._predictions: dict[str, np.ndarray] | None = None
@@ -528,11 +529,12 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             self._n_folds_per_cluster = None
             self._n_rep = n_rep
 
-            # Create resampler
+            # Create resampler (with optional stratification)
             resampler = DoubleMLResampling(
                 n_folds=n_folds,
                 n_rep=n_rep,
                 n_obs=self._n_obs,
+                stratify=self._stratify_variable,
             )
 
             # Generate splits
