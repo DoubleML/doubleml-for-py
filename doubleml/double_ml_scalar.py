@@ -3,7 +3,7 @@ Abstract base class for scalar DoubleML models (single parameter estimation).
 """
 
 from abc import ABC, abstractmethod
-from typing import ClassVar, Dict, List, Optional, Self
+from typing import ClassVar, Self
 
 import numpy as np
 
@@ -11,8 +11,9 @@ from .data.base_data import DoubleMLBaseData
 from .double_ml_base import DoubleMLBase
 from .double_ml_framework import DoubleMLCore as DoubleMLCoreData
 from .double_ml_framework import DoubleMLFramework
+from .utils._checks import _check_sample_splitting
 from .utils._learner import LearnerInfo, LearnerSpec, validate_learner
-from .utils.resampling import DoubleMLResampling
+from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
 
 class DoubleMLScalar(DoubleMLBase, ABC):
@@ -45,7 +46,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     """
 
     # Subclasses define all possible learners for the model
-    _LEARNER_SPECS: ClassVar[Dict[str, LearnerSpec]]
+    _LEARNER_SPECS: ClassVar[dict[str, LearnerSpec]]
 
     def __init__(
         self,
@@ -81,24 +82,26 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._score = score
 
         # Learner storage: single dict for all learner state
-        self._learners: Dict[str, LearnerInfo] = {}
+        self._learners: dict[str, LearnerInfo] = {}
 
         # Resampling parameters (set via draw_sample_splitting)
-        self._n_folds: Optional[int] = None
-        self._n_rep: Optional[int] = None
-        self._smpls: Optional[List] = None
+        self._n_folds: int | None = None
+        self._n_folds_per_cluster: int | None = None
+        self._n_rep: int | None = None
+        self._smpls: list | None = None
+        self._smpls_cluster: list | None = None
 
         # Initialize storage for predictions and results
-        self._predictions: Optional[Dict[str, np.ndarray]] = None
-        self._all_thetas: Optional[np.ndarray] = None
-        self._all_ses: Optional[np.ndarray] = None
-        self._psi: Optional[np.ndarray] = None
-        self._psi_deriv: Optional[np.ndarray] = None
-        self._var_scaling_factors: Optional[np.ndarray] = None
+        self._predictions: dict[str, np.ndarray] | None = None
+        self._all_thetas: np.ndarray | None = None
+        self._all_ses: np.ndarray | None = None
+        self._psi: np.ndarray | None = None
+        self._psi_deriv: np.ndarray | None = None
+        self._var_scaling_factors: np.ndarray | None = None
 
         # For iteration (used during fit)
-        self._i_rep: Optional[int] = None
-        self._i_fold: Optional[int] = None
+        self._i_rep: int | None = None
+        self._i_fold: int | None = None
 
     # ==================== Properties ====================
 
@@ -153,7 +156,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         return self._score
 
     @property
-    def predictions(self) -> Dict[str, np.ndarray]:
+    def predictions(self) -> dict[str, np.ndarray]:
         """
         Predictions from nuisance models.
 
@@ -172,7 +175,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         return self._predictions
 
     @property
-    def smpls(self) -> List:
+    def smpls(self) -> list:
         """
         Sample splitting indices used for cross-fitting.
 
@@ -186,8 +189,27 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         return self._smpls
 
     @property
+    def smpls_cluster(self) -> list | None:
+        """
+        Cluster-based sample splitting indices used for cross-fitting.
+
+        Returns
+        -------
+        list or None
+            List of cluster sample splitting indices for each repetition, or None.
+
+        Raises
+        ------
+        ValueError
+            If cluster data is used but cluster splitting is not available.
+        """
+        if self._dml_data.is_cluster_data and self._smpls_cluster is None:
+            raise ValueError("Cluster sample splitting has not been provided. Call set_sample_splitting() first.")
+        return self._smpls_cluster
+
+    @property
     @abstractmethod
-    def required_learners(self) -> List[str]:
+    def required_learners(self) -> list[str]:
         """
         Names of the required learners for current configuration.
 
@@ -202,7 +224,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         pass
 
     @property
-    def learners(self) -> Dict[str, object]:
+    def learners(self) -> dict[str, object]:
         """
         Access registered learner objects by name.
 
@@ -213,7 +235,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         """
         return {name: info.learner for name, info in self._learners.items()}
 
-    def get_params(self, learner_name: str) -> Dict:
+    def get_params(self, learner_name: str) -> dict:
         """
         Get parameters of a registered learner.
 
@@ -316,8 +338,8 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self,
         n_folds: int = 5,
         n_rep: int = 1,
-        n_jobs_cv: Optional[int] = None,
-        external_predictions: Optional[Dict[str, np.ndarray]] = None,
+        n_jobs_cv: int | None = None,
+        external_predictions: dict[str, np.ndarray] | None = None,
         **kwargs,
     ) -> Self:
         """
@@ -358,8 +380,8 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
     def fit_nuisance_models(
         self,
-        n_jobs_cv: Optional[int] = None,
-        external_predictions: Optional[Dict[str, np.ndarray]] = None,
+        n_jobs_cv: int | None = None,
+        external_predictions: dict[str, np.ndarray] | None = None,
     ) -> Self:
         """
         Fit nuisance models via cross-fitting.
@@ -388,6 +410,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         """
         if self._smpls is None:
             raise ValueError("Sample splitting has not been initialized. Call draw_sample_splitting() first.")
+
+        if external_predictions is not None:
+            self._check_external_predictions(external_predictions)
 
         # Validate that all required learners are available
         self._check_learners_available(external_predictions)
@@ -485,18 +510,93 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         if not isinstance(n_rep, int) or n_rep < 1:
             raise ValueError(f"n_rep must be an integer >= 1. Got {n_rep}.")
 
-        self._n_folds = n_folds
-        self._n_rep = n_rep
+        if self._dml_data.is_cluster_data:
+            self._n_folds_per_cluster = n_folds
+            self._n_rep = n_rep
+            self._n_folds = n_folds**self._dml_data.n_cluster_vars
 
-        # Create resampler
-        resampler = DoubleMLResampling(
-            n_folds=n_folds,
-            n_rep=n_rep,
+            resampler = DoubleMLClusterResampling(
+                n_folds=n_folds,
+                n_rep=n_rep,
+                n_obs=self._n_obs,
+                n_cluster_vars=self._dml_data.n_cluster_vars,
+                cluster_vars=self._dml_data.cluster_vars,
+            )
+            self._smpls, self._smpls_cluster = resampler.split_samples()
+        else:
+            self._n_folds = n_folds
+            self._n_folds_per_cluster = None
+            self._n_rep = n_rep
+
+            # Create resampler
+            resampler = DoubleMLResampling(
+                n_folds=n_folds,
+                n_rep=n_rep,
+                n_obs=self._n_obs,
+            )
+
+            # Generate splits
+            self._smpls = resampler.split_samples()
+            self._smpls_cluster = None
+
+        self._reset_fit_state()
+
+        return self
+
+    def set_sample_splitting(self, all_smpls: list, all_smpls_cluster: list | None = None) -> Self:
+        """
+        Set the sample splitting for DoubleMLScalar models.
+
+        Parameters
+        ----------
+        all_smpls : list
+            List of tuples (train_ind, test_ind) per fold, or list of lists of tuples
+            for repeated sample splitting.
+        all_smpls_cluster : list or None
+            Nested list for cluster sample splitting. Required for cluster data.
+            Default is ``None``.
+
+        Returns
+        -------
+        self : Self
+
+        Raises
+        ------
+        TypeError
+            If ``all_smpls`` is not a list or if tuple shorthand is used.
+        ValueError
+            If the partition is invalid or cluster splitting is missing.
+        """
+        if isinstance(all_smpls, tuple):
+            raise TypeError("all_smpls must be a list of folds; tuple shorthand is not supported for DoubleMLScalar.")
+        if not isinstance(all_smpls, list):
+            raise TypeError(f"all_smpls must be of list type. {str(all_smpls)} of type {str(type(all_smpls))} was passed.")
+
+        smpls, smpls_cluster, n_rep, n_folds = _check_sample_splitting(
+            all_smpls,
+            all_smpls_cluster,
+            self._dml_data,
+            self._dml_data.is_cluster_data,
             n_obs=self._n_obs,
         )
 
-        # Generate splits
-        self._smpls = resampler.split_samples()
+        self._smpls = smpls
+        self._smpls_cluster = smpls_cluster
+        self._n_rep = n_rep
+        self._n_folds = n_folds
+        if self._dml_data.is_cluster_data:
+            n_cluster_vars = self._dml_data.n_cluster_vars
+            n_folds_per_cluster = int(round(n_folds ** (1.0 / n_cluster_vars)))
+            if n_folds_per_cluster**n_cluster_vars != n_folds:
+                raise ValueError(
+                    "Invalid cluster sample splitting. n_folds must be a power of n_folds_per_cluster "
+                    "for the number of cluster variables."
+                )
+            self._n_folds_per_cluster = n_folds_per_cluster
+        else:
+            self._n_folds_per_cluster = None
+
+        self._reset_fit_state()
 
         return self
 
@@ -514,7 +614,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._psi = np.zeros((n_obs, n_thetas, n_rep))
         self._psi_deriv = np.zeros((n_obs, n_thetas, n_rep))
 
-    def _initialize_predictions_dict(self) -> Dict[str, np.ndarray]:
+    def _initialize_predictions_dict(self) -> dict[str, np.ndarray]:
         """
         Initialize dictionary for storing predictions.
 
@@ -531,7 +631,37 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         n_rep = self.n_rep
         return {name: np.full((n_obs, n_rep), np.nan) for name in self.required_learners}
 
-    def _check_learners_available(self, external_predictions: Optional[Dict[str, np.ndarray]] = None) -> None:
+    def _check_external_predictions(self, external_predictions: dict[str, np.ndarray]) -> None:
+        """
+        Validate external prediction arrays.
+
+        Parameters
+        ----------
+        external_predictions : dict
+            Dictionary of external predictions keyed by learner name.
+
+        Raises
+        ------
+        TypeError
+            If a value is not a numpy array.
+        ValueError
+            If a value does not match shape (n_obs, n_rep).
+        """
+        n_obs = self._n_obs
+        n_rep = self.n_rep
+        required = set(self.required_learners)
+
+        for key, values in external_predictions.items():
+            if key not in required:
+                raise ValueError(
+                    f"External predictions provided for unknown learner '{key}'. " f"Allowed learners: {sorted(required)}."
+                )
+            if not isinstance(values, np.ndarray):
+                raise TypeError(f"External predictions for '{key}' must be a numpy array. Got {type(values).__name__}.")
+            if values.shape != (n_obs, n_rep):
+                raise ValueError(f"External predictions for '{key}' must have shape ({n_obs}, {n_rep}). Got {values.shape}.")
+
+    def _check_learners_available(self, external_predictions: dict[str, np.ndarray] | None = None) -> None:
         """
         Validate that all required learners are set or covered by external predictions.
 
@@ -567,13 +697,23 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         # Both already in framework shape: (n_obs, n_thetas, n_rep)
         scaled_psi = np.divide(self._psi, np.mean(self._psi_deriv, axis=0, keepdims=True))
 
+        cluster_dict = None
+        if self._dml_data.is_cluster_data:
+            cluster_dict = {
+                "smpls": self.smpls,
+                "smpls_cluster": self.smpls_cluster,
+                "cluster_vars": self._dml_data.cluster_vars,
+                "n_folds_per_cluster": self._n_folds_per_cluster,
+            }
+
         # Create data container (no transpose needed - already in framework convention!)
         framework_data = DoubleMLCoreData(
             all_thetas=self._all_thetas,  # (n_thetas, n_rep)
             all_ses=self._all_ses,  # (n_thetas, n_rep)
             var_scaling_factors=self._var_scaling_factors,  # (n_thetas,)
             scaled_psi=scaled_psi,  # (n_obs, n_thetas, n_rep)
-            is_cluster_data=False,  # TODO: Add cluster data support
+            is_cluster_data=self._dml_data.is_cluster_data,
+            cluster_dict=cluster_dict,
         )
 
         # Create and return framework
@@ -581,6 +721,18 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             dml_core=framework_data,
             treatment_names=self._dml_data.d_cols,
         )
+
+    def _reset_fit_state(self) -> None:
+        """Clear fit-dependent state after changing the sample splitting."""
+        self._predictions = None
+        self._framework = None
+        self._all_thetas = None
+        self._all_ses = None
+        self._psi = None
+        self._psi_deriv = None
+        self._var_scaling_factors = None
+        self._i_rep = None
+        self._i_fold = None
 
     # ==================== Abstract Methods (Must be Implemented by Subclasses) ====================
 
@@ -591,7 +743,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         test_idx: np.ndarray,
         i_rep: int,
         i_fold: int,
-        external_predictions: Optional[Dict[str, np.ndarray]] = None,
+        external_predictions: dict[str, np.ndarray] | None = None,
     ) -> None:
         """
         Estimate nuisance parameters for one fold.
@@ -621,7 +773,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         pass
 
     @abstractmethod
-    def _get_score_elements(self) -> Dict[str, np.ndarray]:
+    def _get_score_elements(self) -> dict[str, np.ndarray]:
         """
         Compute score function elements from nuisance predictions.
 
@@ -647,7 +799,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         pass
 
     @abstractmethod
-    def _est_causal_pars_and_se(self, psi_elements: Dict[str, np.ndarray]) -> None:
+    def _est_causal_pars_and_se(self, psi_elements: dict[str, np.ndarray]) -> None:
         """
         Estimate causal parameters and standard errors from score elements.
 
