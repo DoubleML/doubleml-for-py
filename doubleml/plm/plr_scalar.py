@@ -128,6 +128,7 @@ class PLR(LinearScoreMixin):
 
         # IV-type: clone ml_l to ml_g if only one provided
         self._handle_iv_cloning()
+        self._reset_fit_state()
         return self
 
     def _handle_iv_cloning(self) -> None:

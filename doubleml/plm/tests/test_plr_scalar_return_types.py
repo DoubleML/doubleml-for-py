@@ -1,3 +1,5 @@
+"""Validate PLR scalar return types and reset behavior."""
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -148,8 +150,43 @@ def test_get_params_invalid_learner(fitted_dml_obj):
 
 @pytest.mark.ci
 def test_before_fit_raises():
+    """Raise errors when accessing results before fitting."""
     np.random.seed(3141)
     dml_obj = PLR(obj_dml_data)
+    with pytest.raises(ValueError, match="framework is not yet initialized"):
+        _ = dml_obj.coef
+    with pytest.raises(ValueError, match="Predictions not available. Call fit"):
+        _ = dml_obj.predictions
+
+
+@pytest.mark.ci
+def test_reset_after_set_learners():
+    """Reset fitted state after updating learners."""
+    np.random.seed(3141)
+    dml_obj = PLR(obj_dml_data)
+    dml_obj.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression())
+    dml_obj.draw_sample_splitting(n_folds=N_FOLDS, n_rep=N_REP)
+    dml_obj.fit()
+
+    dml_obj.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression())
+
+    with pytest.raises(ValueError, match="framework is not yet initialized"):
+        _ = dml_obj.coef
+    with pytest.raises(ValueError, match="Predictions not available. Call fit"):
+        _ = dml_obj.predictions
+
+
+@pytest.mark.ci
+def test_reset_after_draw_sample_splitting():
+    """Reset fitted state after changing sample splits."""
+    np.random.seed(3141)
+    dml_obj = PLR(obj_dml_data)
+    dml_obj.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression())
+    dml_obj.draw_sample_splitting(n_folds=N_FOLDS, n_rep=N_REP)
+    dml_obj.fit()
+
+    dml_obj.draw_sample_splitting(n_folds=N_FOLDS, n_rep=N_REP)
+
     with pytest.raises(ValueError, match="framework is not yet initialized"):
         _ = dml_obj.coef
     with pytest.raises(ValueError, match="Predictions not available. Call fit"):

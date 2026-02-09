@@ -219,6 +219,7 @@ class IRM(LinearScoreMixin):
             if learner is not None:
                 self._register_learner(name, learner)
 
+        self._reset_fit_state()
         return self
 
     # ==================== Sample Splitting ====================
