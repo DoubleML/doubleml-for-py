@@ -6,6 +6,8 @@ import pytest
 
 import doubleml as dml
 
+from doubleml.utils._estimation import _aggregate_coefs_and_ses
+
 from ._utils_blp_manual import blp_confint, fit_blp
 
 
@@ -127,6 +129,35 @@ def test_dml_blp_defaults():
 
 
 @pytest.mark.ci
+def test_dml_blp_multi_rep():
+    n = 50
+    n_rep = 3
+    np.random.seed(42)
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
+    random_signal = np.random.normal(0, 1, size=(n, n_rep))
+
+    blp = dml.DoubleMLBLP(random_signal, random_basis)
+    blp.fit()
+
+    expected_coef, expected_se = _aggregate_coefs_and_ses(blp.all_coef, blp.all_se)
+
+    assert blp.n_rep == n_rep
+    assert blp.all_coef.shape == (random_basis.shape[1], n_rep)
+    assert blp.all_se.shape == (random_basis.shape[1], n_rep)
+    assert blp.coef.shape == (random_basis.shape[1],)
+    assert blp.se.shape == (random_basis.shape[1],)
+    assert blp.blp_omega.shape == (random_basis.shape[1], random_basis.shape[1], n_rep)
+
+    assert np.allclose(blp.coef, expected_coef, rtol=1e-9, atol=1e-4)
+    assert np.allclose(blp.se, expected_se, rtol=1e-9, atol=1e-4)
+
+    ci = blp.confint(random_basis)
+    assert isinstance(ci, pd.DataFrame)
+    assert ci.shape[0] == n
+    assert isinstance(blp.summary, pd.DataFrame)
+
+
+@pytest.mark.ci
 def test_doubleml_exception_blp():
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(2, 3)))
     signal = np.array([1, 2])
@@ -134,9 +165,9 @@ def test_doubleml_exception_blp():
     msg = "The signal must be of np.ndarray type. Signal of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml.DoubleMLBLP(orth_signal=1, basis=random_basis)
-    msg = "The signal must be of one dimensional. Signal of dimensions 2 was passed."
+    msg = "The signal must be one- or two-dimensional. Signal of dimensions 3 was passed."
     with pytest.raises(ValueError, match=msg):
-        dml.DoubleMLBLP(orth_signal=np.array([[1], [2]]), basis=random_basis)
+        dml.DoubleMLBLP(orth_signal=np.array([[[1]], [[2]]]), basis=random_basis)
     msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml.DoubleMLBLP(orth_signal=signal, basis=1)
