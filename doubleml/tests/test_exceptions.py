@@ -1377,6 +1377,20 @@ def test_doubleml_exception_gate():
     with pytest.raises(ValueError, match=msg):
         dml_irm_obj.gate(groups=groups)
 
+    dml_irm_obj = DoubleMLIRM(
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.1),
+        n_folds=5,
+        score="ATE",
+        n_rep=2,
+    )
+    dml_irm_obj.fit()
+    msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.gate(groups=2)
+
 @pytest.mark.ci
 def test_doubleml_exception_cate():
     dml_irm_obj = DoubleMLIRM(
@@ -1443,6 +1457,12 @@ def test_doubleml_exception_plr_gate():
     )
     with pytest.raises(TypeError, match=msg):
         dml_plr_obj.gate(groups=pd.DataFrame(np.random.normal(0, 1, size=(dml_data.n_obs, 3))))
+
+    dml_plr_obj = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=Lasso(), n_folds=2, n_rep=2)
+    dml_plr_obj.fit()
+    msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_plr_obj.gate(groups=2)
 
 
 @pytest.mark.ci
