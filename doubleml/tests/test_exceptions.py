@@ -1377,22 +1377,6 @@ def test_doubleml_exception_gate():
     with pytest.raises(ValueError, match=msg):
         dml_irm_obj.gate(groups=groups)
 
-    dml_irm_obj = DoubleMLIRM(
-        dml_data_irm,
-        ml_g=Lasso(),
-        ml_m=LogisticRegression(),
-        ps_processor_config=PSProcessorConfig(clipping_threshold=0.1),
-        n_folds=5,
-        score="ATE",
-        n_rep=2,
-    )
-    dml_irm_obj.fit()
-
-    msg = "Only implemented for one repetition. Number of repetitions is 2."
-    with pytest.raises(NotImplementedError, match=msg):
-        dml_irm_obj.gate(groups=groups)
-
-
 @pytest.mark.ci
 def test_doubleml_exception_cate():
     dml_irm_obj = DoubleMLIRM(
@@ -1419,8 +1403,8 @@ def test_doubleml_exception_cate():
         n_rep=2,
     )
     dml_irm_obj.fit()
-    msg = "Only implemented for one repetition. Number of repetitions is 2."
-    with pytest.raises(NotImplementedError, match=msg):
+    msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
         dml_irm_obj.cate(basis=2)
 
 
@@ -1428,8 +1412,8 @@ def test_doubleml_exception_cate():
 def test_doubleml_exception_plr_cate():
     dml_plr_obj = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=Lasso(), n_folds=2, n_rep=2)
     dml_plr_obj.fit()
-    msg = "Only implemented for one repetition. Number of repetitions is 2."
-    with pytest.raises(NotImplementedError, match=msg):
+    msg = "The basis must be of DataFrame type. Basis of type <class 'numpy.ndarray'> was passed."
+    with pytest.raises(TypeError, match=msg):
         dml_plr_obj.cate(basis=2)
 
     dml_plr_obj = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=Lasso(), n_folds=2)
