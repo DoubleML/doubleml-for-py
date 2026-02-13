@@ -109,9 +109,13 @@ def _check_smpl_split_tpl(tpl, n_obs, check_intersect=False):
     return train_index, test_index
 
 
-def _check_finite_predictions(preds, learner, learner_name, smpls):
-    test_indices = np.concatenate([test_index for _, test_index in smpls])
-    if not np.all(np.isfinite(preds[test_indices])):
+def _check_finite_predictions(preds, learner, learner_name, smpls=None):
+    if smpls is not None:
+        indices = np.concatenate([test_index for _, test_index in smpls])
+        check_preds = preds[indices]
+    else:
+        check_preds = preds
+    if not np.all(np.isfinite(check_preds)):
         raise ValueError(f"Predictions from learner {str(learner)} for {learner_name} are not finite.")
     return
 
@@ -189,9 +193,12 @@ def _check_contains_iv(obj_dml_data):
     return
 
 
-def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
-    test_indices = np.concatenate([test_index for _, test_index in smpls])
-    if any((preds[test_indices] < eps) | (preds[test_indices] > 1 - eps)):
+def _check_is_propensity(preds, learner, learner_name, smpls=None, eps=1e-12):
+    if smpls is not None:
+        check_preds = preds[np.concatenate([test_index for _, test_index in smpls])]
+    else:
+        check_preds = preds
+    if any((check_preds < eps) | (check_preds > 1 - eps)):
         warnings.warn(
             f"Propensity predictions from learner {str(learner)} for {learner_name} are close to zero or one (eps={eps})."
         )

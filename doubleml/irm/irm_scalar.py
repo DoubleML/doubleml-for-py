@@ -12,7 +12,7 @@ from sklearn.utils.multiclass import type_of_target
 
 from ..data.base_data import DoubleMLData
 from ..double_ml_linear_score import LinearScoreMixin
-from ..utils._checks import _check_score, _check_weights
+from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_score, _check_weights
 from ..utils._learner import LearnerSpec, predict_nuisance
 from ..utils._propensity_score import _propensity_score_adjustment
 from ..utils.propensity_score_processing import PSProcessor, PSProcessorConfig
@@ -225,6 +225,34 @@ class IRM(LinearScoreMixin):
         return self
 
     # ==================== Nuisance Estimation ====================
+
+    def _post_nuisance_checks(self) -> None:
+        """Check predictions for validity after cross-fitting completes."""
+        for i_rep in range(self.n_rep):
+            # After full K-fold cross-fitting all observations are test observations
+            # in exactly one fold, so the full prediction array is populated.
+
+            # Skip checks for learners with external predictions (not registered in _learners)
+            if "ml_g0" in self._learners:
+                _check_finite_predictions(self._predictions["ml_g0"][:, i_rep], self._learners["ml_g0"].learner, "ml_g0")
+                if self._dml_data.binary_outcome:
+                    _check_binary_predictions(
+                        self._predictions["ml_g0"][:, i_rep],
+                        self._learners["ml_g0"].learner,
+                        "ml_g0",
+                        self._dml_data.y_col,
+                    )
+            if "ml_g1" in self._learners:
+                _check_finite_predictions(self._predictions["ml_g1"][:, i_rep], self._learners["ml_g1"].learner, "ml_g1")
+                if self._dml_data.binary_outcome:
+                    _check_binary_predictions(
+                        self._predictions["ml_g1"][:, i_rep],
+                        self._learners["ml_g1"].learner,
+                        "ml_g1",
+                        self._dml_data.y_col,
+                    )
+            if "ml_m" in self._learners:
+                _check_finite_predictions(self._predictions["ml_m"][:, i_rep], self._learners["ml_m"].learner, "ml_m")
 
     def _nuisance_est(
         self,

@@ -446,6 +446,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
                     external_predictions=external_predictions,
                 )
 
+        # Post-nuisance prediction checks (model-specific)
+        self._post_nuisance_checks()
+
         return self
 
     def estimate_causal_parameters(self) -> Self:
@@ -737,6 +740,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._i_fold = None
 
     # ==================== Abstract Methods (Must be Implemented by Subclasses) ====================
+
+    def _post_nuisance_checks(self) -> None:
+        """Post-nuisance prediction validation hook. Override in subclasses for model-specific checks."""
 
     @abstractmethod
     def _nuisance_est(

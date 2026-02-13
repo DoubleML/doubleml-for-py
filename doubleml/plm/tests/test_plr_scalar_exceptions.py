@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, LogisticRegression
 
 import doubleml as dml
 from doubleml.plm.datasets import make_plr_CCDDHNR2018
@@ -9,6 +9,15 @@ from doubleml.plm.plr_scalar import PLR
 
 np.random.seed(3141)
 obj_dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=10, alpha=0.5)
+
+# Binary-outcome data for binary-specific tests
+np.random.seed(42)
+_n = 100
+_X = np.random.normal(size=(_n, 3))
+_d = (np.random.normal(size=_n) > 0).astype(float)
+_y_bin = (np.random.normal(size=_n) > 0).astype(float)
+_df_binary = pd.DataFrame({"y": _y_bin, "d": _d, "X1": _X[:, 0], "X2": _X[:, 1], "X3": _X[:, 2]})
+obj_dml_data_binary = dml.DoubleMLData(_df_binary, y_col="y", d_cols="d", x_cols=["X1", "X2", "X3"])
 
 # Create data with instruments for IV check
 df = obj_dml_data.data.copy()
@@ -110,3 +119,20 @@ def test_plr_scalar_exception_invalid_learner():
     msg = r"Invalid learner provided for ml_l: provide an instance"
     with pytest.raises(TypeError, match=msg):
         dml_obj.set_learners(ml_l=Lasso)  # class instead of instance
+
+
+@pytest.mark.ci
+def test_plr_scalar_exception_iv_type_binary_outcome():
+    """IV-type score with binary outcome raises ValueError."""
+    msg = r"For score = 'IV-type', additive probability models \(binary outcomes\) are not supported\."
+    with pytest.raises(ValueError, match=msg):
+        PLR(obj_dml_data_binary, score="IV-type")
+
+
+@pytest.mark.ci
+def test_plr_scalar_warning_binary_outcome_classifier():
+    """Classifier ml_l with binary outcome warns about fitting an additive probability model."""
+    dml_obj = PLR(obj_dml_data_binary)
+    msg = r"The ml_l learner .+ was identified as classifier\. Fitting an additive probability model\."
+    with pytest.warns(UserWarning, match=msg):
+        dml_obj.set_learners(ml_l=LogisticRegression(), ml_m=Lasso())

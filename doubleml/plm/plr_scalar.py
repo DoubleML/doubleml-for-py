@@ -12,6 +12,7 @@ from sklearn.base import clone
 
 from ..data.base_data import DoubleMLData
 from ..double_ml_linear_score import LinearScoreMixin
+from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity
 from ..utils._learner import LearnerSpec, predict_nuisance
 
 
@@ -73,6 +74,8 @@ class PLR(LinearScoreMixin):
         valid_scores = ["partialling out", "IV-type"]
         if score not in valid_scores:
             raise ValueError(f"Invalid score '{score}'. Valid scores: {valid_scores}.")
+        if score == "IV-type" and obj_dml_data.binary_outcome:
+            raise ValueError("For score = 'IV-type', additive probability models (binary outcomes) are not supported.")
 
         super().__init__(
             obj_dml_data=obj_dml_data,
@@ -126,6 +129,14 @@ class PLR(LinearScoreMixin):
                 continue
             self._register_learner(name, learner)
 
+        # Warn when a classifier is used for ml_l with a binary outcome
+        if ml_l is not None and "ml_l" in self._learners:
+            if self._learners["ml_l"].is_classifier and self._dml_data.binary_outcome:
+                warnings.warn(
+                    f"The ml_l learner {str(ml_l)} was identified as classifier. " "Fitting an additive probability model.",
+                    UserWarning,
+                )
+
         # IV-type: clone ml_l to ml_g if only one provided
         self._handle_iv_cloning()
         self._reset_fit_state()
@@ -172,6 +183,35 @@ class PLR(LinearScoreMixin):
                 "Incompatible data. " + " and ".join(obj_dml_data.z_cols) + " have been set as instrumental variable(s). "
                 "To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR."
             )
+
+    def _post_nuisance_checks(self) -> None:
+        """Check predictions for validity after cross-fitting completes."""
+        for i_rep in range(self.n_rep):
+            # After full K-fold cross-fitting, all observations are test observations
+            # in exactly one fold, so the full prediction array is populated.
+
+            # Skip checks for learners with external predictions (not registered in _learners)
+            if "ml_l" in self._learners:
+                _check_finite_predictions(self._predictions["ml_l"][:, i_rep], self._learners["ml_l"].learner, "ml_l")
+            if "ml_m" in self._learners:
+                _check_finite_predictions(self._predictions["ml_m"][:, i_rep], self._learners["ml_m"].learner, "ml_m")
+
+                # Propensity score range check when ml_m is a classifier
+                if self._learners["ml_m"].is_classifier:
+                    _check_is_propensity(
+                        self._predictions["ml_m"][:, i_rep],
+                        self._learners["ml_m"].learner,
+                        "ml_m",
+                    )
+
+                # Binary predictions check for binary treatment
+                if self._dml_data.binary_treats.all():
+                    _check_binary_predictions(
+                        self._predictions["ml_m"][:, i_rep],
+                        self._learners["ml_m"].learner,
+                        "ml_m",
+                        self._dml_data.d_cols[0],
+                    )
 
     def _nuisance_est(
         self,

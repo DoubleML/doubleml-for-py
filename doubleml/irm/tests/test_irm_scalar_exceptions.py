@@ -4,12 +4,33 @@ import pytest
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 
+import doubleml as dml
 from doubleml.irm.datasets import make_irm_data
 from doubleml.irm.irm_scalar import IRM
 from doubleml.plm.datasets import make_plr_CCDDHNR2018
 
 np.random.seed(3141)
 obj_dml_data = make_irm_data(theta=0.5, n_obs=100, dim_x=10, return_type="DoubleMLData")
+
+# Binary-outcome data for binary predictions check tests
+np.random.seed(42)
+_n = 200
+_X = np.random.normal(size=(_n, 3))
+_d_bin = (np.random.normal(size=_n) > 0).astype(float)
+_y_bin = (np.random.normal(size=_n) > 0).astype(float)
+_df_binary = pd.DataFrame({"y": _y_bin, "d": _d_bin, "X1": _X[:, 0], "X2": _X[:, 1], "X3": _X[:, 2]})
+obj_dml_data_binary = dml.DoubleMLData(_df_binary, y_col="y", d_cols="d", x_cols=["X1", "X2", "X3"])
+
+
+class _HardLabelClassifier(RandomForestClassifier):
+    """Classifier that returns hard 0/1 labels instead of probabilities — for testing only."""
+
+    def predict_proba(self, X):
+        preds = np.zeros((len(X), 2))
+        preds[:, 1] = (np.arange(len(X)) % 2).astype(float)
+        preds[:, 0] = 1.0 - preds[:, 1]
+        return preds
+
 
 ml_g = RandomForestRegressor(n_estimators=10, max_depth=3, random_state=42)
 ml_m = RandomForestClassifier(n_estimators=10, max_depth=3, random_state=42)
@@ -131,3 +152,14 @@ def test_irm_scalar_exception_normalize_ipw_type():
     msg = r"Normalization indicator has to be boolean"
     with pytest.raises(TypeError, match=msg):
         IRM(obj_dml_data, normalize_ipw="True")
+
+
+@pytest.mark.ci
+def test_irm_scalar_exception_binary_predictions_g():
+    """Classifier ml_g returning hard labels (0/1) instead of probabilities raises ValueError."""
+    ml_m_test = RandomForestClassifier(n_estimators=5, random_state=42)
+    dml_obj = IRM(obj_dml_data_binary, ml_g=_HardLabelClassifier(), ml_m=ml_m_test)
+    dml_obj.draw_sample_splitting(n_folds=3)
+    msg = r"For the binary variable .+, predictions .+ are also observed to be binary"
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.fit_nuisance_models()
