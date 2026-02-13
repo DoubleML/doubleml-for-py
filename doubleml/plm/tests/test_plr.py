@@ -337,3 +337,45 @@ def test_dml_plr_cate_gate(score, cov_type):
     assert isinstance(gate_2.confint(), pd.DataFrame)
     assert all(gate_2.confint().index == ["Group_1", "Group_2"])
     assert gate_2.blp_model.cov_type == cov_type
+
+
+@pytest.mark.ci
+def test_dml_plr_cate_gate_multiple_rep(score, cov_type):
+    n = 120
+
+    np.random.seed(42)
+    obj_dml_data = dml.plm.datasets.make_plr_CCDDHNR2018(n_obs=n)
+    ml_l = LinearRegression()
+    ml_g = LinearRegression()
+    ml_m = LinearRegression()
+
+    if score == "partialling out":
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_l=ml_l, ml_m=ml_m, n_folds=3, n_rep=2, score=score)
+    else:
+        assert score == "IV-type"
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_l=ml_l, ml_m=ml_m, ml_g=ml_g, n_folds=3, n_rep=2, score=score)
+
+    dml_plr_obj.fit()
+
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 2)))
+    cate = dml_plr_obj.cate(random_basis, cov_type=cov_type)
+    assert isinstance(cate, dml.DoubleMLBLP)
+    assert cate.n_rep == 2
+    assert isinstance(cate.blp_model, list)
+    assert len(cate.blp_model) == 2
+    assert cate.blp_model[0].cov_type == cov_type
+    assert cate.blp_model[1].cov_type == cov_type
+    assert cate.all_coef.shape == (random_basis.shape[1], 2)
+    assert cate.all_se.shape == (random_basis.shape[1], 2)
+    assert isinstance(cate.confint(), pd.DataFrame)
+    assert isinstance(cate.summary, pd.DataFrame)
+
+    x1 = obj_dml_data.data["X1"]
+    groups = pd.DataFrame({"Group 1": x1 <= x1.median(), "Group 2": x1 > x1.median()})
+    gate = dml_plr_obj.gate(groups, cov_type=cov_type)
+    assert isinstance(gate, dml.DoubleMLBLP)
+    assert gate.n_rep == 2
+    assert gate.all_coef.shape == (groups.shape[1], 2)
+    assert gate.all_se.shape == (groups.shape[1], 2)
+    assert isinstance(gate.confint(), pd.DataFrame)
+    assert all(gate.confint().index == groups.columns.tolist())
