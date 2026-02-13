@@ -1391,6 +1391,7 @@ def test_doubleml_exception_gate():
     with pytest.raises(TypeError, match=msg):
         dml_irm_obj.gate(groups=2)
 
+
 @pytest.mark.ci
 def test_doubleml_exception_cate():
     dml_irm_obj = DoubleMLIRM(

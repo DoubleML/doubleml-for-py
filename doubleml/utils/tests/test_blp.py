@@ -5,7 +5,6 @@ import pandas as pd
 import pytest
 
 import doubleml as dml
-
 from doubleml.utils._estimation import _aggregate_coefs_and_ses
 
 from ._utils_blp_manual import blp_confint, fit_blp
