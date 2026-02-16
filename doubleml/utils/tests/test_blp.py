@@ -132,6 +132,7 @@ def test_dml_blp_defaults():
 def test_dml_blp_multi_rep():
     n = 50
     n_rep = 3
+    level = 0.9
     np.random.seed(42)
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
     random_signal = np.random.normal(0, 1, size=(n, n_rep))
@@ -155,10 +156,10 @@ def test_dml_blp_multi_rep():
     assert isinstance(ci, pd.DataFrame)
     assert ci.shape[0] == n
 
-    ci_coef = blp.confint(level=0.9)
-    critical_value = norm.ppf(1 - (1 - 0.9) / 2)
-    expected_ci_lower = np.median(blp.all_coef - critical_value * blp.all_se, axis=1)
-    expected_ci_upper = np.median(blp.all_coef + critical_value * blp.all_se, axis=1)
+    ci_coef = blp.confint(level=level)
+    critical_value = norm.ppf(1 - (1 - level) / 2)
+    expected_ci_lower = blp.coef - critical_value * blp.se
+    expected_ci_upper = blp.coef + critical_value * blp.se
     expected_ci_coef = np.vstack((expected_ci_lower, blp.coef, expected_ci_upper)).T
     assert np.allclose(ci_coef.to_numpy(), expected_ci_coef, rtol=1e-9, atol=1e-4)
 
