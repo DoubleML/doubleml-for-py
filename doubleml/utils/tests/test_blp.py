@@ -3,6 +3,7 @@ import copy
 import numpy as np
 import pandas as pd
 import pytest
+from scipy.stats import norm
 
 import doubleml as dml
 from doubleml.utils._estimation import _aggregate_coefs_and_ses
@@ -153,6 +154,14 @@ def test_dml_blp_multi_rep():
     ci = blp.confint(random_basis)
     assert isinstance(ci, pd.DataFrame)
     assert ci.shape[0] == n
+
+    ci_coef = blp.confint(level=0.9)
+    critical_value = norm.ppf(1 - (1 - 0.9) / 2)
+    expected_ci_lower = np.median(blp.all_coef - critical_value * blp.all_se, axis=1)
+    expected_ci_upper = np.median(blp.all_coef + critical_value * blp.all_se, axis=1)
+    expected_ci_coef = np.vstack((expected_ci_lower, blp.coef, expected_ci_upper)).T
+    assert np.allclose(ci_coef.to_numpy(), expected_ci_coef, rtol=1e-9, atol=1e-4)
+
     assert isinstance(blp.summary, pd.DataFrame)
 
 

@@ -291,7 +291,11 @@ class DoubleMLBLP:
                     ).T
                 else:
                     critical_value = norm.ppf(1 - alpha / 2)
-                    ci = np.vstack((self.coef - critical_value * self.se, self.coef, self.coef + critical_value * self.se)).T
+                    all_ci_lower = self.all_coef - critical_value * self.all_se
+                    all_ci_upper = self.all_coef + critical_value * self.all_se
+                    ci_lower = np.median(all_ci_lower, axis=1)
+                    ci_upper = np.median(all_ci_upper, axis=1)
+                    ci = np.vstack((ci_lower, self.coef, ci_upper)).T
                 df_ci = pd.DataFrame(
                     ci,
                     columns=["{:.1f} %".format(alpha / 2 * 100), "effect", "{:.1f} %".format((1 - alpha / 2) * 100)],
