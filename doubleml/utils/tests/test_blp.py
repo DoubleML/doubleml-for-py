@@ -52,9 +52,9 @@ def dml_blp_fixture(ci_joint, ci_level, cov_type, use_t):
     ci_2 = blp.confint(joint=ci_joint, level=ci_level, n_rep_boot=1000)
     expected_ci_2 = np.vstack(
         (
-            blp.blp_model.conf_int(alpha=(1 - ci_level) / 2)[0],
+            blp.blp_model.conf_int(alpha=(1 - ci_level))[0],
             blp.blp_model.params,
-            blp.blp_model.conf_int(alpha=(1 - ci_level) / 2)[1],
+            blp.blp_model.conf_int(alpha=(1 - ci_level))[1],
         )
     ).T
 
