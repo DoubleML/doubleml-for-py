@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from scipy.linalg import sqrtm
-from scipy.stats import norm
+from scipy.stats import norm, t
 
 from ._estimation import _aggregate_coefs_and_ses
 
@@ -160,18 +160,8 @@ class DoubleMLBLP:
         col_names = ["coef", "std err", "t", "P>|t|", "[0.025", "0.975]"]
         if self.blp_model is None:
             df_summary = pd.DataFrame(columns=col_names)
-        elif self.n_rep == 1:
-            summary_stats = {
-                "coef": self.blp_model.params,
-                "std err": self.blp_model.bse,
-                "t": self.blp_model.tvalues,
-                "P>|t|": self.blp_model.pvalues,
-                "[0.025": self.blp_model.conf_int()[0],
-                "0.975]": self.blp_model.conf_int()[1],
-            }
-            df_summary = pd.DataFrame(summary_stats, columns=col_names)
         else:
-            critical_value = norm.ppf(0.975)
+            critical_value = t.ppf(0.975, self._blp_model[0].df_resid) if self._blp_model[0].use_t else norm.ppf(0.975)
             t_values = np.divide(self.coef, self.se)
             p_values = 2 * norm.cdf(-np.abs(t_values))
             summary_stats = {
@@ -281,21 +271,12 @@ class DoubleMLBLP:
                 if joint:
                     warnings.warn("Returning pointwise confidence intervals for basis coefficients.", UserWarning)
                 # return the confidence intervals for the basis coefficients
-                if self.n_rep == 1:
-                    ci = np.vstack(
-                        (
-                            self.blp_model.conf_int(alpha=alpha / 2)[0],
-                            self.blp_model.params,
-                            self.blp_model.conf_int(alpha=alpha / 2)[1],
-                        )
-                    ).T
-                else:
-                    critical_value = norm.ppf(1 - alpha / 2)
-                    all_ci_lower = self.all_coef - critical_value * self.all_se
-                    all_ci_upper = self.all_coef + critical_value * self.all_se
-                    ci_lower = np.median(all_ci_lower, axis=1)
-                    ci_upper = np.median(all_ci_upper, axis=1)
-                    ci = np.vstack((ci_lower, self.coef, ci_upper)).T
+                critical_value = (
+                    t.ppf(1 - alpha / 2, self._blp_model[0].df_resid) if self._blp_model[0].use_t else norm.ppf(1 - alpha / 2)
+                )
+                ci_lower = self.coef - critical_value * self.se
+                ci_upper = self.coef + critical_value * self.se
+                ci = np.vstack((ci_lower, self.coef, ci_upper)).T
                 df_ci = pd.DataFrame(
                     ci,
                     columns=["{:.1f} %".format(alpha / 2 * 100), "effect", "{:.1f} %".format((1 - alpha / 2) * 100)],
@@ -315,22 +296,16 @@ class DoubleMLBLP:
 
         if joint:
             np_basis = basis.to_numpy()
-            if self.n_rep == 1:
-                # calculate the maximum t-statistic with bootstrap
+            bootstrap_samples = np.full((basis.shape[0], self.n_rep, n_rep_boot), np.nan)
+            for i_rep in range(self.n_rep):
                 normal_samples = np.random.normal(size=[basis.shape[1], n_rep_boot])
-                omega_sqrt = np.real(sqrtm(self.blp_omega))
-                bootstrap_samples = np.multiply(np.dot(np_basis, np.dot(omega_sqrt, normal_samples)).T, (1.0 / blp_se))
-            else:
-                bootstrap_samples = np.full((basis.shape[0], self.n_rep, n_rep_boot), np.nan)
-                for i_rep in range(self.n_rep):
-                    normal_samples = np.random.normal(size=[basis.shape[1], n_rep_boot])
-                    omega_sqrt = np.real(sqrtm(self._blp_omega[:, :, i_rep]))
-                    bootstrap_samples[:, i_rep, :] = np.dot(np_basis, np.dot(omega_sqrt, normal_samples))
+                omega_sqrt = np.real(sqrtm(self._blp_omega[:, :, i_rep]))
+                bootstrap_samples[:, i_rep, :] = np.dot(np_basis, np.dot(omega_sqrt, normal_samples))
 
-                # aggregate the draws over repetitions according to the median aggregation rule
-                bootstrap_samples = np.divide(np.median(bootstrap_samples, axis=1), blp_se.reshape(-1, 1))
+            # aggregate the draws over repetitions according to the median aggregation rule
+            bootstrap_samples = np.divide(np.median(bootstrap_samples, axis=1), blp_se.reshape(-1, 1))
 
-            max_t_stat = np.quantile(np.max(np.abs(bootstrap_samples), axis=0), q=level)
+            max_t_stat = np.quantile(np.max(np.abs(bootstrap_samples), axis=1), q=level)
 
             # Lower simultaneous CI
             g_hat_lower = g_hat - max_t_stat * blp_se
