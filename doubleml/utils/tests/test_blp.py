@@ -3,10 +3,8 @@ import copy
 import numpy as np
 import pandas as pd
 import pytest
-from scipy.stats import norm
 
 import doubleml as dml
-from doubleml.utils._estimation import _aggregate_coefs_and_ses
 
 from ._utils_blp_manual import blp_confint, fit_blp
 
@@ -31,43 +29,64 @@ def use_t(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=[1, 3])
+def n_rep(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def dml_blp_fixture(ci_joint, ci_level, cov_type, use_t):
+def dml_blp_fixture(ci_joint, ci_level, cov_type, use_t, n_rep):
     n = 50
     kwargs = {"cov_type": cov_type, "use_t": use_t}
 
     np.random.seed(42)
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
-    random_signal = np.random.normal(0, 1, size=(n,))
+    random_signal = np.random.normal(0, 1, size=(n, n_rep))
 
     blp = dml.DoubleMLBLP(random_signal, random_basis)
 
     blp_obj = copy.copy(blp)
     blp.fit(**kwargs)
-    blp_manual = fit_blp(random_signal, random_basis, **kwargs)
+    blp_manual = []
+    for i in range(n_rep):
+        blp_manual.append(fit_blp(random_signal[:, i], random_basis, **kwargs))
 
     np.random.seed(42)
     ci_1 = blp.confint(random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
     np.random.seed(42)
     ci_2 = blp.confint(joint=ci_joint, level=ci_level, n_rep_boot=1000)
-    expected_ci_2 = np.vstack(
-        (
-            blp.blp_model.conf_int(alpha=(1 - ci_level))[0],
-            blp.blp_model.params,
-            blp.blp_model.conf_int(alpha=(1 - ci_level))[1],
+    expected_ci_2 = []
+    for i in range(n_rep):
+        expected_ci_2.append(
+            np.vstack(
+                (
+                    blp.blp_model[i].conf_int(alpha=(1 - ci_level))[0],
+                    blp.blp_model[i].params,
+                    blp.blp_model[i].conf_int(alpha=(1 - ci_level))[1],
+                )
+            ).T
         )
-    ).T
+    expected_ci_2 = np.median(np.array(expected_ci_2), axis=0)
 
     np.random.seed(42)
-    ci_manual = blp_confint(blp_manual, random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
+    ci_manual = []
+    for i in range(n_rep):
+        ci_manual.append(blp_confint(blp_manual[i], random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000))
+    ci_manual = np.median(np.array([ci_manual[i].to_numpy() for i in range(n_rep)]), axis=0)
+
+    coef_manual = np.median(np.array([blp_manual[i].params for i in range(n_rep)]), axis=0)
+    omega_manual = np.transpose(np.array([blp_manual[i].cov_params().to_numpy() for i in range(n_rep)]), (1, 2, 0))
+
+    fittedvalues_manual = np.array([blp_manual[i].fittedvalues for i in range(n_rep)])
+    fittedvalues = np.array([blp.blp_model[i].fittedvalues for i in range(n_rep)])
 
     res_dict = {
-        "coef": blp.blp_model.params,
-        "coef_manual": blp_manual.params,
-        "values": blp.blp_model.fittedvalues,
-        "values_manual": blp_manual.fittedvalues,
+        "coef": blp.coef,
+        "coef_manual": coef_manual,
+        "values": fittedvalues,
+        "values_manual": fittedvalues_manual,
         "omega": blp.blp_omega,
-        "omega_manual": blp_manual.cov_params().to_numpy(),
+        "omega_manual": omega_manual,
         "basis": blp.basis,
         "signal": blp.orth_signal,
         "ci_1": ci_1,
@@ -123,47 +142,9 @@ def test_dml_blp_defaults():
     blp = dml.DoubleMLBLP(random_signal, random_basis)
     blp.fit()
 
-    assert np.allclose(blp.blp_omega, blp.blp_model.cov_HC0, rtol=1e-9, atol=1e-4)
+    assert np.allclose(blp.blp_omega[:, :, 0], blp.blp_model[0].cov_HC0, rtol=1e-9, atol=1e-4)
 
     assert blp._is_gate is False
-
-
-@pytest.mark.ci
-def test_dml_blp_multi_rep():
-    n = 50
-    n_rep = 3
-    level = 0.9
-    np.random.seed(42)
-    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
-    random_signal = np.random.normal(0, 1, size=(n, n_rep))
-
-    blp = dml.DoubleMLBLP(random_signal, random_basis)
-    blp.fit()
-
-    expected_coef, expected_se = _aggregate_coefs_and_ses(blp.all_coef, blp.all_se)
-
-    assert blp.n_rep == n_rep
-    assert blp.all_coef.shape == (random_basis.shape[1], n_rep)
-    assert blp.all_se.shape == (random_basis.shape[1], n_rep)
-    assert blp.coef.shape == (random_basis.shape[1],)
-    assert blp.se.shape == (random_basis.shape[1],)
-    assert blp.blp_omega.shape == (random_basis.shape[1], random_basis.shape[1], n_rep)
-
-    assert np.allclose(blp.coef, expected_coef, rtol=1e-9, atol=1e-4)
-    assert np.allclose(blp.se, expected_se, rtol=1e-9, atol=1e-4)
-
-    ci = blp.confint(random_basis)
-    assert isinstance(ci, pd.DataFrame)
-    assert ci.shape[0] == n
-
-    ci_coef = blp.confint(level=level)
-    critical_value = norm.ppf(1 - (1 - level) / 2)
-    expected_ci_lower = blp.coef - critical_value * blp.se
-    expected_ci_upper = blp.coef + critical_value * blp.se
-    expected_ci_coef = np.vstack((expected_ci_lower, blp.coef, expected_ci_upper)).T
-    assert np.allclose(ci_coef.to_numpy(), expected_ci_coef, rtol=1e-9, atol=1e-4)
-
-    assert isinstance(blp.summary, pd.DataFrame)
 
 
 @pytest.mark.ci
