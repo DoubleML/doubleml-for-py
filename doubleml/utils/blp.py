@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from scipy.linalg import sqrtm
-from scipy.stats import norm, t
+from scipy.stats import norm
 
 from ._estimation import _aggregate_coefs_and_ses
 
@@ -161,7 +161,7 @@ class DoubleMLBLP:
         if self.blp_model is None:
             df_summary = pd.DataFrame(columns=col_names)
         else:
-            critical_value = t.ppf(0.975, self._blp_model[0].df_resid) if self._blp_model[0].use_t else norm.ppf(0.975)
+            conf_int_values = [self._blp_model[i].conf_int() for i in range(self.n_rep)]
             t_values = np.divide(self.coef, self.se)
             p_values = 2 * norm.cdf(-np.abs(t_values))
             summary_stats = {
@@ -169,8 +169,8 @@ class DoubleMLBLP:
                 "std err": self.se,
                 "t": t_values,
                 "P>|t|": p_values,
-                "[0.025": self.coef - critical_value * self.se,
-                "0.975]": self.coef + critical_value * self.se,
+                "[0.025": np.median([conf_int_values[i][0] for i in range(self.n_rep)], axis=0),
+                "0.975]": np.median([conf_int_values[i][1] for i in range(self.n_rep)], axis=0),
             }
             df_summary = pd.DataFrame(summary_stats, columns=col_names, index=self._basis.columns)
         return df_summary
@@ -271,11 +271,9 @@ class DoubleMLBLP:
                 if joint:
                     warnings.warn("Returning pointwise confidence intervals for basis coefficients.", UserWarning)
                 # return the confidence intervals for the basis coefficients
-                critical_value = (
-                    t.ppf(1 - alpha / 2, self._blp_model[0].df_resid) if self._blp_model[0].use_t else norm.ppf(1 - alpha / 2)
-                )
-                ci_lower = self.coef - critical_value * self.se
-                ci_upper = self.coef + critical_value * self.se
+                conf_int_values = [self._blp_model[i].conf_int(alpha=alpha) for i in range(self.n_rep)]
+                ci_lower = np.median([conf_int_values[i][0] for i in range(self.n_rep)], axis=0)
+                ci_upper = np.median([conf_int_values[i][1] for i in range(self.n_rep)], axis=0)
                 ci = np.vstack((ci_lower, self.coef, ci_upper)).T
                 df_ci = pd.DataFrame(
                     ci,
@@ -292,31 +290,27 @@ class DoubleMLBLP:
             raise ValueError("Invalid basis: DataFrame has to have the exact same number and ordering of columns.")
 
         # blp of the orthogonal signal
-        g_hat, blp_se, _, _ = self._predict_and_aggregate(basis)
+        g_hat, _, all_g_hat, all_blp_se = self._predict_and_aggregate(basis)
 
         if joint:
             np_basis = basis.to_numpy()
-            bootstrap_samples = np.full((basis.shape[0], self.n_rep, n_rep_boot), np.nan)
+            critical_values = np.full(self.n_rep, np.nan)
+
             for i_rep in range(self.n_rep):
                 normal_samples = np.random.normal(size=[basis.shape[1], n_rep_boot])
-                omega_sqrt = np.real(sqrtm(self._blp_omega[:, :, i_rep]))
-                bootstrap_samples[:, i_rep, :] = np.dot(np_basis, np.dot(omega_sqrt, normal_samples))
-
-            # aggregate the draws over repetitions according to the median aggregation rule
-            bootstrap_samples = np.divide(np.median(bootstrap_samples, axis=1), blp_se.reshape(-1, 1))
-
-            max_t_stat = np.quantile(np.max(np.abs(bootstrap_samples), axis=1), q=level)
-
-            # Lower simultaneous CI
-            g_hat_lower = g_hat - max_t_stat * blp_se
-            # Upper simultaneous CI
-            g_hat_upper = g_hat + max_t_stat * blp_se
-
+                omega_sqrt = sqrtm(self._blp_omega[:, :, i_rep])
+                bootstrap_samples = np.multiply(
+                    np.dot(np_basis, np.dot(omega_sqrt, normal_samples)).T, (1.0 / all_blp_se[:, i_rep])
+                )
+                critical_values[i_rep] = np.quantile(np.max(np.abs(bootstrap_samples), axis=0), q=level)
         else:
-            # Lower point-wise CI
-            g_hat_lower = g_hat + norm.ppf(q=alpha / 2) * blp_se
-            # Upper point-wise CI
-            g_hat_upper = g_hat + norm.ppf(q=1 - alpha / 2) * blp_se
+            critical_values = np.repeat(norm.ppf(q=1 - alpha / 2), self.n_rep)
+
+        all_g_hat_lower = all_g_hat - critical_values * all_blp_se
+        all_g_hat_upper = all_g_hat + critical_values * all_blp_se
+
+        g_hat_lower = np.median(all_g_hat_lower, axis=1)
+        g_hat_upper = np.median(all_g_hat_upper, axis=1)
 
         ci = np.vstack((g_hat_lower, g_hat, g_hat_upper)).T
         df_ci = pd.DataFrame(
