@@ -73,20 +73,11 @@ class DoubleMLBLP:
     @property
     def blp_model(self):
         """
-        Best-Linear-Predictor model.
-        For multiple repetitions this is a list with one model per repetition.
+        Best-Linear-Predictor models.
+        This is a list with one model per repetition.
         """
         if self._blp_model is None:
             return None
-        if self.n_rep == 1:
-            return self._blp_model[0]
-        return self._blp_model
-
-    @property
-    def blp_models(self):
-        """
-        Best-Linear-Predictor models for each repetition.
-        """
         return self._blp_model
 
     @property
@@ -94,8 +85,6 @@ class DoubleMLBLP:
         """
         Orthogonal signal.
         """
-        if self.n_rep == 1:
-            return self._orth_signal.reshape(-1)
         return self._orth_signal
 
     @property
@@ -120,8 +109,6 @@ class DoubleMLBLP:
         """
         if self._blp_omega is None:
             return None
-        if self.n_rep == 1:
-            return self._blp_omega[:, :, 0]
         return self._blp_omega
 
     @property
