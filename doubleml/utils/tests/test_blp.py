@@ -140,6 +140,7 @@ def test_dml_blp_defaults():
     random_signal = np.random.normal(0, 1, size=(n,))
 
     blp = dml.DoubleMLBLP(random_signal, random_basis)
+    assert blp.blp_omega is None
     blp.fit()
 
     assert np.allclose(blp.blp_omega[:, :, 0], blp.blp_model[0].cov_HC0, rtol=1e-9, atol=1e-4)
@@ -151,6 +152,7 @@ def test_dml_blp_defaults():
 def test_doubleml_exception_blp():
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(2, 3)))
     signal = np.array([1, 2])
+    signal_mismatch = np.array([1, 2, 3])
 
     msg = "The signal must be of np.ndarray type. Signal of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
@@ -161,6 +163,9 @@ def test_doubleml_exception_blp():
     msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml.DoubleMLBLP(orth_signal=signal, basis=1)
+    msg = "The number of observations in signal and basis does not match. Got 3 and 2."
+    with pytest.raises(ValueError, match=msg):
+        dml.DoubleMLBLP(orth_signal=signal_mismatch, basis=random_basis)
     msg = "Invalid pd.DataFrame: Contains duplicate column names."
     with pytest.raises(ValueError, match=msg):
         dml.DoubleMLBLP(orth_signal=signal, basis=pd.DataFrame(np.array([[1, 2], [4, 5]]), columns=["a_1", "a_1"]))
@@ -186,6 +191,9 @@ def test_doubleml_exception_blp():
     msg = "The number of bootstrap replications must be positive. 0 was passed."
     with pytest.raises(ValueError, match=msg):
         dml_blp_confint.confint(random_basis, n_rep_boot=0)
+    msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_blp_confint.confint(basis=1)
     msg = "Invalid basis: DataFrame has to have the exact same number and ordering of columns."
     with pytest.raises(ValueError, match=msg):
         dml_blp_confint.confint(basis=pd.DataFrame(np.array([[1], [4]]), columns=["a_1"]))
