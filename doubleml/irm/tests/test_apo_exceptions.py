@@ -202,13 +202,6 @@ def test_apo_exception_capo_gapo():
     # reset the score
     dml_obj._score = "APO"
 
-    msg = "Only implemented for one repetition. Number of repetitions is 2."
-    with pytest.raises(NotImplementedError, match=msg):
-        dml_obj._n_rep = 2
-        dml_obj.capo(random_basis)
-    # reset the number of repetitions
-    dml_obj._n_rep = 1
-
     msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_obj.gapo(1)

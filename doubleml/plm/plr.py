@@ -470,14 +470,12 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             raise NotImplementedError(
                 "Only implemented for single treatment. " + f"Number of treatments is {str(self._dml_data.n_treat)}."
             )
-        if self.n_rep != 1:
-            raise NotImplementedError("Only implemented for one repetition. " + f"Number of repetitions is {str(self.n_rep)}.")
 
         Y_tilde, D_tilde = self._partial_out()
 
         D_basis = basis * D_tilde
         model = DoubleMLBLP(
-            orth_signal=Y_tilde.reshape(-1),
+            orth_signal=Y_tilde,
             basis=D_basis,
             is_gate=is_gate,
         )

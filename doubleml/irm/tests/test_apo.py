@@ -257,7 +257,7 @@ def test_dml_apo_capo_gapo(treatment_level, cov_type):
     capo = dml_obj.capo(random_basis, cov_type=cov_type)
     assert isinstance(capo, dml.utils.blp.DoubleMLBLP)
     assert isinstance(capo.confint(), pd.DataFrame)
-    assert capo.blp_model.cov_type == cov_type
+    assert capo.blp_model[0].cov_type == cov_type
 
     groups_1 = pd.DataFrame(
         np.column_stack([obj_dml_data.data["X1"] <= -1.0, obj_dml_data.data["X1"] > 0.2]), columns=["Group 1", "Group 2"]
@@ -268,7 +268,7 @@ def test_dml_apo_capo_gapo(treatment_level, cov_type):
     assert isinstance(gapo_1, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gapo_1.confint(), pd.DataFrame)
     assert all(gapo_1.confint().index == groups_1.columns.to_list())
-    assert gapo_1.blp_model.cov_type == cov_type
+    assert gapo_1.blp_model[0].cov_type == cov_type
 
     np.random.seed(42)
     groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n, p=[0.1, 0.9]))
@@ -278,4 +278,49 @@ def test_dml_apo_capo_gapo(treatment_level, cov_type):
     assert isinstance(gapo_2, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gapo_2.confint(), pd.DataFrame)
     assert all(gapo_2.confint().index == ["Group_1", "Group_2"])
-    assert gapo_2.blp_model.cov_type == cov_type
+    assert gapo_2.blp_model[0].cov_type == cov_type
+
+
+@pytest.mark.ci
+def test_dml_apo_capo_gapo_multiple_rep(treatment_level, cov_type):
+    n = 120
+    np.random.seed(42)
+    obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
+
+    ml_g = RandomForestRegressor(n_estimators=10, random_state=42)
+    ml_m = RandomForestClassifier(n_estimators=10, random_state=42)
+
+    dml_obj = dml.DoubleMLAPO(
+        obj_dml_data,
+        ml_m=ml_m,
+        ml_g=ml_g,
+        treatment_level=treatment_level,
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=3,
+        n_rep=2,
+    )
+
+    dml_obj.fit()
+
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
+    capo = dml_obj.capo(random_basis, cov_type=cov_type)
+    assert isinstance(capo, dml.utils.blp.DoubleMLBLP)
+    assert capo.n_rep == 2
+    assert isinstance(capo.blp_model, list)
+    assert len(capo.blp_model) == 2
+    assert capo.blp_model[0].cov_type == cov_type
+    assert capo.blp_model[1].cov_type == cov_type
+    assert capo.all_coef.shape == (random_basis.shape[1], 2)
+    assert capo.all_se.shape == (random_basis.shape[1], 2)
+    assert isinstance(capo.confint(), pd.DataFrame)
+    assert isinstance(capo.summary, pd.DataFrame)
+
+    x1 = obj_dml_data.data["X1"]
+    groups = pd.DataFrame({"Group 1": x1 <= x1.median(), "Group 2": x1 > x1.median()})
+    gapo = dml_obj.gapo(groups, cov_type=cov_type)
+    assert isinstance(gapo, dml.utils.blp.DoubleMLBLP)
+    assert gapo.n_rep == 2
+    assert gapo.all_coef.shape == (groups.shape[1], 2)
+    assert gapo.all_se.shape == (groups.shape[1], 2)
+    assert isinstance(gapo.confint(), pd.DataFrame)
+    assert all(gapo.confint().index == groups.columns.to_list())
