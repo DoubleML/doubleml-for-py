@@ -25,7 +25,10 @@ def add_jitter(data, x_col, is_datetime=None, jitter_value=None):
         is_datetime = pd.api.types.is_datetime64_any_dtype(data[x_col])
 
     # Initialize jittered_x with original values
-    data["jittered_x"] = data[x_col]
+    if is_datetime:
+        data["jittered_x"] = data[x_col]
+    else:
+        data["jittered_x"] = data[x_col].astype(float)
 
     for x_val in data[x_col].unique():
         mask = data[x_col] == x_val

@@ -147,3 +147,7 @@ color_output = true
 
 # Handle third-party libraries:
 ignore_missing_imports = true
+
+# Ignore asserts in all test files
+[tool.bandit.assert_used]
+skips = ["tests/*", "*/tests/*"]

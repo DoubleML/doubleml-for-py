@@ -231,7 +231,7 @@ def test_dml_plr_binary_cate_gate(score, cov_type, generate_binary_data):
     cate = dml_plr_obj.cate(random_basis, cov_type=cov_type)
     assert isinstance(cate, dml.DoubleMLBLP)
     assert isinstance(cate.confint(), pd.DataFrame)
-    assert cate.blp_model.cov_type == cov_type
+    assert cate.blp_model[0].cov_type == cov_type
 
     groups_1 = pd.DataFrame(np.column_stack([data["X1"] <= 0, data["X1"] > 0.2]), columns=["Group 1", "Group 2"])
     msg = "At least one group effect is estimated with less than 6 observations."
@@ -240,4 +240,4 @@ def test_dml_plr_binary_cate_gate(score, cov_type, generate_binary_data):
     assert isinstance(gate_1, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gate_1.confint(), pd.DataFrame)
     assert all(gate_1.confint().index == groups_1.columns.tolist())
-    assert gate_1.blp_model.cov_type == cov_type
+    assert gate_1.blp_model[0].cov_type == cov_type

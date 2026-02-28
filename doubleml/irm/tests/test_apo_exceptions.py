@@ -25,7 +25,7 @@ def test_apo_exception_data():
     msg = (
         r"The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLDIDData or DoubleMLSSMData or "
         r"DoubleMLRDDData type\. Empty DataFrame\nColumns: \[\]\nIndex: \[\] of type "
-        r"<class 'pandas\.core\.frame\.DataFrame'> was passed\."
+        r"<class 'pandas\..*DataFrame'> was passed\."
     )
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLAPO(pd.DataFrame(), ml_g, ml_m, treatment_level=0)
@@ -201,13 +201,6 @@ def test_apo_exception_capo_gapo():
         _ = dml_obj.capo(random_basis)
     # reset the score
     dml_obj._score = "APO"
-
-    msg = "Only implemented for one repetition. Number of repetitions is 2."
-    with pytest.raises(NotImplementedError, match=msg):
-        dml_obj._n_rep = 2
-        dml_obj.capo(random_basis)
-    # reset the number of repetitions
-    dml_obj._n_rep = 1
 
     msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
