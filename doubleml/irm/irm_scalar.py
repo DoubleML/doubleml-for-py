@@ -4,7 +4,7 @@ Interactive Regression Model (IRM) based on the new DoubleMLScalar hierarchy.
 
 from __future__ import annotations
 
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 
 import numpy as np
 from sklearn.base import clone
@@ -81,6 +81,12 @@ class IRM(LinearScoreMixin):
         "ml_g0": LearnerSpec("ml_g0", allow_regressor=True, allow_classifier=True, binary_data_check="outcome"),
         "ml_g1": LearnerSpec("ml_g1", allow_regressor=True, allow_classifier=True, binary_data_check="outcome"),
         "ml_m": LearnerSpec("ml_m", allow_regressor=False, allow_classifier=True),
+    }
+
+    # ml_g is a shorthand for tuning both ml_g0 and ml_g1 with the same param function.
+    # Explicit ml_g0 or ml_g1 keys always override the alias.
+    _LEARNER_PARAM_ALIASES: ClassVar[dict[str, list[str]]] = {
+        "ml_g": ["ml_g0", "ml_g1"],
     }
 
     def __init__(
@@ -361,6 +367,51 @@ class IRM(LinearScoreMixin):
                 "exactly one binary variable with values 0 and 1 "
                 "needs to be specified as treatment variable."
             )
+
+    def _get_tuning_data(
+        self,
+        learner_name: str,
+        _partial_results: dict[str, Any],
+        _cv: Any,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Return ``(y_target, x)`` for tuning the given IRM learner.
+
+        Parameters
+        ----------
+        learner_name : str
+            Learner to tune: ``'ml_g0'``, ``'ml_g1'``, or ``'ml_m'``.
+        _partial_results : dict
+            Already-tuned DMLOptunaResult objects (unused for IRM).
+        _cv : cross-validator
+            Cross-validation splitter (unused for IRM).
+
+        Returns
+        -------
+        y_target : np.ndarray
+            Target array for the learner.
+        x : np.ndarray
+            Feature matrix.
+
+        Raises
+        ------
+        ValueError
+            If ``learner_name`` is not a valid IRM learner name.
+        """
+        y = self._dml_data.y
+        d = self._dml_data.d
+        x = self._dml_data.x
+
+        if learner_name == "ml_g0":
+            mask = d == 0
+            return y[mask], x[mask]
+        if learner_name == "ml_g1":
+            mask = d == 1
+            return y[mask], x[mask]
+        if learner_name == "ml_m":
+            return d, x
+
+        raise ValueError(f"Unknown learner '{learner_name}' for IRM.")
 
     def _initialize_weights(self, weights: np.ndarray | dict | None) -> None:
         """Initialize weights storage."""

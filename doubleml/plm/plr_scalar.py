@@ -5,10 +5,11 @@ Partially Linear Regression (PLR) model based on the new DoubleMLScalar hierarch
 from __future__ import annotations
 
 import warnings
-from typing import Dict, List, Optional, Self
+from typing import Any, ClassVar, Dict, List, Optional, Self
 
 import numpy as np
 from sklearn.base import clone
+from sklearn.model_selection import cross_val_predict
 
 from ..data.base_data import DoubleMLData
 from ..double_ml_linear_score import LinearScoreMixin
@@ -37,7 +38,7 @@ class PLR(LinearScoreMixin):
     """
 
     # Define learner specifications for PLR
-    _LEARNER_SPECS: Dict[str, LearnerSpec] = {
+    _LEARNER_SPECS: ClassVar[Dict[str, LearnerSpec]] = {
         "ml_l": LearnerSpec("ml_l", allow_regressor=True, allow_classifier=True, binary_data_check="outcome"),
         "ml_m": LearnerSpec("ml_m", allow_regressor=True, allow_classifier=True, binary_data_check="treatment"),
         "ml_g": LearnerSpec("ml_g", allow_regressor=True, allow_classifier=False),
@@ -276,6 +277,84 @@ class PLR(LinearScoreMixin):
                 ml_g = clone(ml_g_info.learner)
                 ml_g.fit(x[train_j], y[train_j] - theta_initial * d[train_j])
                 self._predictions["ml_g"][test_j, i_rep] = predict_nuisance(ml_g, x[test_j], ml_g_info.is_classifier)
+
+    def _get_tuning_data(
+        self,
+        learner_name: str,
+        partial_results: dict[str, Any],
+        cv: Any,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Return ``(y_target, x)`` for tuning the given PLR learner.
+
+        Parameters
+        ----------
+        learner_name : str
+            Learner to tune: ``'ml_l'``, ``'ml_m'``, or ``'ml_g'``.
+        partial_results : dict
+            Already-tuned DMLOptunaResult objects, keyed by learner name.
+            Used for 2-stage ``ml_g`` tuning: applies the best params from
+            ``ml_l`` and ``ml_m`` when computing the initial theta estimate.
+            If ``ml_l`` or ``ml_m`` were not tuned in this call, their current
+            (untuned) learner params are used as a fallback.
+        cv : cross-validator
+            Cross-validation splitter, already resolved in :meth:`tune_ml_models`.
+
+        Returns
+        -------
+        y_target : np.ndarray
+            Target array for the learner.
+        x : np.ndarray
+            Feature matrix.
+
+        Raises
+        ------
+        ValueError
+            If ``learner_name`` is not a valid PLR learner name.
+        """
+        y = self._dml_data.y
+        d = self._dml_data.d
+        x = self._dml_data.x
+
+        if learner_name == "ml_l":
+            return y, x
+        if learner_name == "ml_m":
+            return d, x
+        if learner_name == "ml_g":
+            # 2-stage: compute initial theta via cross-validated ml_l/ml_m predictions.
+            # Apply tuned params if available, otherwise use the current learner params.
+            if "ml_l" not in self._learners or "ml_m" not in self._learners:
+                raise ValueError(
+                    "Tuning 'ml_g' requires 'ml_l' and 'ml_m' to be registered. "
+                    "Call set_learners(ml_l=..., ml_m=...) before tuning 'ml_g'."
+                )
+            l_info = self._learners["ml_l"]
+            m_info = self._learners["ml_m"]
+
+            l_est = clone(l_info.learner)
+            if "ml_l" in partial_results:
+                l_est.set_params(**partial_results["ml_l"].best_params)
+
+            m_est = clone(m_info.learner)
+            if "ml_m" in partial_results:
+                m_est.set_params(**partial_results["ml_m"].best_params)
+
+            if l_info.is_classifier:
+                l_hat = cross_val_predict(l_est, x, y, cv=cv, method="predict_proba")[:, 1]
+            else:
+                l_hat = cross_val_predict(l_est, x, y, cv=cv)
+
+            if m_info.is_classifier:
+                m_hat = cross_val_predict(m_est, x, d, cv=cv, method="predict_proba")[:, 1]
+            else:
+                m_hat = cross_val_predict(m_est, x, d, cv=cv)
+
+            psi_a = -((d - m_hat) ** 2)
+            psi_b = (d - m_hat) * (y - l_hat)
+            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+            return y - theta_initial * d, x
+
+        raise ValueError(f"Unknown learner '{learner_name}' for PLR.")
 
     def _get_score_elements(self) -> Dict[str, np.ndarray]:
         y = self._dml_data.y

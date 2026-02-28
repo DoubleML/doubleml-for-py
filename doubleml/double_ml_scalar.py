@@ -3,7 +3,10 @@ Abstract base class for scalar DoubleML models (single parameter estimation).
 """
 
 from abc import ABC, abstractmethod
-from typing import ClassVar, Self
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Self
+
+if TYPE_CHECKING:
+    from .utils._tune_optuna import DMLOptunaResult
 
 import numpy as np
 
@@ -13,6 +16,7 @@ from .double_ml_framework import DoubleMLCore as DoubleMLCoreData
 from .double_ml_framework import DoubleMLFramework
 from .utils._checks import _check_sample_splitting
 from .utils._learner import LearnerInfo, LearnerSpec, validate_learner
+from .utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS, _dml_tune_optuna, resolve_optuna_cv
 from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
 
@@ -47,6 +51,11 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
     # Subclasses define all possible learners for the model
     _LEARNER_SPECS: ClassVar[dict[str, LearnerSpec]]
+
+    # Shorthand aliases for tune_ml_models(): maps user-facing key → list of internal learner keys.
+    # Example: {"ml_g": ["ml_g0", "ml_g1"]} lets users write ml_g once to tune both.
+    # Subclasses override as needed; default is no aliases.
+    _LEARNER_PARAM_ALIASES: ClassVar[dict[str, list[str]]] = {}
 
     def __init__(
         self,
@@ -212,15 +221,20 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     @abstractmethod
     def required_learners(self) -> list[str]:
         """
-        Names of the required learners for current configuration.
+        Names of the required learners for the current configuration.
 
         Subclasses implement this as a property that returns the learner names
         needed based on the current score function or model configuration.
 
+        The order of this list determines the tuning order in
+        :meth:`tune_ml_models`. Learners that depend on earlier results (e.g.,
+        PLR ``ml_g`` depends on ``ml_l`` and ``ml_m`` for its 2-stage target)
+        must appear later in the list.
+
         Returns
         -------
         list of str
-            List of required learner names.
+            Ordered list of required learner names.
         """
         pass
 
@@ -834,6 +848,250 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         - self._var_scaling_factors should have shape (n_thetas,)
         """
         pass
+
+    # ==================== Hyperparameter Tuning ====================
+
+    def tune_ml_models(
+        self,
+        ml_param_space: dict[str, Callable | None],
+        scoring_methods: dict[str, str | Callable | None] | None = None,
+        cv: int = 5,
+        optuna_settings: dict | None = None,
+        set_as_params: bool = True,
+        return_tune_res: bool = False,
+    ) -> "Self | dict[str, DMLOptunaResult]":  # quoted because DMLOptunaResult is TYPE_CHECKING-only
+        """
+        Tune hyperparameters for all nuisance learners using Optuna.
+
+        Parameters
+        ----------
+        ml_param_space : dict
+            Parameter space functions keyed by learner name (or alias).
+            Each value must be a callable taking an Optuna trial and returning a dict.
+            Alias keys (e.g. ``'ml_g'`` for IRM, expanding to ``'ml_g0'`` and ``'ml_g1'``)
+            are supported; explicit learner keys always override alias-derived entries.
+        scoring_methods : dict or None, optional
+            Scoring functions keyed by concrete learner name. If ``None``, the
+            estimator's default score method is used. Default is ``None``.
+        cv : int, optional
+            Number of cross-validation folds for Optuna tuning. Default is ``5``.
+        optuna_settings : dict or None, optional
+            Global or per-learner Optuna settings (e.g., ``n_trials``, ``sampler``).
+            Default is ``None``.
+        set_as_params : bool, optional
+            If ``True``, apply the best found parameters to the registered learner
+            objects so they are used in subsequent calls to :meth:`fit`. Default is ``True``.
+        return_tune_res : bool, optional
+            If ``True``, return a dict of :class:`~doubleml.utils._tune_optuna.DMLOptunaResult`
+            objects keyed by learner name. Default is ``False``.
+
+        Notes
+        -----
+        Learners are tuned in the order defined by :attr:`required_learners`.
+        For multi-stage learners (e.g., PLR ``ml_g`` with ``score='IV-type'``),
+        earlier learner results are passed to :meth:`_get_tuning_data` via
+        ``partial_results``. If a preceding learner was not included in
+        ``ml_param_space``, its current (untuned) parameters are used as the
+        fallback when computing the intermediate target.
+
+        Returns
+        -------
+        self : Self
+            Returned when ``return_tune_res=False``.
+        tune_res : dict
+            Dict of :class:`~doubleml.utils._tune_optuna.DMLOptunaResult` objects keyed by
+            learner name. Returned when ``return_tune_res=True``.
+        """
+        if not isinstance(set_as_params, bool):
+            raise TypeError(f"set_as_params must be True or False. Got {str(set_as_params)}.")
+        if not isinstance(return_tune_res, bool):
+            raise TypeError(f"return_tune_res must be True or False. Got {str(return_tune_res)}.")
+        if isinstance(cv, list):
+            raise TypeError(
+                "cv as a list of pre-made (train_idx, test_idx) pairs is not supported in tune_ml_models(). "
+                "Pass an integer (number of folds) or a scikit-learn cross-validation splitter instead."
+            )
+
+        # Expand aliases and validate keys (also checks None, callability)
+        expanded_space = self._expand_tuning_param_space(ml_param_space)
+
+        self._validate_optuna_setting_keys(optuna_settings)
+
+        # Resolve cv once; all learners share the same splitter
+        cv_splitter = resolve_optuna_cv(cv)
+
+        partial_results: dict[str, Any] = {}
+        for learner_name in self.required_learners:
+            # Skip learners not in the expanded param space or set to None
+            if learner_name not in expanded_space or expanded_space[learner_name] is None:
+                continue
+            # Skip learners not yet registered via set_learners()
+            if learner_name not in self._learners:
+                continue
+
+            y_tune, x_tune = self._get_tuning_data(learner_name, partial_results, cv_splitter)
+
+            scoring = None if scoring_methods is None else scoring_methods.get(learner_name)
+
+            result = _dml_tune_optuna(
+                y=y_tune,
+                x=x_tune,
+                learner=self._learners[learner_name].learner,
+                param_grid_func=expanded_space[learner_name],
+                scoring_method=scoring,
+                cv=cv_splitter,
+                optuna_settings=optuna_settings,
+                learner_name=learner_name,
+                params_name=learner_name,
+            )
+            partial_results[learner_name] = result
+
+            if set_as_params and result.tuned:
+                self._learners[learner_name].learner.set_params(**result.best_params)
+
+        if return_tune_res:
+            return partial_results
+        return self
+
+    def _expand_tuning_param_space(self, ml_param_space: dict[str, Callable | None]) -> dict[str, Callable | None]:
+        """
+        Expand alias keys in ml_param_space to concrete learner keys.
+
+        Uses a two-pass strategy so explicit keys always override alias-derived
+        entries, regardless of insertion order:
+
+        - Pass 1: for alias keys, apply with ``setdefault`` (won't override explicit keys)
+        - Pass 2: for explicit learner keys, apply with direct assignment (always overrides)
+
+        Parameters
+        ----------
+        ml_param_space : dict
+            Parameter space dict, may contain alias keys (e.g. ``'ml_g'`` for IRM).
+
+        Returns
+        -------
+        dict
+            Expanded dict with only concrete learner keys.
+
+        Raises
+        ------
+        ValueError
+            If ``ml_param_space`` is not a non-empty dict, or if a key is neither a valid
+            alias nor a defined learner name.
+        TypeError
+            If a parameter space value is not callable.
+        """
+        if not isinstance(ml_param_space, dict):
+            raise TypeError(f"ml_param_space must be a dict. Got {type(ml_param_space).__name__}.")
+        if not ml_param_space:
+            raise ValueError("ml_param_space must be a non-empty dictionary.")
+
+        valid_keys = set(self._LEARNER_SPECS.keys()) | set(self._LEARNER_PARAM_ALIASES.keys())
+        for key in ml_param_space:
+            if key not in valid_keys:
+                raise ValueError(f"Invalid key '{key}' in ml_param_space. " f"Valid keys: {sorted(valid_keys)}.")
+
+        # Validate callability of non-None parameter space functions
+        for key, fn in ml_param_space.items():
+            if fn is not None and not callable(fn):
+                raise TypeError(
+                    f"Parameter space for '{key}' must be a callable function that takes a trial "
+                    f"and returns a dict. Got {type(fn).__name__}. "
+                    f"Example: def ml_params(trial): return {{'max_depth': trial.suggest_int('max_depth', 1, 10)}}"
+                )
+
+        expanded: dict[str, Callable | None] = {}
+        # Pass 1: expand alias keys (setdefault so explicit keys will win in pass 2)
+        for key, fn in ml_param_space.items():
+            if key in self._LEARNER_PARAM_ALIASES:
+                for alias_target in self._LEARNER_PARAM_ALIASES[key]:
+                    expanded.setdefault(alias_target, fn)
+
+        # Pass 2: explicit learner keys always override alias-derived entries
+        for key, fn in ml_param_space.items():
+            if key not in self._LEARNER_PARAM_ALIASES:
+                expanded[key] = fn
+
+        return expanded
+
+    def _validate_optuna_setting_keys(self, optuna_settings: dict | None) -> None:
+        """
+        Validate learner-level keys provided in ``optuna_settings``.
+
+        Parameters
+        ----------
+        optuna_settings : dict or None
+            Optuna settings dict to validate.
+
+        Raises
+        ------
+        TypeError
+            If ``optuna_settings`` is not a dict or None, or if a learner-specific
+            value is not a dict.
+        ValueError
+            If a key is not a global Optuna setting and not a valid learner name or alias.
+        """
+        if optuna_settings is not None and not isinstance(optuna_settings, dict):
+            raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
+
+        if not optuna_settings:  # None or empty dict — no settings to validate
+            return
+
+        allowed_learner_keys = set(self._LEARNER_SPECS.keys()) | set(self._LEARNER_PARAM_ALIASES.keys())
+        invalid_keys = [
+            key for key in optuna_settings if key not in OPTUNA_GLOBAL_SETTING_KEYS and key not in allowed_learner_keys
+        ]
+
+        if invalid_keys:
+            valid_keys_msg = ", ".join(sorted(allowed_learner_keys)) if allowed_learner_keys else "<none>"
+            raise ValueError(
+                f"Invalid optuna_settings keys for {self.__class__.__name__}: "
+                f"{', '.join(sorted(invalid_keys))}. "
+                f"Valid learner-specific keys are: {valid_keys_msg}."
+            )
+
+        for key in allowed_learner_keys:
+            if key in optuna_settings and not isinstance(optuna_settings[key], dict):
+                raise TypeError(f"Optuna settings for '{key}' must be a dict.")
+
+    def _get_tuning_data(
+        self,
+        learner_name: str,
+        partial_results: dict[str, Any],
+        cv: Any,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Return ``(y_target, x)`` arrays for tuning the given learner.
+
+        Subclasses must override this method to return the appropriate data for each
+        learner. The ``partial_results`` argument enables multi-stage tuning (e.g., PLR
+        ``ml_g`` which depends on earlier ``ml_l`` and ``ml_m`` results).
+
+        Parameters
+        ----------
+        learner_name : str
+            Name of the learner to tune.
+        partial_results : dict
+            Already-computed :class:`~doubleml.utils._tune_optuna.DMLOptunaResult`
+            objects, keyed by learner name.
+        cv : cross-validator
+            Cross-validation splitter, already resolved by :meth:`tune_ml_models`.
+
+        Returns
+        -------
+        y_target : np.ndarray
+            Target array for the learner.
+        x : np.ndarray
+            Feature matrix.
+
+        Raises
+        ------
+        NotImplementedError
+            Always; subclasses must override this method.
+        """
+        raise NotImplementedError(
+            f"_get_tuning_data not implemented for {self.__class__.__name__}. " "Subclasses must override this method."
+        )
 
     def __str__(self) -> str:
         """
