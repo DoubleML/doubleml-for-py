@@ -48,6 +48,8 @@ from doubleml.utils._checks import _check_learner
 
 Import order (enforced by ruff/isort): standard library, third-party, local.
 
+Use absolute imports from the project root (`doubleml.`) rather than relative imports (`..utils._checks`).
+
 ### `from __future__ import annotations`
 
 Not required in every file. Use it when a class references its own type in annotations (forward reference). Since the project targets Python 3.10+, `list[int]`, `dict[str, T]`, and `X | Y` unions work natively without it.
