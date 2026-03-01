@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from .utils._tune_optuna import DMLOptunaResult
 
 import numpy as np
+from sklearn.metrics import log_loss, root_mean_squared_error
 
 from .data.base_data import DoubleMLBaseData
 from .double_ml_base import DoubleMLBase
@@ -103,6 +104,8 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
         # Initialize storage for predictions and results
         self._predictions: dict[str, np.ndarray] | None = None
+        self._nuisance_targets: dict[str, np.ndarray] | None = None
+        self._nuisance_loss: dict[str, np.ndarray] | None = None
         self._all_thetas: np.ndarray | None = None
         self._all_ses: np.ndarray | None = None
         self._psi: np.ndarray | None = None
@@ -183,6 +186,51 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         if self._predictions is None:
             raise ValueError("Predictions not available. Call fit() first.")
         return self._predictions
+
+    @property
+    def nuisance_targets(self) -> dict[str, np.ndarray]:
+        """
+        Target arrays used for nuisance loss evaluation.
+
+        Returns
+        -------
+        dict[str, np.ndarray]
+            Dictionary with target arrays of shape ``(n_obs, n_rep)`` per learner.
+            Entries are all-NaN for learners whose targets cannot be recovered post-fit
+            (e.g. PLR ``ml_g``).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+        """
+        if self._nuisance_targets is None:
+            raise ValueError("Nuisance targets not available. Call fit() or fit_nuisance_models() first.")
+        return self._nuisance_targets
+
+    @property
+    def nuisance_loss(self) -> dict[str, np.ndarray]:
+        """
+        Out-of-sample loss per learner, shape ``(n_rep,)``.
+
+        Uses RMSE for regressors and logloss for classifiers, determined automatically
+        from the registered learner type. Entries are NaN for learners whose targets are
+        unavailable or whose type cannot be determined (external predictions without a
+        registered learner).
+
+        Returns
+        -------
+        dict[str, np.ndarray]
+            Dictionary with loss arrays of shape ``(n_rep,)`` per learner.
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet.
+        """
+        if self._nuisance_loss is None:
+            raise ValueError("Nuisance loss not available. Call fit() or fit_nuisance_models() first.")
+        return self._nuisance_loss
 
     @property
     def smpls(self) -> list:
@@ -462,6 +510,16 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
         # Post-nuisance prediction checks (model-specific)
         self._post_nuisance_checks()
+
+        # Build nuisance targets: _get_nuisance_targets() may return None for some learners
+        # (e.g. PLR ml_g whose target y - θ·d varies per rep). Convert None → all-NaN array
+        # so _nuisance_targets is always dict[str, np.ndarray].
+        raw_targets = self._get_nuisance_targets()
+        self._nuisance_targets = {}
+        for name in self.required_learners:
+            t = raw_targets.get(name)
+            self._nuisance_targets[name] = t if isinstance(t, np.ndarray) else np.full((self._n_obs, self.n_rep), np.nan)
+        self._nuisance_loss = self.evaluate_learners()
 
         return self
 
@@ -744,6 +802,8 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     def _reset_fit_state(self) -> None:
         """Clear fit-dependent state after changing the sample splitting."""
         self._predictions = None
+        self._nuisance_targets = None
+        self._nuisance_loss = None
         self._framework = None
         self._all_thetas = None
         self._all_ses = None
@@ -753,10 +813,121 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._i_rep = None
         self._i_fold = None
 
+    def evaluate_learners(
+        self,
+        learners: list[str] | None = None,
+        metric: Callable | None = None,
+    ) -> dict[str, np.ndarray]:
+        """
+        Evaluate fitted learners on cross-validated predictions with a custom metric.
+
+        Parameters
+        ----------
+        learners : list of str or None, optional
+            Names of learners to evaluate. Default is all :attr:`required_learners`.
+        metric : callable or None, optional
+            Metric function with signature ``(y_true, y_pred) -> float``. Any sklearn
+            metric function (e.g. ``sklearn.metrics.root_mean_squared_error``,
+            ``sklearn.metrics.r2_score``, ``sklearn.metrics.log_loss``) or any custom
+            callable with the same signature can be passed.
+            If ``None``, automatically selects ``root_mean_squared_error`` for regressors
+            and ``log_loss`` for classifiers based on the registered learner type.
+
+        Returns
+        -------
+        dict[str, np.ndarray]
+            Dictionary with loss arrays of shape ``(n_rep,)`` per learner.
+            Entries are NaN for repetitions with no valid (non-NaN) targets or for
+            learners whose type cannot be determined (external predictions without a
+            registered learner).
+
+        Raises
+        ------
+        ValueError
+            If the model has not been fitted yet, or if a requested learner name is not
+            in :attr:`required_learners`.
+        TypeError
+            If ``metric`` is not callable.
+        ValueError
+            If the metric returns a non-finite value.
+
+        Examples
+        --------
+        >>> from sklearn.metrics import root_mean_squared_error, r2_score, log_loss
+        >>> model.evaluate_learners()
+        >>> model.evaluate_learners(metric=r2_score)
+        >>> model.evaluate_learners(learners=["ml_m"], metric=log_loss)
+        """
+        if self._nuisance_targets is None:
+            raise ValueError("Nuisance targets not available. Call fit() or fit_nuisance_models() first.")
+        if metric is not None and not callable(metric):
+            raise TypeError(f"metric must be callable or None. Got {type(metric).__name__}.")
+
+        if learners is None:
+            learners = self.required_learners
+
+        invalid = [name for name in learners if name not in self.required_learners]
+        if invalid:
+            raise ValueError(f"Invalid learner(s) {invalid}. Must be a subset of {self.required_learners}.")
+
+        n_rep = self.n_rep
+        result: dict[str, np.ndarray] = {}
+
+        for name in learners:
+            target = self._nuisance_targets[name]  # (n_obs, n_rep)
+            pred = self._predictions[name]  # (n_obs, n_rep)
+
+            loss_arr = np.full(n_rep, np.nan)
+            for i_rep in range(n_rep):
+                mask = ~np.isnan(target[:, i_rep])
+                if not mask.any():
+                    continue
+
+                t, p = target[mask, i_rep], pred[mask, i_rep]
+
+                if metric is None:
+                    if name not in self._learners:
+                        # No registered learner type (external predictions) — infer from target values
+                        unique_vals = np.unique(t)
+                        is_binary = len(unique_vals) <= 2 and np.all(np.isin(unique_vals, [0, 1]))
+                        fn: Callable = log_loss if is_binary else root_mean_squared_error
+                    else:
+                        fn = log_loss if self._learners[name].is_classifier else root_mean_squared_error
+                else:
+                    fn = metric
+
+                res = fn(t, p)
+                if not np.isfinite(res):
+                    raise ValueError(
+                        f"Evaluation of learner '{name}' for repetition {i_rep} returned " f"a non-finite value: {res}."
+                    )
+                loss_arr[i_rep] = res
+
+            result[name] = loss_arr
+
+        return result
+
     # ==================== Abstract Methods (Must be Implemented by Subclasses) ====================
 
     def _post_nuisance_checks(self) -> None:
         """Post-nuisance prediction validation hook. Override in subclasses for model-specific checks."""
+
+    @abstractmethod
+    def _get_nuisance_targets(self) -> dict[str, np.ndarray | None]:
+        """
+        Return target arrays for nuisance loss evaluation.
+
+        Subclasses must implement this to provide targets for each learner.
+        Return ``None`` for learners whose targets cannot be recovered post-fit
+        (e.g. PLR ``ml_g`` whose target ``y - θ·d`` varies per repetition).
+
+        Returns
+        -------
+        dict[str, np.ndarray or None]
+            Dictionary mapping learner names to target arrays of shape ``(n_obs, n_rep)``,
+            or ``None`` where targets are not available.
+        """
+        pass
 
     @abstractmethod
     def _nuisance_est(

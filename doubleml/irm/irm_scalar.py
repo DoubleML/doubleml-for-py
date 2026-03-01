@@ -305,6 +305,20 @@ class IRM(LinearScoreMixin):
 
     # ==================== Score Elements ====================
 
+    def _get_nuisance_targets(self) -> dict[str, np.ndarray | None]:
+        """Return target arrays for nuisance loss evaluation.
+
+        ml_g0 and ml_g1 are fitted only on the d==0 and d==1 subgroups respectively,
+        so targets for the opposite group are NaN. ml_m target is d (binary treatment).
+        """
+        y = self._dml_data.y
+        d = self._dml_data.d
+        return {
+            "ml_g0": np.tile(np.where(d == 0, y, np.nan)[:, np.newaxis], (1, self.n_rep)),
+            "ml_g1": np.tile(np.where(d == 1, y, np.nan)[:, np.newaxis], (1, self.n_rep)),
+            "ml_m": np.tile(d[:, np.newaxis], (1, self.n_rep)),
+        }
+
     def _get_score_elements(self) -> dict[str, np.ndarray]:
         y = self._dml_data.y
         d = self._dml_data.d

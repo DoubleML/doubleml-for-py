@@ -5,7 +5,7 @@ Partially Linear Regression (PLR) model based on the new DoubleMLScalar hierarch
 from __future__ import annotations
 
 import warnings
-from typing import Any, ClassVar, Dict, List, Optional, Self
+from typing import Any, ClassVar, Self
 
 import numpy as np
 from sklearn.base import clone
@@ -38,7 +38,7 @@ class PLR(LinearScoreMixin):
     """
 
     # Define learner specifications for PLR
-    _LEARNER_SPECS: ClassVar[Dict[str, LearnerSpec]] = {
+    _LEARNER_SPECS: ClassVar[dict[str, LearnerSpec]] = {
         "ml_l": LearnerSpec("ml_l", allow_regressor=True, allow_classifier=True, binary_data_check="outcome"),
         "ml_m": LearnerSpec("ml_m", allow_regressor=True, allow_classifier=True, binary_data_check="treatment"),
         "ml_g": LearnerSpec("ml_g", allow_regressor=True, allow_classifier=False),
@@ -48,9 +48,9 @@ class PLR(LinearScoreMixin):
         self,
         obj_dml_data: DoubleMLData,
         score: str = "partialling out",
-        ml_l: Optional[object] = None,
-        ml_m: Optional[object] = None,
-        ml_g: Optional[object] = None,
+        ml_l: object | None = None,
+        ml_m: object | None = None,
+        ml_g: object | None = None,
     ):
         """
         Initialize PLR model.
@@ -88,7 +88,7 @@ class PLR(LinearScoreMixin):
             self.set_learners(ml_l=ml_l, ml_m=ml_m, ml_g=ml_g)
 
     @property
-    def required_learners(self) -> List[str]:
+    def required_learners(self) -> list[str]:
         """Required learners for current score."""
         names = ["ml_l", "ml_m"]
         if self.score == "IV-type":
@@ -97,9 +97,9 @@ class PLR(LinearScoreMixin):
 
     def set_learners(
         self,
-        ml_l: Optional[object] = None,
-        ml_m: Optional[object] = None,
-        ml_g: Optional[object] = None,
+        ml_l: object | None = None,
+        ml_m: object | None = None,
+        ml_g: object | None = None,
     ) -> Self:
         """
         Set the learners for nuisance estimation.
@@ -220,7 +220,7 @@ class PLR(LinearScoreMixin):
         test_idx: np.ndarray,
         i_rep: int,
         i_fold: int,
-        external_predictions: Optional[Dict[str, np.ndarray]] = None,
+        external_predictions: dict[str, np.ndarray] | None = None,
     ) -> None:
         x = self._dml_data.x
         y = self._dml_data.y
@@ -356,7 +356,24 @@ class PLR(LinearScoreMixin):
 
         raise ValueError(f"Unknown learner '{learner_name}' for PLR.")
 
-    def _get_score_elements(self) -> Dict[str, np.ndarray]:
+    def _get_nuisance_targets(self) -> dict[str, np.ndarray | None]:
+        """Return target arrays for nuisance loss evaluation.
+
+        Returns y for ml_l, d for ml_m. For IV-type score, ml_g target is None because
+        the adjusted outcome y - θ·d depends on the estimated parameter and varies per
+        repetition, so it cannot be recovered post-fit.
+        """
+        y = self._dml_data.y
+        d = self._dml_data.d
+        targets: dict[str, np.ndarray | None] = {
+            "ml_l": np.tile(y[:, np.newaxis], (1, self.n_rep)),
+            "ml_m": np.tile(d[:, np.newaxis], (1, self.n_rep)),
+        }
+        if "ml_g" in self.required_learners:
+            targets["ml_g"] = None
+        return targets
+
+    def _get_score_elements(self) -> dict[str, np.ndarray]:
         y = self._dml_data.y
         d = self._dml_data.d
 
