@@ -80,3 +80,34 @@ def test_all_se_equal(comparison_fixture):
     old = comparison_fixture["old"]
     new = comparison_fixture["new"]
     np.testing.assert_allclose(new.all_ses, old.all_se, rtol=1e-9)
+
+
+@pytest.mark.ci
+def test_sensitivity_sigma2_equal(comparison_fixture):
+    """IRM scalar sigma2 matches DoubleMLIRM sensitivity_elements['sigma2']."""
+    old = comparison_fixture["old"]
+    new = comparison_fixture["new"]
+    # Legacy shape: (1, n_rep, 1); scalar shape: (1, 1, n_rep). Transpose to align.
+    old_sigma2 = np.transpose(old.sensitivity_elements["sigma2"], (0, 2, 1))
+    np.testing.assert_allclose(new.sensitivity_elements["sigma2"], old_sigma2, rtol=1e-9)
+
+
+@pytest.mark.ci
+def test_sensitivity_nu2_equal(comparison_fixture):
+    """IRM scalar nu2 matches DoubleMLIRM sensitivity_elements['nu2']."""
+    old = comparison_fixture["old"]
+    new = comparison_fixture["new"]
+    old_nu2 = np.transpose(old.sensitivity_elements["nu2"], (0, 2, 1))
+    np.testing.assert_allclose(new.sensitivity_elements["nu2"], old_nu2, rtol=1e-9)
+
+
+@pytest.mark.ci
+def test_sensitivity_max_bias_equal(comparison_fixture):
+    """IRM scalar framework max_bias matches DoubleMLIRM framework max_bias."""
+    old = comparison_fixture["old"]
+    new = comparison_fixture["new"]
+    np.testing.assert_allclose(
+        new.framework.sensitivity_elements["max_bias"],
+        old.framework.sensitivity_elements["max_bias"],
+        rtol=1e-9,
+    )

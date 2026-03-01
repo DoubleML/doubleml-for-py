@@ -475,3 +475,64 @@ class IRM(LinearScoreMixin):
             weights_bar = np.divide(m_hat * w[:, np.newaxis], subgroup_probability)
 
         return weights, weights_bar
+
+    def _sensitivity_element_est(self) -> dict[str, np.ndarray] | None:
+        """
+        Compute IRM sensitivity elements vectorized over all repetitions.
+
+        Reproduces the propensity score processing and weight computation from
+        :meth:`_get_score_elements` to compute sigma2, nu2, their influence
+        functions, and the Riesz representer.
+
+        Returns
+        -------
+        dict[str, np.ndarray] or None
+            Dictionary with keys ``'sigma2'``, ``'nu2'`` (shape ``(1, 1, n_rep)``),
+            ``'psi_sigma2'``, ``'psi_nu2'``, ``'riesz_rep'`` (shape ``(n_obs, 1, n_rep)``).
+        """
+        y = self._dml_data.y  # (n_obs,)
+        d = self._dml_data.d  # (n_obs,)
+        g_hat0 = self._predictions["ml_g0"]  # (n_obs, n_rep)
+        g_hat1 = self._predictions["ml_g1"]  # (n_obs, n_rep)
+        m_hat_raw = self._predictions["ml_m"]  # (n_obs, n_rep)
+
+        # Reproduce PS processing (same per-rep loop as _get_score_elements)
+        m_hat = np.zeros_like(m_hat_raw)
+        for i_rep in range(self.n_rep):
+            m_hat[:, i_rep] = self._ps_processor.adjust_ps(m_hat_raw[:, i_rep], d, cv=self._smpls[i_rep], learner_name="ml_m")
+        m_hat_adj = np.zeros_like(m_hat)
+        for i_rep in range(self.n_rep):
+            m_hat_adj[:, i_rep] = _propensity_score_adjustment(
+                propensity_score=m_hat[:, i_rep],
+                treatment_indicator=d,
+                normalize_ipw=self.normalize_ipw,
+            )
+
+        d2d = d[:, np.newaxis]  # (n_obs, 1) for broadcasting
+
+        # sigma2: squared residual of the outcome regression
+        sigma2_score = (y[:, np.newaxis] - d2d * g_hat1 - (1.0 - d2d) * g_hat0) ** 2  # (n_obs, n_rep)
+        sigma2_mean = np.mean(sigma2_score, axis=0)  # (n_rep,)
+        psi_sigma2 = sigma2_score - sigma2_mean[np.newaxis, :]  # (n_obs, n_rep)
+        sigma2 = sigma2_mean[np.newaxis, np.newaxis, :]  # (1, 1, n_rep)
+        psi_sigma2 = psi_sigma2[:, np.newaxis, :]  # (n_obs, 1, n_rep)
+
+        # Riesz representer and nu2 — uses _get_weights which vectorizes over n_rep
+        weights, weights_bar = self._get_weights(m_hat_adj)  # each (n_obs, n_rep)
+        rr_2d = weights_bar * (np.divide(d2d, m_hat_adj) - np.divide(1.0 - d2d, 1.0 - m_hat_adj))  # (n_obs, n_rep)
+        m_alpha = weights * weights_bar * (np.divide(1.0, m_hat_adj) + np.divide(1.0, 1.0 - m_hat_adj))  # (n_obs, n_rep)
+
+        nu2_score = 2.0 * m_alpha - rr_2d**2  # (n_obs, n_rep)
+        nu2_mean = np.mean(nu2_score, axis=0)  # (n_rep,)
+        psi_nu2 = nu2_score - nu2_mean[np.newaxis, :]  # (n_obs, n_rep)
+        nu2 = nu2_mean[np.newaxis, np.newaxis, :]  # (1, 1, n_rep)
+        psi_nu2 = psi_nu2[:, np.newaxis, :]  # (n_obs, 1, n_rep)
+        rr = rr_2d[:, np.newaxis, :]  # (n_obs, 1, n_rep)
+
+        return {
+            "sigma2": sigma2,
+            "nu2": nu2,
+            "psi_sigma2": psi_sigma2,
+            "psi_nu2": psi_nu2,
+            "riesz_rep": rr,
+        }

@@ -137,9 +137,66 @@ For models with `_LEARNER_PARAM_ALIASES` (e.g., IRM `"ml_g"` → `["ml_g0", "ml_
 
 ---
 
+## Evaluate Learners Tests (`test_<model>_scalar_evaluate_learners.py`)
+
+Scalar models with `evaluate_learners()` require a dedicated test file. Constants: `N_OBS=500`, `N_FOLDS=5`, `N_REP=2`. Score-parametrized fixture (same pattern as tuning tests).
+
+**Required tests:**
+
+| Test | Checks |
+|------|--------|
+| `test_nuisance_loss_type_and_shape` | `dict`; each value `shape == (N_REP,)`; finite or NaN as expected |
+| `test_nuisance_loss_positive` | RMSE > 0 for learners with real targets |
+| `test_nuisance_targets_type_and_shape` | `shape == (N_OBS, N_REP)`; NaN arrays for unknown targets |
+| `test_nuisance_targets_correct_values` | ml_l target == y; ml_m target == d (model-specific) |
+| `test_evaluate_learners_default` | Default metric returns finite positive values |
+| `test_evaluate_learners_rmse_matches_nuisance_loss` | `evaluate_learners(root_mean_squared_error)` equals `nuisance_loss` |
+| `test_evaluate_learners_r2` | R² ≤ 1; correct shape |
+| `test_evaluate_learners_mae` | MAE > 0; correct shape |
+| `test_evaluate_learners_subset` | `learners=["ml_l"]` returns only `"ml_l"` key |
+| `test_evaluate_learners_custom_metric` | Lambda metric matches sklearn equivalent |
+| `test_evaluate_learners_before_fit_raises` | `ValueError` before `fit_nuisance_models()` |
+| `test_evaluate_learners_after_reset_raises` | `ValueError` after `draw_sample_splitting()` |
+| `test_nuisance_loss_before_fit_raises` | `ValueError` on `.nuisance_loss` before fit |
+| `test_nuisance_targets_before_fit_raises` | `ValueError` on `.nuisance_targets` before fit |
+| `test_evaluate_learners_invalid_learner` | Unknown learner name raises `ValueError` |
+| `test_evaluate_learners_invalid_metric` | Non-callable metric raises `TypeError` |
+| `test_reset_clears_nuisance` | After `draw_sample_splitting()`, `nuisance_loss` raises |
+
+NaN conventions: PLR `ml_g` → all-NaN; IRM `ml_g0` → NaN for `d==1`; `ml_g1` → NaN for `d==0`.
+
+---
+
+## Sensitivity Tests (`test_<model>_scalar_sensitivity.py`)
+
+Scalar models with `_sensitivity_element_est()` require a dedicated test file. Constants: `N_OBS=500`, `N_FOLDS=5`, `N_REP=2`. Score-parametrized `fitted_<model>` fixture.
+
+**Exception tests** go in `test_<model>_scalar_exceptions.py` — not in this file:
+
+| Test | Input | Expected |
+|------|-------|----------|
+| `test_exception_sensitivity_before_fit` | Call before `fit()` | `ValueError` matching `"The framework is not yet initialized"` |
+| `test_exception_sensitivity_cf_y` | `cf_y=1` (int) / `cf_y=1.0` (boundary) | `TypeError` / `ValueError` |
+| `test_exception_sensitivity_cf_d` | `cf_d=1` / `cf_d=1.0` | `TypeError` / `ValueError` |
+| `test_exception_sensitivity_rho` | `rho=1` (int) / `rho=1.1` (out of range) | `TypeError` / `ValueError` |
+| `test_exception_sensitivity_level` | `level=1` (int) / `level=0.0` (boundary) | `TypeError` / `ValueError` |
+| `test_exception_sensitivity_null_hypothesis` | Wrong shape array | `ValueError` |
+
+**Required tests** (parametrize over all scores):
+
+| Test | Checks |
+|------|--------|
+| `test_sensitivity_elements_positive` | `sigma2 >= 0`, `nu2 > 0`, `max_bias >= 0` |
+| `test_sensitivity_params_structure` | After `sensitivity_analysis()`: `theta/se/ci` have `lower`/`upper`; `rv`/`rva` in [0, 1] |
+| `test_sensitivity_params_bounds_ordered` | `theta["lower"] <= coef <= theta["upper"]` |
+| `test_sensitivity_rho0` | `rho=0.0`: `se["lower"] ≈ se["upper"] ≈ model.se` (`rtol=1e-6`) |
+| `test_sensitivity_monotonicity_cf_y` | `cf_y=0.15` → wider theta bounds than `cf_y=0.03` |
+
+---
+
 ## Naming
 
-- Files: `test_<model>.py`, `test_<model>_scalar.py`, `test_<model>_scalar_exceptions.py`, `test_<model>_scalar_tune_ml_models.py`
+- Files: `test_<model>.py`, `test_<model>_scalar.py`, `test_<model>_scalar_exceptions.py`, `test_<model>_scalar_tune_ml_models.py`, `test_<model>_scalar_evaluate_learners.py`, `test_<model>_scalar_sensitivity.py`
 - Functions: `test_<what>` — e.g., `test_coef_within_3_sigma`, `test_exception_invalid_score`
 - Docstrings: Every test function gets a one-line docstring explaining what it verifies
 
@@ -152,3 +209,5 @@ For models with `_LEARNER_PARAM_ALIASES` (e.g., IRM `"ml_g"` → `["ml_g0", "ml_
 - [ ] Test functions have descriptive names and docstrings
 - [ ] New scalar models have all 5 required test files (see `dml-scalar-test-structure.md`)
 - [ ] If model has `tune_ml_models()`, add `test_<model>_scalar_tune_ml_models.py` with all required tuning tests
+- [ ] If model has `evaluate_learners()` / `nuisance_loss`, add `test_<model>_scalar_evaluate_learners.py`
+- [ ] If model has `_sensitivity_element_est()`, add sensitivity exception tests to `test_<model>_scalar_exceptions.py` and add `test_<model>_scalar_sensitivity.py`

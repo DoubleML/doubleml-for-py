@@ -136,3 +136,69 @@ def test_plr_scalar_warning_binary_outcome_classifier():
     msg = r"The ml_l learner .+ was identified as classifier\. Fitting an additive probability model\."
     with pytest.warns(UserWarning, match=msg):
         dml_obj.set_learners(ml_l=LogisticRegression(), ml_m=Lasso())
+
+
+# ==================== sensitivity_analysis exceptions ====================
+
+
+@pytest.fixture(scope="module")
+def fitted_plr_for_sensitivity():
+    """Fitted PLR model for sensitivity exception tests."""
+    dml_obj = PLR(obj_dml_data)
+    dml_obj.set_learners(ml_l=ml_l, ml_m=ml_m)
+    dml_obj.fit(n_folds=3, n_rep=1)
+    return dml_obj
+
+
+@pytest.mark.ci
+def test_exception_sensitivity_before_fit():
+    """sensitivity_analysis() raises ValueError before fit()."""
+    dml_obj = PLR(obj_dml_data)
+    msg = r"The framework is not yet initialized"
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.sensitivity_analysis()
+
+
+@pytest.mark.ci
+def test_exception_sensitivity_cf_y(fitted_plr_for_sensitivity):
+    """cf_y must be a float in [0,1)."""
+    with pytest.raises(TypeError, match=r"cf_y must be of float type"):
+        fitted_plr_for_sensitivity.sensitivity_analysis(cf_y=1)
+    with pytest.raises(ValueError, match=r"cf_y must be in \[0,1\)"):
+        fitted_plr_for_sensitivity.sensitivity_analysis(cf_y=1.0)
+
+
+@pytest.mark.ci
+def test_exception_sensitivity_cf_d(fitted_plr_for_sensitivity):
+    """cf_d must be a float in [0,1)."""
+    with pytest.raises(TypeError, match=r"cf_d must be of float type"):
+        fitted_plr_for_sensitivity.sensitivity_analysis(cf_d=1)
+    with pytest.raises(ValueError, match=r"cf_d must be in \[0,1\)"):
+        fitted_plr_for_sensitivity.sensitivity_analysis(cf_d=1.0)
+
+
+@pytest.mark.ci
+def test_exception_sensitivity_rho(fitted_plr_for_sensitivity):
+    """rho must be a float with |rho| <= 1."""
+    with pytest.raises(TypeError, match=r"rho must be of float type"):
+        fitted_plr_for_sensitivity.sensitivity_analysis(rho=1)
+    with pytest.raises(ValueError, match=r"The absolute value of rho must be in \[0,1\]"):
+        fitted_plr_for_sensitivity.sensitivity_analysis(rho=1.1)
+
+
+@pytest.mark.ci
+def test_exception_sensitivity_level(fitted_plr_for_sensitivity):
+    """level must be a float in (0,1)."""
+    with pytest.raises(TypeError, match=r"The confidence level must be of float type"):
+        fitted_plr_for_sensitivity.sensitivity_analysis(level=1)
+    with pytest.raises(ValueError, match=r"The confidence level must be in \(0,1\)"):
+        fitted_plr_for_sensitivity.sensitivity_analysis(level=0.0)
+
+
+@pytest.mark.ci
+def test_exception_sensitivity_null_hypothesis(fitted_plr_for_sensitivity):
+    """null_hypothesis with wrong shape raises ValueError."""
+    import numpy as np
+
+    with pytest.raises(ValueError, match=r"null_hypothesis"):
+        fitted_plr_for_sensitivity.sensitivity_analysis(null_hypothesis=np.array([0.0, 0.0]))

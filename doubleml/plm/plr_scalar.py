@@ -392,3 +392,59 @@ class PLR(LinearScoreMixin):
             psi_b = v_hat * (y[:, np.newaxis] - g_hat)
 
         return {"psi_a": psi_a, "psi_b": psi_b}
+
+    def _sensitivity_element_est(self) -> dict[str, np.ndarray] | None:
+        """
+        Compute PLR sensitivity elements vectorized over all repetitions.
+
+        Computes sigma2 (outcome residual variance), nu2 (inverse of treatment
+        residual variance), their influence functions, and the Riesz representer.
+        Handles both ``'partialling out'`` and ``'IV-type'`` scores.
+
+        Returns
+        -------
+        dict[str, np.ndarray] or None
+            Dictionary with keys ``'sigma2'``, ``'nu2'`` (shape ``(1, 1, n_rep)``),
+            ``'psi_sigma2'``, ``'psi_nu2'``, ``'riesz_rep'`` (shape ``(n_obs, 1, n_rep)``).
+            Returns ``None`` for callable scores (no standard Riesz representer).
+        """
+        if callable(self.score):
+            return None
+
+        y = self._dml_data.y  # (n_obs,)
+        d = self._dml_data.d  # (n_obs,)
+        m_hat = self._predictions["ml_m"]  # (n_obs, n_rep)
+        theta = self._all_thetas  # (1, n_rep) — broadcasts with (n_obs, n_rep)
+
+        treatment_residual = d[:, np.newaxis] - m_hat  # (n_obs, n_rep)
+
+        if self.score == "partialling out":
+            l_hat = self._predictions["ml_l"]  # (n_obs, n_rep)
+            sigma2_score = (y[:, np.newaxis] - l_hat - theta * treatment_residual) ** 2
+        else:  # "IV-type"
+            g_hat = self._predictions["ml_g"]  # (n_obs, n_rep)
+            sigma2_score = (y[:, np.newaxis] - g_hat - theta * d[:, np.newaxis]) ** 2
+
+        # sigma2: mean across observations, reshaped to (1, 1, n_rep)
+        sigma2_mean = np.mean(sigma2_score, axis=0)  # (n_rep,)
+        psi_sigma2 = sigma2_score - sigma2_mean[np.newaxis, :]  # (n_obs, n_rep)
+        sigma2 = sigma2_mean[np.newaxis, np.newaxis, :]  # (1, 1, n_rep)
+        psi_sigma2 = psi_sigma2[:, np.newaxis, :]  # (n_obs, 1, n_rep)
+
+        # nu2 = 1 / E[(d - m_hat)^2], reshaped to (1, 1, n_rep)
+        tr_sq_mean = np.mean(treatment_residual**2, axis=0)  # (n_rep,)
+        nu2_val = 1.0 / tr_sq_mean  # (n_rep,)
+        psi_nu2 = nu2_val[np.newaxis, :] - treatment_residual**2 * nu2_val[np.newaxis, :] ** 2  # (n_obs, n_rep)
+        nu2 = nu2_val[np.newaxis, np.newaxis, :]  # (1, 1, n_rep)
+        psi_nu2 = psi_nu2[:, np.newaxis, :]  # (n_obs, 1, n_rep)
+
+        # Riesz representer: (d - m_hat) * nu2
+        rr = (treatment_residual * nu2_val[np.newaxis, :])[:, np.newaxis, :]  # (n_obs, 1, n_rep)
+
+        return {
+            "sigma2": sigma2,
+            "nu2": nu2,
+            "psi_sigma2": psi_sigma2,
+            "psi_nu2": psi_nu2,
+            "riesz_rep": rr,
+        }

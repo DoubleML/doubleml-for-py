@@ -17,6 +17,7 @@ from .double_ml_framework import DoubleMLCore as DoubleMLCoreData
 from .double_ml_framework import DoubleMLFramework
 from .utils._checks import _check_sample_splitting
 from .utils._learner import LearnerInfo, LearnerSpec, validate_learner
+from .utils._sensitivity import _compute_sensitivity_bias
 from .utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS, _dml_tune_optuna, resolve_optuna_cv
 from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
@@ -106,6 +107,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._predictions: dict[str, np.ndarray] | None = None
         self._nuisance_targets: dict[str, np.ndarray] | None = None
         self._nuisance_loss: dict[str, np.ndarray] | None = None
+        self._sensitivity_elements: dict[str, np.ndarray] | None = None
         self._all_thetas: np.ndarray | None = None
         self._all_ses: np.ndarray | None = None
         self._psi: np.ndarray | None = None
@@ -231,6 +233,22 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         if self._nuisance_loss is None:
             raise ValueError("Nuisance loss not available. Call fit() or fit_nuisance_models() first.")
         return self._nuisance_loss
+
+    @property
+    def sensitivity_elements(self) -> dict[str, np.ndarray] | None:
+        """
+        Raw sensitivity elements computed after :meth:`fit`.
+
+        Returns ``None`` if sensitivity analysis is not implemented for this model
+        or if the model has not been fitted yet.
+
+        Returns
+        -------
+        dict[str, np.ndarray] or None
+            Dictionary with keys ``'sigma2'``, ``'nu2'`` (shape ``(1, 1, n_rep)``),
+            ``'psi_sigma2'``, ``'psi_nu2'``, ``'riesz_rep'`` (shape ``(n_obs, 1, n_rep)``).
+        """
+        return self._sensitivity_elements
 
     @property
     def smpls(self) -> list:
@@ -552,6 +570,10 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         # Estimate causal parameters - from score mixin
         self._est_causal_pars_and_se(psi_elements)
 
+        # Compute sensitivity elements (optional hook — None by default)
+        self._sensitivity_elements = self._sensitivity_element_est()
+        self._validate_sensitivity_elements()
+
         # Construct framework
         self._framework = self._construct_framework()
 
@@ -783,6 +805,22 @@ class DoubleMLScalar(DoubleMLBase, ABC):
                 "n_folds_per_cluster": self._n_folds_per_cluster,
             }
 
+        # Compute framework-ready sensitivity elements if available
+        sensitivity_elements_for_framework: dict[str, np.ndarray] | None = None
+        if self._sensitivity_elements is not None:
+            max_bias, psi_max_bias = _compute_sensitivity_bias(
+                sigma2=self._sensitivity_elements["sigma2"],
+                nu2=self._sensitivity_elements["nu2"],
+                psi_sigma2=self._sensitivity_elements["psi_sigma2"],
+                psi_nu2=self._sensitivity_elements["psi_nu2"],
+            )
+            sensitivity_elements_for_framework = {
+                "max_bias": max_bias,  # (1, 1, n_rep)
+                "psi_max_bias": psi_max_bias,  # (n_obs, 1, n_rep)
+                "sigma2": self._sensitivity_elements["sigma2"],  # (1, 1, n_rep)
+                "nu2": self._sensitivity_elements["nu2"],  # (1, 1, n_rep)
+            }
+
         # Create data container (no transpose needed - already in framework convention!)
         framework_data = DoubleMLCoreData(
             all_thetas=self._all_thetas,  # (n_thetas, n_rep)
@@ -791,6 +829,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             scaled_psi=scaled_psi,  # (n_obs, n_thetas, n_rep)
             is_cluster_data=self._dml_data.is_cluster_data,
             cluster_dict=cluster_dict,
+            sensitivity_elements=sensitivity_elements_for_framework,
         )
 
         # Create and return framework
@@ -804,6 +843,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._predictions = None
         self._nuisance_targets = None
         self._nuisance_loss = None
+        self._sensitivity_elements = None
         self._framework = None
         self._all_thetas = None
         self._all_ses = None
@@ -911,6 +951,47 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
     def _post_nuisance_checks(self) -> None:
         """Post-nuisance prediction validation hook. Override in subclasses for model-specific checks."""
+
+    def _sensitivity_element_est(self) -> dict[str, np.ndarray] | None:
+        """
+        Compute sensitivity analysis elements after causal parameter estimation.
+
+        Optional hook called after :meth:`_est_causal_pars_and_se` in
+        :meth:`estimate_causal_parameters`. Override in subclasses to enable
+        sensitivity analysis via :meth:`sensitivity_analysis`.
+
+        Implementations should access ``self._predictions``, ``self._dml_data``,
+        and ``self._all_thetas`` directly and compute results vectorized over all
+        ``n_rep`` repetitions at once.
+
+        Returns
+        -------
+        dict[str, np.ndarray] or None
+            Dictionary with keys ``'sigma2'``, ``'nu2'`` (shape ``(1, 1, n_rep)``),
+            ``'psi_sigma2'``, ``'psi_nu2'``, ``'riesz_rep'`` (shape ``(n_obs, 1, n_rep)``).
+            Return ``None`` (default) if sensitivity analysis is not implemented.
+        """
+        return None
+
+    def _validate_sensitivity_elements(self) -> None:
+        """Re-estimate nu2 from riesz representer if nu2 is non-positive (degenerate PS)."""
+        import warnings
+
+        if self._sensitivity_elements is None:
+            return
+        nu2 = self._sensitivity_elements["nu2"]  # (1, 1, n_rep)
+        rr = self._sensitivity_elements["riesz_rep"]  # (n_obs, 1, n_rep)
+        if np.any(nu2 <= 0):
+            treatment_name = self._dml_data.d_cols[0]
+            warnings.warn(
+                f"The estimated nu2 for treatment '{treatment_name}' is not positive. "
+                "Re-estimation based on riesz representer (non-orthogonal).",
+                UserWarning,
+            )
+            psi_nu2_new = rr**2
+            nu2_new = np.mean(psi_nu2_new, axis=0, keepdims=True)
+            self._sensitivity_elements["nu2"] = nu2_new
+            self._sensitivity_elements["psi_nu2"] = psi_nu2_new - nu2_new
 
     @abstractmethod
     def _get_nuisance_targets(self) -> dict[str, np.ndarray | None]:

@@ -191,3 +191,78 @@ def test_reset_after_draw_sample_splitting():
         _ = dml_obj.coef
     with pytest.raises(ValueError, match="Predictions not available. Call fit"):
         _ = dml_obj.predictions
+
+
+@pytest.mark.ci
+def test_sensitivity_elements_type_and_shape(fitted_dml_obj):
+    """sensitivity_elements has correct keys, types, and shapes after fit."""
+    elems = fitted_dml_obj.sensitivity_elements
+    assert isinstance(elems, dict)
+    for key in ["sigma2", "nu2"]:
+        assert key in elems
+        assert isinstance(elems[key], np.ndarray)
+        assert elems[key].shape == (1, 1, N_REP)
+    for key in ["psi_sigma2", "psi_nu2", "riesz_rep"]:
+        assert key in elems
+        assert isinstance(elems[key], np.ndarray)
+        assert elems[key].shape == (N_OBS, 1, N_REP)
+
+
+@pytest.mark.ci
+def test_sensitivity_analysis_runs(fitted_dml_obj):
+    """sensitivity_analysis() completes without error and returns self."""
+    result = fitted_dml_obj.sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0)
+    assert result is fitted_dml_obj.framework
+
+
+@pytest.mark.ci
+def test_sensitivity_before_fit_is_none():
+    """sensitivity_elements returns None before fit()."""
+    dml_obj = PLR(obj_dml_data)
+    assert dml_obj.sensitivity_elements is None
+
+
+@pytest.mark.ci
+def test_sensitivity_reset_after_draw_sample_splitting():
+    """sensitivity_elements resets to None after draw_sample_splitting()."""
+    np.random.seed(3141)
+    dml_obj = PLR(obj_dml_data)
+    dml_obj.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression())
+    dml_obj.draw_sample_splitting(n_folds=N_FOLDS, n_rep=N_REP)
+    dml_obj.fit()
+    assert dml_obj.sensitivity_elements is not None
+    dml_obj.draw_sample_splitting(n_folds=N_FOLDS, n_rep=N_REP)
+    assert dml_obj.sensitivity_elements is None
+
+
+@pytest.mark.ci
+def test_sensitivity_params_structure(fitted_dml_obj):
+    """sensitivity_params has expected keys and finite rv/rva after sensitivity_analysis()."""
+    fitted_dml_obj.sensitivity_analysis(cf_y=0.03, cf_d=0.03)
+    params = fitted_dml_obj.framework.sensitivity_params
+    for key in ["theta", "se", "ci"]:
+        assert "lower" in params[key] and "upper" in params[key]
+    for key in ["rv", "rva"]:
+        assert np.all(np.isfinite(params[key]))
+        assert np.all(params[key] >= 0) and np.all(params[key] <= 1)
+
+
+@pytest.mark.ci
+def test_sensitivity_rho0_se_bounds(fitted_dml_obj):
+    """With rho=0, se lower and upper bounds equal the unadjusted se."""
+    fitted_dml_obj.sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=0.0)
+    params = fitted_dml_obj.framework.sensitivity_params
+    np.testing.assert_allclose(params["se"]["lower"], fitted_dml_obj.se, rtol=1e-6)
+    np.testing.assert_allclose(params["se"]["upper"], fitted_dml_obj.se, rtol=1e-6)
+
+
+@pytest.mark.ci
+def test_sensitivity_monotonicity_cf_y(fitted_dml_obj):
+    """Increasing cf_y widens the theta sensitivity bounds."""
+    fitted_dml_obj.sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0)
+    params_low = fitted_dml_obj.framework.sensitivity_params
+    width_low = params_low["theta"]["upper"] - params_low["theta"]["lower"]
+    fitted_dml_obj.sensitivity_analysis(cf_y=0.15, cf_d=0.03, rho=1.0)
+    params_high = fitted_dml_obj.framework.sensitivity_params
+    width_high = params_high["theta"]["upper"] - params_high["theta"]["lower"]
+    assert np.all(width_high >= width_low)
