@@ -165,6 +165,92 @@ def test_irm_scalar_exception_binary_predictions_g():
         dml_obj.fit_nuisance_models()
 
 
+# ==================== weights exceptions ====================
+
+_N_OBS = obj_dml_data.n_obs
+
+
+@pytest.mark.ci
+def test_exception_weights_wrong_type():
+    """weights of non-array, non-dict type raises TypeError."""
+    msg = r"weights must be a numpy array or dictionary\."
+    with pytest.raises(TypeError, match=msg):
+        IRM(obj_dml_data, weights="not_an_array")
+
+
+@pytest.mark.ci
+def test_exception_weights_wrong_shape():
+    """1D weights array with wrong length raises ValueError."""
+    msg = r"weights must have shape"
+    with pytest.raises(ValueError, match=msg):
+        IRM(obj_dml_data, weights=np.ones(_N_OBS + 1))
+
+
+@pytest.mark.ci
+def test_exception_weights_negative():
+    """weights array with a negative value raises ValueError."""
+    w = np.ones(_N_OBS)
+    w[0] = -1.0
+    msg = r"All weights values must be greater or equal 0\."
+    with pytest.raises(ValueError, match=msg):
+        IRM(obj_dml_data, weights=w)
+
+
+@pytest.mark.ci
+def test_exception_weights_atte_not_array():
+    """dict weights with score='ATTE' raises TypeError."""
+    dict_weights = {"weights": np.ones(_N_OBS), "weights_bar": np.ones((_N_OBS, 1))}
+    msg = r"weights must be a numpy array for ATTE score\."
+    with pytest.raises(TypeError, match=msg):
+        IRM(obj_dml_data, score="ATTE", weights=dict_weights)
+
+
+@pytest.mark.ci
+def test_exception_weights_atte_not_binary():
+    """Non-binary array weights with score='ATTE' raises ValueError."""
+    w = np.full(_N_OBS, 0.5)
+    msg = r"weights must be binary for ATTE score\."
+    with pytest.raises(ValueError, match=msg):
+        IRM(obj_dml_data, score="ATTE", weights=w)
+
+
+@pytest.mark.ci
+def test_exception_dict_weights_wrong_keys():
+    """Dict weights with unexpected keys raises ValueError."""
+    bad_dict = {"weights": np.ones(_N_OBS), "wrong_key": np.ones((_N_OBS, 1))}
+    msg = r"weights must have keys"
+    with pytest.raises(ValueError, match=msg):
+        IRM(obj_dml_data, weights=bad_dict)
+
+
+@pytest.mark.ci
+def test_exception_dict_weights_bar_wrong_n_obs():
+    """Dict weights_bar with wrong number of rows raises ValueError at init."""
+    dict_weights = {
+        "weights": np.ones(_N_OBS),
+        "weights_bar": np.ones((_N_OBS + 1, 1)),
+    }
+    msg = r"weights_bar must be a 2-dimensional array with"
+    with pytest.raises(ValueError, match=msg):
+        IRM(obj_dml_data, weights=dict_weights)
+
+
+@pytest.mark.ci
+def test_exception_dict_weights_bar_wrong_n_rep():
+    """Dict weights_bar with wrong n_rep column raises ValueError at estimate time."""
+    # weights_bar has 2 columns but n_rep=3 is used; mismatch detected in estimate_causal_parameters()
+    dict_weights = {
+        "weights": np.ones(_N_OBS),
+        "weights_bar": np.ones((_N_OBS, 2)),
+    }
+    dml_obj = IRM(obj_dml_data, ml_g=ml_g, ml_m=ml_m, weights=dict_weights)
+    dml_obj.draw_sample_splitting(n_folds=2, n_rep=3)
+    dml_obj.fit_nuisance_models()
+    msg = r"weights_bar must have shape"
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.estimate_causal_parameters()
+
+
 # ==================== sensitivity_analysis exceptions ====================
 
 

@@ -147,8 +147,8 @@ class IRM(LinearScoreMixin):
             self._ps_processor_config = PSProcessorConfig()
             self._ps_processor = PSProcessor.from_config(self._ps_processor_config)
 
-        # Weights
-        _check_weights(weights, score, obj_dml_data.n_obs, n_rep=1)
+        # Weights — n_rep shape deferred to _get_weights() when n_rep is known
+        _check_weights(weights, score, obj_dml_data.n_obs)
         self._initialize_weights(weights)
 
         # Set learners if provided
@@ -460,8 +460,12 @@ class IRM(LinearScoreMixin):
             w = self._weights["weights"]
             weights = w[:, np.newaxis] * np.ones((1, self.n_rep))  # (n_obs, n_rep)
             if "weights_bar" in self._weights:
-                # weights_bar has shape (n_obs, n_rep) already
                 weights_bar = self._weights["weights_bar"]
+                if weights_bar.shape != (self.n_obs, self.n_rep):
+                    raise ValueError(
+                        f"weights_bar must have shape ({self.n_obs}, {self.n_rep}). "
+                        f"weights_bar of shape {weights_bar.shape} was passed."
+                    )
             else:
                 weights_bar = weights.copy()
         else:

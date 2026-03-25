@@ -240,7 +240,7 @@ def _check_benchmarks(benchmarks):
     return
 
 
-def _check_weights(weights, score, n_obs, n_rep):
+def _check_weights(weights, score, n_obs, n_rep: int | None = None):
     if weights is not None:
         # check general type
         if (not isinstance(weights, np.ndarray)) and (not isinstance(weights, dict)):
@@ -273,14 +273,19 @@ def _check_weights(weights, score, n_obs, n_rep):
             if not set(weights.keys()) == set(expected_keys):
                 raise ValueError(f"weights must have keys {expected_keys}. keys {str(weights.keys())} were passed.")
 
-            expected_shapes = [(n_obs,), (n_obs, n_rep)]
-            if weights["weights"].shape != expected_shapes[0]:
+            if weights["weights"].shape != (n_obs,):
                 raise ValueError(
-                    f"weights must have shape {expected_shapes[0]}. weights of shape {weights['weights'].shape} was passed."
+                    f"weights must have shape ({n_obs},). weights of shape {weights['weights'].shape} was passed."
                 )
-            if weights["weights_bar"].shape != expected_shapes[1]:
+            # weights_bar must be 2D with n_obs rows; the n_rep column is validated later when n_rep is known
+            if weights["weights_bar"].ndim != 2 or weights["weights_bar"].shape[0] != n_obs:
                 raise ValueError(
-                    f"weights_bar must have shape {expected_shapes[1]}. "
+                    f"weights_bar must be a 2-dimensional array with {n_obs} rows. "
+                    f"weights_bar of shape {weights['weights_bar'].shape} was passed."
+                )
+            if n_rep is not None and weights["weights_bar"].shape[1] != n_rep:
+                raise ValueError(
+                    f"weights_bar must have shape ({n_obs}, {n_rep}). "
                     f"weights_bar of shape {weights['weights_bar'].shape} was passed."
                 )
             if (not np.all(weights["weights"] >= 0)) or (not np.all(weights["weights_bar"] >= 0)):
