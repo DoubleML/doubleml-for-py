@@ -8,6 +8,8 @@ DoubleML is a Python package implementing Double/Debiased Machine Learning (DML)
 
 **Docs**: https://docs.doubleml.org | **Source**: https://github.com/DoubleML/doubleml-for-py
 
+**Branch status & TODOs**: `.claude/STATUS.md`
+
 ## Architecture
 
 ### Class Hierarchy
