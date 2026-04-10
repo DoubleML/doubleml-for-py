@@ -674,3 +674,113 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model = DoubleMLPolicyTree(orth_signal, depth=depth, features=features, **tree_params).fit()
 
         return model
+
+    def plot_overlap_common_support(
+        self,
+        idx_treatment: int = 0,
+        i_rep: int = 0,
+        threshold: float = 0.05,
+        show_warning: bool = True,
+    ) -> "go.Figure":
+        """Plot the propensity score overlap (common support) for treatment and control groups.
+
+        Visualizes the distribution of estimated propensity scores :math:`\\hat{m}_0(X) = \\hat{E}[D|X]`
+        split by treatment status using kernel density estimation. Highlights regions near 0 and 1
+        where the positivity assumption :math:`\\eta < m_0(X) < 1 - \\eta` may be violated.
+
+        Parameters
+        ----------
+        idx_treatment : int
+            Index of the treatment variable (for multi-treatment settings).
+            Default is ``0``.
+
+        i_rep : int
+            Index of the repetition to use for the propensity score predictions.
+            Default is ``0``.
+
+        threshold : float
+            Threshold for positivity violation warning zones. Vertical lines are drawn at ``threshold``
+            and ``1 - threshold`` to highlight the danger zones. Must be in ``(0, 0.5)``.
+            Default is ``0.05``.
+
+        show_warning : bool
+            If ``True``, a warning is issued when the share of observations in the positivity violation
+            zones exceeds 5%. This indicates that IPW-based estimators may suffer from high variance.
+            Default is ``True``.
+
+        Returns
+        -------
+        fig : :class:`plotly.graph_objects.Figure`
+            Plotly figure with the propensity score overlap plot.
+
+        Raises
+        ------
+        ValueError
+            If ``fit()`` has not been called or predictions are not stored.
+        """
+        import plotly.graph_objects as go
+
+        from doubleml.utils._plots import _propensity_score_overlap_plot
+
+        # Input validation
+        if self._framework is None:
+            raise ValueError("Apply fit() before plot_overlap_common_support().")
+
+        if self.predictions is None:
+            raise ValueError(
+                "Predictions are not stored. Call fit() with store_predictions=True "
+                "before plot_overlap_common_support()."
+            )
+
+        if "ml_m" not in self.predictions:
+            raise ValueError(
+                "Propensity score predictions ('ml_m') are not available. "
+                "Ensure fit() was called with store_predictions=True."
+            )
+
+        if not isinstance(idx_treatment, int):
+            raise TypeError(f"idx_treatment must be an integer. Got {type(idx_treatment)}.")
+        if idx_treatment < 0 or idx_treatment >= self._dml_data.n_treat:
+            raise ValueError(
+                f"idx_treatment must be in [0, {self._dml_data.n_treat - 1}]. Got {idx_treatment}."
+            )
+
+        if not isinstance(i_rep, int):
+            raise TypeError(f"i_rep must be an integer. Got {type(i_rep)}.")
+        if i_rep < 0 or i_rep >= self.n_rep:
+            raise ValueError(f"i_rep must be in [0, {self.n_rep - 1}]. Got {i_rep}.")
+
+        if not isinstance(threshold, (int, float)):
+            raise TypeError(f"threshold must be a float. Got {type(threshold)}.")
+        if threshold <= 0 or threshold >= 0.5:
+            raise ValueError(f"threshold must be in (0, 0.5). Got {threshold}.")
+
+        if not isinstance(show_warning, bool):
+            raise TypeError(f"show_warning must be a boolean. Got {type(show_warning)}.")
+
+        # Extract propensity scores and treatment indicator
+        ps_scores = self.predictions["ml_m"][:, i_rep, idx_treatment]
+        treatment = self._dml_data.d
+
+        # Generate plot
+        fig = _propensity_score_overlap_plot(ps_scores, treatment, threshold)
+
+        # Positivity violation warning
+        # When propensity scores cluster near 0 or 1, IPW estimators suffer from extreme weights,
+        # leading to inflated variance of the treatment effect estimate.
+        if show_warning:
+            n_total = len(ps_scores)
+            n_violations = np.sum((ps_scores < threshold) | (ps_scores > 1 - threshold))
+            pct_violations = n_violations / n_total * 100
+            if pct_violations > 5.0:
+                warnings.warn(
+                    f"Potential positivity violation detected: {pct_violations:.1f}% of observations have "
+                    f"propensity scores outside [{threshold}, {1 - threshold}]. "
+                    f"This may lead to high variance in IPW-based estimators. "
+                    f"Consider using trimming (ps_processor_config) or checking the covariate balance.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+        return fig
+
