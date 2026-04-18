@@ -679,14 +679,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         self,
         idx_treatment: int = 0,
         i_rep: int = 0,
-        threshold: float = 0.05,
-        show_warning: bool = True,
-    ) -> "go.Figure":
-        """Plot the propensity score overlap (common support) for treatment and control groups.
+        bins=10,
+        density: bool = False,
+        palette: str = "colorblind",
+    ):
+        """Plot propensity score distributions and binned calibration curves.
 
         Visualizes the distribution of estimated propensity scores :math:`\\hat{m}_0(X) = \\hat{E}[D|X]`
-        split by treatment status using kernel density estimation. Highlights regions near 0 and 1
-        where the positivity assumption :math:`\\eta < m_0(X) < 1 - \\eta` may be violated.
+        split by treatment status using histograms, together with calibration curves comparing
+        predicted propensity scores against observed treatment fractions.
 
         Parameters
         ----------
@@ -698,29 +699,31 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             Index of the repetition to use for the propensity score predictions.
             Default is ``0``.
 
-        threshold : float
-            Threshold for positivity violation warning zones. Vertical lines are drawn at ``threshold``
-            and ``1 - threshold`` to highlight the danger zones. Must be in ``(0, 0.5)``.
-            Default is ``0.05``.
+        bins : int or array-like
+            Number of bins or explicit bin edges for the histograms and calibration curves.
+            Default is ``10``.
 
-        show_warning : bool
-            If ``True``, a warning is issued when the share of observations in the positivity violation
-            zones exceeds 5%. This indicates that IPW-based estimators may suffer from high variance.
-            Default is ``True``.
+        density : bool
+            If ``True``, histogram heights are normalized to density.
+            Default is ``False``.
+
+        palette : str or sequence
+            Seaborn palette name or explicit colors.
+            Default is ``"colorblind"``.
 
         Returns
         -------
-        fig : :class:`plotly.graph_objects.Figure`
-            Plotly figure with the propensity score overlap plot.
+        fig : :class:`matplotlib.figure.Figure`
+            Matplotlib figure.
+        axes : :class:`numpy.ndarray`
+            2x2 axes array.
 
         Raises
         ------
         ValueError
             If ``fit()`` has not been called or predictions are not stored.
         """
-        import plotly.graph_objects as go
-
-        from doubleml.utils._plots import _propensity_score_overlap_plot
+        from doubleml.utils.plots import plot_propensity_score_calibration
 
         # Input validation
         if self._framework is None:
@@ -750,37 +753,19 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if i_rep < 0 or i_rep >= self.n_rep:
             raise ValueError(f"i_rep must be in [0, {self.n_rep - 1}]. Got {i_rep}.")
 
-        if not isinstance(threshold, (int, float)):
-            raise TypeError(f"threshold must be a float. Got {type(threshold)}.")
-        if threshold <= 0 or threshold >= 0.5:
-            raise ValueError(f"threshold must be in (0, 0.5). Got {threshold}.")
-
-        if not isinstance(show_warning, bool):
-            raise TypeError(f"show_warning must be a boolean. Got {type(show_warning)}.")
-
         # Extract propensity scores and treatment indicator
         ps_scores = self.predictions["ml_m"][:, i_rep, idx_treatment]
         treatment = self._dml_data.d
 
         # Generate plot
-        fig = _propensity_score_overlap_plot(ps_scores, treatment, threshold)
+        fig, axes = plot_propensity_score_calibration(
+            propensity_score=ps_scores,
+            treatment=treatment,
+            bins=bins,
+            density=density,
+            palette=palette,
+        )
 
-        # Positivity violation warning
-        # When propensity scores cluster near 0 or 1, IPW estimators suffer from extreme weights,
-        # leading to inflated variance of the treatment effect estimate.
-        if show_warning:
-            n_total = len(ps_scores)
-            n_violations = np.sum((ps_scores < threshold) | (ps_scores > 1 - threshold))
-            pct_violations = n_violations / n_total * 100
-            if pct_violations > 5.0:
-                warnings.warn(
-                    f"Potential positivity violation detected: {pct_violations:.1f}% of observations have "
-                    f"propensity scores outside [{threshold}, {1 - threshold}]. "
-                    f"This may lead to high variance in IPW-based estimators. "
-                    f"Consider using trimming (ps_processor_config) or checking the covariate balance.",
-                    UserWarning,
-                    stacklevel=2,
-                )
+        return fig, axes
 
-        return fig
 
