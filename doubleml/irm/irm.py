@@ -674,3 +674,98 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model = DoubleMLPolicyTree(orth_signal, depth=depth, features=features, **tree_params).fit()
 
         return model
+
+    def plot_overlap_common_support(
+        self,
+        idx_treatment: int = 0,
+        i_rep: int = 0,
+        bins=10,
+        density: bool = False,
+        palette: str = "colorblind",
+    ):
+        """Plot propensity score distributions and binned calibration curves.
+
+        Visualizes the distribution of estimated propensity scores :math:`\\hat{m}_0(X) = \\hat{E}[D|X]`
+        split by treatment status using histograms, together with calibration curves comparing
+        predicted propensity scores against observed treatment fractions.
+
+        Parameters
+        ----------
+        idx_treatment : int
+            Index of the treatment variable (for multi-treatment settings).
+            Default is ``0``.
+
+        i_rep : int
+            Index of the repetition to use for the propensity score predictions.
+            Default is ``0``.
+
+        bins : int or array-like
+            Number of bins or explicit bin edges for the histograms and calibration curves.
+            Default is ``10``.
+
+        density : bool
+            If ``True``, histogram heights are normalized to density.
+            Default is ``False``.
+
+        palette : str or sequence
+            Seaborn palette name or explicit colors.
+            Default is ``"colorblind"``.
+
+        Returns
+        -------
+        fig : :class:`matplotlib.figure.Figure`
+            Matplotlib figure.
+        axes : :class:`numpy.ndarray`
+            2x2 axes array.
+
+        Raises
+        ------
+        ValueError
+            If ``fit()`` has not been called or predictions are not stored.
+        """
+        from doubleml.utils.plots import plot_propensity_score_calibration
+
+        # Input validation
+        if self._framework is None:
+            raise ValueError("Apply fit() before plot_overlap_common_support().")
+
+        if self.predictions is None:
+            raise ValueError(
+                "Predictions are not stored. Call fit() with store_predictions=True "
+                "before plot_overlap_common_support()."
+            )
+
+        if "ml_m" not in self.predictions:
+            raise ValueError(
+                "Propensity score predictions ('ml_m') are not available. "
+                "Ensure fit() was called with store_predictions=True."
+            )
+
+        if not isinstance(idx_treatment, int):
+            raise TypeError(f"idx_treatment must be an integer. Got {type(idx_treatment)}.")
+        if idx_treatment < 0 or idx_treatment >= self._dml_data.n_treat:
+            raise ValueError(
+                f"idx_treatment must be in [0, {self._dml_data.n_treat - 1}]. Got {idx_treatment}."
+            )
+
+        if not isinstance(i_rep, int):
+            raise TypeError(f"i_rep must be an integer. Got {type(i_rep)}.")
+        if i_rep < 0 or i_rep >= self.n_rep:
+            raise ValueError(f"i_rep must be in [0, {self.n_rep - 1}]. Got {i_rep}.")
+
+        # Extract propensity scores and treatment indicator
+        ps_scores = self.predictions["ml_m"][:, i_rep, idx_treatment]
+        treatment = self._dml_data.d
+
+        # Generate plot
+        fig, axes = plot_propensity_score_calibration(
+            propensity_score=ps_scores,
+            treatment=treatment,
+            bins=bins,
+            density=density,
+            palette=palette,
+        )
+
+        return fig, axes
+
+
