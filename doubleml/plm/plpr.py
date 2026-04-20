@@ -335,9 +335,9 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
 
     def _set_d_mean(self):
         if self._approach in ["cre_general", "cre_normal"]:
-            data = self._original_dml_data.data
-            d_cols = self._original_dml_data.d_cols
-            id_col = self._original_dml_data.id_col
+            data = self._dml_data.data
+            d_cols = self._dml_data.d_cols
+            id_col = self._dml_data.id_col
             help_d_mean = data.loc[:, [id_col] + d_cols]
             d_mean = help_d_mean.groupby(id_col).transform("mean").values
             self._d_mean = d_mean
