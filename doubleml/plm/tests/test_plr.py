@@ -379,3 +379,31 @@ def test_dml_plr_cate_gate_multiple_rep(score, cov_type):
     assert gate.all_se.shape == (groups.shape[1], 2)
     assert isinstance(gate.confint(), pd.DataFrame)
     assert all(gate.confint().index == groups.columns.tolist())
+
+
+@pytest.mark.ci
+def test_dml_plr_cate_multi_rep_per_rep_correctness():
+    """For n_rep>1 with a multi-column basis, the per-rep BLP fit must use that rep's
+    own D_tilde residuals (not the global broadcasting that the previous expression
+    produced). Verify by comparing against a manual sm.OLS fit on rep 0."""
+    import statsmodels.api as sm
+
+    n = 150
+    np.random.seed(42)
+    obj_dml_data = dml.plm.datasets.make_plr_CCDDHNR2018(n_obs=n)
+    ml_l = LinearRegression()
+    ml_m = LinearRegression()
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_l=ml_l, ml_m=ml_m, n_folds=3, n_rep=3, score="partialling out")
+    dml_plr_obj.fit()
+
+    np.random.seed(7)
+    basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 4)), columns=[f"b{i}" for i in range(4)])
+    cate = dml_plr_obj.cate(basis)
+
+    # Manually replicate the per-rep BLP for rep 0
+    Y_tilde, D_tilde = dml_plr_obj._partial_out()
+    manual_basis_0 = basis.multiply(D_tilde[:, 0], axis=0)
+    manual_blp_0 = sm.OLS(Y_tilde[:, 0], manual_basis_0).fit(cov_type="HC0")
+
+    np.testing.assert_allclose(cate.all_coef[:, 0], manual_blp_0.params, rtol=1e-12)
+    np.testing.assert_allclose(cate.all_se[:, 0], manual_blp_0.bse, rtol=1e-12)

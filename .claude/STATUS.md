@@ -25,6 +25,9 @@ nuisance evaluation, and sensitivity analysis.
 - [x] **`DoubleMLPLRScalar`** — PLR scalar (`doubleml/plm/plr_scalar.py`) with all 7 test files:
   - `test_plr_scalar.py`, `_return_types`, `_exceptions`, `_vs_plr`, `_external_predictions`, `_tune_ml_models`, `_evaluate_learners`, `_sensitivity`
 - [x] **`DoubleMLIRMScalar`** — IRM scalar (`doubleml/irm/irm_scalar.py`) with all 7 test files (same structure)
+- [x] **`cate()` + `gate()` for IRM scalar** — `doubleml/irm/irm_scalar.py` + `test_irm_scalar_cate_gate.py`
+- [x] **`cate()` + `gate()` + `_partial_out()` for PLR scalar** — `doubleml/plm/plr_scalar.py` + `test_plr_scalar_cate_gate.py`. Multi-rep × multi-column basis fully supported.
+- [x] **`DoubleMLBLP` per-rep basis API** — `basis` may be a single `pd.DataFrame` (shared) or a `list[pd.DataFrame]` of length `n_rep`. Also fixes the legacy `DoubleMLPLR.cate()` multi-rep bug (`basis * D_tilde` mis-broadcast for `n_rep>1` and `d_basis>1`).
 - [x] **`DoubleMLVector`** — multi-treatment base class first iteration (`doubleml/double_ml_vector.py`)
 - [x] **BLP multi-rep support** — `doubleml/utils/blp.py`
 
@@ -38,9 +41,9 @@ Missing from `PLR` / `IRM` scalar compared to `DoubleMLPLR` / `DoubleMLIRM`:
 
 | Feature | Legacy location | Applies to | Notes |
 |---------|----------------|-----------|-------|
-| `cate()` | `plr.py:447`, `irm.py:564` | both | Depends on BLP (multi-rep already done) |
-| `gate()` | `plr.py:485`, `irm.py:598` | both | Delegates to `cate()` |
-| `_partial_out()` | `plr.py:522` | PLR only | Helper needed by PLR `cate()`/`gate()` |
+| `cate()` | `plr.py:447`, `irm.py:564` | — | ✅ ported for both IRM and PLR |
+| `gate()` | `plr.py:485`, `irm.py:598` | — | ✅ ported for both IRM and PLR |
+| `_partial_out()` | `plr.py:522` | — | ✅ ported for PLR scalar |
 | `policy_tree()` | `irm.py:635` | IRM only | Not planned yet |
 
 Weighted effects in IRM (`weights` dict form):
@@ -55,8 +58,6 @@ Intentionally **not ported**:
 
 | Item | Files | Notes |
 |------|-------|-------|
-| `cate()` + `gate()` for PLR scalar | `doubleml/plm/plr_scalar.py` | Needs `_partial_out()` first |
-| `cate()` + `gate()` for IRM scalar | `doubleml/irm/irm_scalar.py` | |
 | `DoubleMLPLRVector` | `doubleml/plm/plr_vector.py` + tests | First concrete Vector subclass |
 | `DoubleMLPLIVScalar` | `doubleml/plm/pliv_scalar.py` + 7 test files | Next scalar model |
 | `DoubleMLPLPRScalar` | `doubleml/plm/plpr_scalar.py` + 7 test files | |

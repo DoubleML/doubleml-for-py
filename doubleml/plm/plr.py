@@ -473,10 +473,10 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         Y_tilde, D_tilde = self._partial_out()
 
-        D_basis = basis * D_tilde
+        basis_per_rep = [basis.multiply(D_tilde[:, i_rep], axis=0) for i_rep in range(self.n_rep)]
         model = DoubleMLBLP(
             orth_signal=Y_tilde,
-            basis=D_basis,
+            basis=basis_per_rep,
             is_gate=is_gate,
         )
         model.fit(**kwargs)

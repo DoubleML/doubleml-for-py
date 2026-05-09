@@ -4,9 +4,11 @@ Interactive Regression Model (IRM) based on the new DoubleMLScalar hierarchy.
 
 from __future__ import annotations
 
+import warnings
 from typing import Any, ClassVar, Self
 
 import numpy as np
+import pandas as pd
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
 
@@ -15,6 +17,7 @@ from ..double_ml_linear_score import LinearScoreMixin
 from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_score, _check_weights
 from ..utils._learner import LearnerSpec, predict_nuisance
 from ..utils._propensity_score import _propensity_score_adjustment
+from ..utils.blp import DoubleMLBLP
 from ..utils.propensity_score_processing import PSProcessor, PSProcessorConfig
 
 
@@ -356,6 +359,76 @@ class IRM(LinearScoreMixin):
             psi_a = -1.0 * np.divide(weights, np.mean(weights, axis=0, keepdims=True))
 
         return {"psi_a": psi_a, "psi_b": psi_b}
+
+    # ==================== Heterogeneous Effects ====================
+
+    def cate(self, basis: pd.DataFrame, is_gate: bool = False, **kwargs: Any) -> DoubleMLBLP:
+        """
+        Calculate conditional average treatment effects (CATE) for a given basis.
+
+        Parameters
+        ----------
+        basis : :class:`pandas.DataFrame`
+            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
+            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+        is_gate : bool
+            Indicates whether the basis is constructed for GATEs (dummy-basis).
+            Default is ``False``.
+        **kwargs : dict
+            Additional keyword arguments passed to :meth:`statsmodels.regression.linear_model.OLS.fit`,
+            e.g. ``cov_type``.
+
+        Returns
+        -------
+        model : :class:`doubleml.DoubleMLBLP`
+            Best linear predictor model.
+        """
+        if self.score != "ATE":
+            raise ValueError(f"Invalid score '{self.score}'. CATE is only implemented for score='ATE'.")
+        if self._predictions is None:
+            raise ValueError("CATE requires a fitted model. Call fit() first.")
+
+        orth_signal = self._get_score_elements()["psi_b"]
+
+        model = DoubleMLBLP(orth_signal, basis=basis, is_gate=is_gate)
+        model.fit(**kwargs)
+        return model
+
+    def gate(self, groups: pd.DataFrame, **kwargs: Any) -> DoubleMLBLP:
+        """
+        Calculate group average treatment effects (GATE) for mutually exclusive groups.
+
+        Parameters
+        ----------
+        groups : :class:`pandas.DataFrame`
+            The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
+            Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of groups, or ``(n_obs, 1)`` containing the corresponding groups (as str).
+        **kwargs : dict
+            Additional keyword arguments passed to :meth:`statsmodels.regression.linear_model.OLS.fit`,
+            e.g. ``cov_type``.
+
+        Returns
+        -------
+        model : :class:`doubleml.DoubleMLBLP`
+            Best linear predictor model for group effects.
+        """
+        if not isinstance(groups, pd.DataFrame):
+            raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
+
+        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
+            if groups.shape[1] == 1:
+                groups = pd.get_dummies(groups, prefix="Group", prefix_sep="_")
+            else:
+                raise TypeError(
+                    "Columns of groups must be of bool type or int type (dummy coded). "
+                    "Alternatively, groups should only contain one column."
+                )
+
+        if any(groups.sum(0) <= 5):
+            warnings.warn("At least one group effect is estimated with less than 6 observations.")
+
+        return self.cate(groups, is_gate=True, **kwargs)
 
     # ==================== Private Helpers ====================
 

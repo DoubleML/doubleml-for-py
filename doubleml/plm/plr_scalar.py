@@ -8,6 +8,7 @@ import warnings
 from typing import Any, ClassVar, Self
 
 import numpy as np
+import pandas as pd
 from sklearn.base import clone
 from sklearn.model_selection import cross_val_predict
 
@@ -15,6 +16,7 @@ from ..data.base_data import DoubleMLData
 from ..double_ml_linear_score import LinearScoreMixin
 from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity
 from ..utils._learner import LearnerSpec, predict_nuisance
+from ..utils.blp import DoubleMLBLP
 
 
 class PLR(LinearScoreMixin):
@@ -392,6 +394,110 @@ class PLR(LinearScoreMixin):
             psi_b = v_hat * (y[:, np.newaxis] - g_hat)
 
         return {"psi_a": psi_a, "psi_b": psi_b}
+
+    # ==================== Heterogeneous Effects ====================
+
+    def _partial_out(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Return partialled-out residuals (Y_tilde, D_tilde), each of shape (n_obs, n_rep).
+
+        For score ``'partialling out'``: ``Y_tilde = y - ml_l``, ``D_tilde = d - ml_m``.
+        For score ``'IV-type'``: ``Y_tilde = y - theta * ml_m - ml_g`` and
+        ``D_tilde = d - ml_m`` where ``theta = self.coef[0]`` (aggregated across reps,
+        matching the legacy DoubleMLPLR behavior).
+
+        Returns
+        -------
+        Y_tilde, D_tilde : tuple[np.ndarray, np.ndarray]
+            Outcome and treatment residuals, each of shape ``(n_obs, n_rep)``.
+        """
+        if self._predictions is None:
+            raise ValueError("predictions are None. Call fit() first.")
+
+        y = self._dml_data.y[:, np.newaxis]
+        d = self._dml_data.d[:, np.newaxis]
+        m_hat = self._predictions["ml_m"]
+
+        if self.score == "partialling out":
+            Y_tilde = y - self._predictions["ml_l"]
+            D_tilde = d - m_hat
+        else:  # "IV-type"
+            Y_tilde = y - self.coef[0] * m_hat - self._predictions["ml_g"]
+            D_tilde = d - m_hat
+        return Y_tilde, D_tilde
+
+    def cate(self, basis: pd.DataFrame, is_gate: bool = False, **kwargs: Any) -> DoubleMLBLP:
+        """
+        Calculate conditional average treatment effects (CATE) for a given basis.
+
+        Builds one ``basis * D_tilde[:, i_rep]`` DataFrame per repetition, fits per-rep
+        OLS via :class:`DoubleMLBLP`, and aggregates coefficients across repetitions.
+
+        Parameters
+        ----------
+        basis : :class:`pandas.DataFrame`
+            The basis for estimating the best linear predictor. Has to have shape
+            ``(n_obs, d)``.
+        is_gate : bool
+            Indicates whether the basis is constructed for GATEs (dummy basis).
+            Default is ``False``.
+        **kwargs : dict
+            Additional keyword arguments passed to
+            :meth:`statsmodels.regression.linear_model.OLS.fit`, e.g. ``cov_type``.
+
+        Returns
+        -------
+        model : :class:`doubleml.DoubleMLBLP`
+            Best linear predictor model.
+        """
+        if self._dml_data.n_treat > 1:
+            raise NotImplementedError(
+                f"Only implemented for single treatment. Number of treatments is {self._dml_data.n_treat}."
+            )
+        if self._predictions is None:
+            raise ValueError("CATE requires a fitted model. Call fit() first.")
+
+        Y_tilde, D_tilde = self._partial_out()
+        basis_per_rep = [basis.multiply(D_tilde[:, i_rep], axis=0) for i_rep in range(self.n_rep)]
+
+        model = DoubleMLBLP(orth_signal=Y_tilde, basis=basis_per_rep, is_gate=is_gate)
+        model.fit(**kwargs)
+        return model
+
+    def gate(self, groups: pd.DataFrame, **kwargs: Any) -> DoubleMLBLP:
+        """
+        Calculate group average treatment effects (GATE) for mutually exclusive groups.
+
+        Parameters
+        ----------
+        groups : :class:`pandas.DataFrame`
+            The group indicator. Either dummy-coded with shape ``(n_obs, d)`` (one column
+            per group) or ``(n_obs, 1)`` containing the group labels (as str).
+        **kwargs : dict
+            Additional keyword arguments passed to
+            :meth:`statsmodels.regression.linear_model.OLS.fit`, e.g. ``cov_type``.
+
+        Returns
+        -------
+        model : :class:`doubleml.DoubleMLBLP`
+            Best linear predictor model for group effects.
+        """
+        if not isinstance(groups, pd.DataFrame):
+            raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
+
+        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
+            if groups.shape[1] == 1:
+                groups = pd.get_dummies(groups, prefix="Group", prefix_sep="_")
+            else:
+                raise TypeError(
+                    "Columns of groups must be of bool type or int type (dummy coded). "
+                    "Alternatively, groups should only contain one column."
+                )
+
+        if any(groups.sum(0) <= 5):
+            warnings.warn("At least one group effect is estimated with less than 6 observations.")
+
+        return self.cate(groups, is_gate=True, **kwargs)
 
     def _sensitivity_element_est(self) -> dict[str, np.ndarray] | None:
         """
