@@ -3,10 +3,11 @@ Abstract base class for Double Machine Learning estimators.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Self
+from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
+from typing_extensions import Self
 
 from .data.base_data import DoubleMLBaseData
 from .double_ml_framework import DoubleMLFramework

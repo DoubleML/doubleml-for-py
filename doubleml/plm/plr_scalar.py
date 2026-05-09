@@ -5,12 +5,13 @@ Partially Linear Regression (PLR) model based on the new DoubleMLScalar hierarch
 from __future__ import annotations
 
 import warnings
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
 from sklearn.model_selection import cross_val_predict
+from typing_extensions import Self
 
 from ..data.base_data import DoubleMLData
 from ..double_ml_linear_score import LinearScoreMixin

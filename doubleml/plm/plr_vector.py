@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Self
+from typing import Any
+
+from typing_extensions import Self
 
 from ..data.base_data import DoubleMLData
 from ..double_ml_scalar import DoubleMLScalar

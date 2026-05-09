@@ -4,7 +4,9 @@ Abstract base class for scalar DoubleML models (single parameter estimation).
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Self
+from typing import TYPE_CHECKING, Any, Callable, ClassVar
+
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from .utils._tune_optuna import DMLOptunaResult

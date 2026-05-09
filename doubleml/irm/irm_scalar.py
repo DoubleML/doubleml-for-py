@@ -5,12 +5,13 @@ Interactive Regression Model (IRM) based on the new DoubleMLScalar hierarchy.
 from __future__ import annotations
 
 import warnings
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
+from typing_extensions import Self
 
 from ..data.base_data import DoubleMLData
 from ..double_ml_linear_score import LinearScoreMixin

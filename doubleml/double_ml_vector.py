@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
+
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from .utils._tune_optuna import DMLOptunaResult
