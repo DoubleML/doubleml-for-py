@@ -465,8 +465,22 @@ class PLR(LinearScoreMixin):
         if self._predictions is None:
             raise ValueError("CATE requires a fitted model. Call fit() first.")
 
+        if isinstance(basis, pd.DataFrame):
+            basis_list = [basis] * self.n_rep
+        elif isinstance(basis, list):
+            if len(basis) != self.n_rep:
+                raise ValueError(f"When basis is a list it must have length n_rep={self.n_rep}. Got length {len(basis)}.")
+            if not all(isinstance(b, pd.DataFrame) for b in basis):
+                raise TypeError("All entries of basis list must be of DataFrame type.")
+            basis_list = basis
+        else:
+            raise TypeError(
+                f"The basis must be of DataFrame type or a list of DataFrames. "
+                f"Basis of type {str(type(basis))} was passed."
+            )
+
         Y_tilde, D_tilde = self._partial_out()
-        basis_per_rep = [basis.multiply(D_tilde[:, i_rep], axis=0) for i_rep in range(self.n_rep)]
+        basis_per_rep = [basis_list[i_rep].multiply(D_tilde[:, i_rep], axis=0) for i_rep in range(self.n_rep)]
 
         model = DoubleMLBLP(orth_signal=Y_tilde, basis=basis_per_rep, is_gate=is_gate)
         model.fit(**kwargs)

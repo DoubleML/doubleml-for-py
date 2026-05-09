@@ -1418,7 +1418,7 @@ def test_doubleml_exception_cate():
         n_rep=2,
     )
     dml_irm_obj.fit()
-    msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
+    msg = r"The basis must be of DataFrame type or a list of DataFrames\. Basis of type <class 'int'> was passed\."
     with pytest.raises(TypeError, match=msg):
         dml_irm_obj.cate(basis=2)
 
@@ -1427,7 +1427,7 @@ def test_doubleml_exception_cate():
 def test_doubleml_exception_plr_cate():
     dml_plr_obj = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=Lasso(), n_folds=2, n_rep=2)
     dml_plr_obj.fit()
-    msg = "The basis must be of DataFrame type. Basis of type <class 'numpy.ndarray'> was passed."
+    msg = r"The basis must be of DataFrame type or a list of DataFrames\. Basis of type <class 'int'> was passed\."
     with pytest.raises(TypeError, match=msg):
         dml_plr_obj.cate(basis=2)
 
