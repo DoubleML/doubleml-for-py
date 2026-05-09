@@ -9,9 +9,7 @@ dml_data = dml.data.DoubleMLPanelData(df, y_col="y", d_cols="d", id_col="id", t_
 
 # n_periods=5 dataset: t_values=[0,1,2,3,4], g_values={2.0, 3.0, 4.0, inf}
 df5 = dml.did.datasets.make_did_cs_CS2021(n_obs=500, dgp_type=1, n_pre_treat_periods=2, n_periods=5, time_type="float")
-dml_data5 = dml.data.DoubleMLPanelData(
-    df5, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
-)
+dml_data5 = dml.data.DoubleMLPanelData(df5, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
 args = {
     "obj_dml_data": dml_data,
@@ -174,5 +172,5 @@ def test_not_yet_treated_includes_later_treated_post_treatment():
     assert obj.n_obs_subset == expected
 
     control_g_vals = obj.data_subset.loc[obj.data_subset["C_indicator"] == 1, g_col].unique()
-    assert 4.0 in control_g_vals   # later-treated group IS in control
+    assert 4.0 in control_g_vals  # later-treated group IS in control
     assert 3.0 not in control_g_vals  # treated before eval_t, NOT in control

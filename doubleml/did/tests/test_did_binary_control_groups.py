@@ -9,9 +9,7 @@ dml_data = dml.data.DoubleMLPanelData(df, y_col="y", d_cols="d", id_col="id", t_
 
 # n_periods=5 dataset: t_values=[0,1,2,3,4], g_values={2.0, 3.0, 4.0, inf}
 df5 = dml.did.datasets.make_did_CS2021(n_obs=500, dgp_type=1, n_pre_treat_periods=2, n_periods=5, time_type="float")
-dml_data5 = dml.data.DoubleMLPanelData(
-    df5, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
-)
+dml_data5 = dml.data.DoubleMLPanelData(df5, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
 args = {
     "obj_dml_data": dml_data,
@@ -167,7 +165,7 @@ def test_not_yet_treated_excludes_intermediate_groups_pre_treatment():
     assert obj_nyt.n_obs_subset == obj_nt.n_obs_subset
 
     ctrl = _control_g_vals(obj_nyt, dml_data)
-    assert 2.0 not in ctrl               # intermediate group must be absent
+    assert 2.0 not in ctrl  # intermediate group must be absent
     assert any(np.isinf(v) for v in ctrl)  # never-treated units are present
 
 
@@ -189,5 +187,5 @@ def test_not_yet_treated_includes_later_treated_post_treatment():
     assert obj.n_obs_subset == expected
 
     ctrl = _control_g_vals(obj, dml_data5)
-    assert 4.0 in ctrl      # later-treated group IS in control
+    assert 4.0 in ctrl  # later-treated group IS in control
     assert 3.0 not in ctrl  # treated before eval_t, NOT in control
