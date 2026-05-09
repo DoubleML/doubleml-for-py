@@ -30,10 +30,11 @@ nuisance evaluation, and sensitivity analysis.
 - [x] **`DoubleMLBLP` per-rep basis API** — `basis` may be a single `pd.DataFrame` (shared) or a `list[pd.DataFrame]` of length `n_rep`. Also fixes the legacy `DoubleMLPLR.cate()` multi-rep bug (`basis * D_tilde` mis-broadcast for `n_rep>1` and `d_basis>1`).
 - [x] **`DoubleMLVector`** — multi-treatment base class first iteration (`doubleml/double_ml_vector.py`)
 - [x] **BLP multi-rep support** — `doubleml/utils/blp.py`
+- [x] **`PLRVector`** — first concrete `DoubleMLVector` subclass (`doubleml/plm/plr_vector.py`) with 5 test files: `test_plr_vector.py`, `_return_types`, `_exceptions`, `_vs_plr`, `_external_predictions`. Validates exact equivalence with legacy `DoubleMLPLR` for multi-treatment.
 
 ### In Progress
 
-- [ ] **`DoubleMLVector`** — base class exists; no concrete subclass yet
+_(none)_
 
 ### Feature Gaps vs Legacy Classes
 
@@ -58,7 +59,7 @@ Intentionally **not ported**:
 
 | Item | Files | Notes |
 |------|-------|-------|
-| `DoubleMLPLRVector` | `doubleml/plm/plr_vector.py` + tests | First concrete Vector subclass |
+| `DoubleMLIRMVector` | `doubleml/irm/irm_vector.py` + tests | Next concrete Vector subclass |
 | `DoubleMLPLIVScalar` | `doubleml/plm/pliv_scalar.py` + 7 test files | Next scalar model |
 | `DoubleMLPLPRScalar` | `doubleml/plm/plpr_scalar.py` + 7 test files | |
 | DID scalar variants | `doubleml/did/*_scalar.py` | DID, DIDCSBinary, DIDMulti |
