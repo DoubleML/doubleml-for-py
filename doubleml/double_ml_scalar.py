@@ -953,9 +953,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         Examples
         --------
         >>> from sklearn.metrics import root_mean_squared_error, r2_score, log_loss
-        >>> model.evaluate_learners()
-        >>> model.evaluate_learners(metric=r2_score)
-        >>> model.evaluate_learners(learners=["ml_m"], metric=log_loss)
+        >>> model.evaluate_learners()  # doctest: +SKIP
+        >>> model.evaluate_learners(metric=r2_score)  # doctest: +SKIP
+        >>> model.evaluate_learners(learners=["ml_m"], metric=log_loss)  # doctest: +SKIP
 
         """
         if self._nuisance_targets is None:
