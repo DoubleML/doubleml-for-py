@@ -461,11 +461,6 @@ class IRM(LinearScoreMixin):
             weights = w[:, np.newaxis] * np.ones((1, self.n_rep))  # (n_obs, n_rep)
             if "weights_bar" in self._weights:
                 weights_bar = self._weights["weights_bar"]
-                if weights_bar.shape != (self.n_obs, self.n_rep):
-                    raise ValueError(
-                        f"weights_bar must have shape ({self.n_obs}, {self.n_rep}). "
-                        f"weights_bar of shape {weights_bar.shape} was passed."
-                    )
             else:
                 weights_bar = weights.copy()
         else:
@@ -479,6 +474,16 @@ class IRM(LinearScoreMixin):
             weights_bar = np.divide(m_hat * w[:, np.newaxis], subgroup_probability)
 
         return weights, weights_bar
+
+    def _check_smpls_dependent_inputs(self) -> None:
+        """Validate ``weights_bar`` shape now that ``n_rep`` is known."""
+        if "weights_bar" in self._weights:
+            weights_bar = self._weights["weights_bar"]
+            expected = (self.n_obs, self.n_rep)
+            if weights_bar.shape != expected:
+                raise ValueError(
+                    f"weights_bar must have shape {expected}. " f"weights_bar of shape {weights_bar.shape} was passed."
+                )
 
     def _sensitivity_element_est(self) -> dict[str, np.ndarray] | None:
         """

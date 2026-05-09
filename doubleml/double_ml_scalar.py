@@ -2,6 +2,7 @@
 Abstract base class for scalar DoubleML models (single parameter estimation).
 """
 
+import warnings
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Self
 
@@ -417,8 +418,8 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
     def fit(
         self,
-        n_folds: int = 5,
-        n_rep: int = 1,
+        n_folds: int | None = None,
+        n_rep: int | None = None,
         n_jobs_cv: int | None = None,
         external_predictions: dict[str, np.ndarray] | None = None,
         **kwargs,
@@ -431,12 +432,18 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
         Parameters
         ----------
-        n_folds : int, optional
-            Number of folds for cross-fitting. Default is 5.
-            Only used if sample splitting has not been drawn yet.
-        n_rep : int, optional
-            Number of repetitions for sample splitting. Default is 1.
-            Only used if sample splitting has not been drawn yet.
+        n_folds : int or None, optional
+            Number of folds for cross-fitting. If sample splitting has not been
+            drawn yet, defaults to 5. If sample splitting already exists and
+            ``n_folds`` differs from ``self.n_folds``, the splits are re-drawn
+            (discarding existing splits and fit state) and a :class:`UserWarning`
+            is emitted. Default is ``None``.
+        n_rep : int or None, optional
+            Number of repetitions for sample splitting. If sample splitting has
+            not been drawn yet, defaults to 1. If sample splitting already exists
+            and ``n_rep`` differs from ``self.n_rep``, the splits are re-drawn
+            (discarding existing splits and fit state) and a :class:`UserWarning`
+            is emitted. Default is ``None``.
         n_jobs_cv : int, optional
             Number of jobs for parallel processing during cross-validation.
             Currently not used (reserved for future parallelization).
@@ -454,7 +461,26 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             The fitted estimator.
         """
         if self._smpls is None:
-            self.draw_sample_splitting(n_folds=n_folds, n_rep=n_rep)
+            self.draw_sample_splitting(
+                n_folds=5 if n_folds is None else n_folds,
+                n_rep=1 if n_rep is None else n_rep,
+            )
+        else:
+            current_n_folds = self.n_folds
+            current_n_rep = self.n_rep
+            n_folds_conflict = n_folds is not None and n_folds != current_n_folds
+            n_rep_conflict = n_rep is not None and n_rep != current_n_rep
+            if n_folds_conflict or n_rep_conflict:
+                new_n_folds = n_folds if (n_folds is not None and n_folds_conflict) else current_n_folds
+                new_n_rep = n_rep if (n_rep is not None and n_rep_conflict) else current_n_rep
+                warnings.warn(
+                    f"Re-drawing sample splitting (was n_folds={current_n_folds}, n_rep={current_n_rep}; "
+                    f"now n_folds={new_n_folds}, n_rep={new_n_rep}). "
+                    "Existing splits and fit state are discarded.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                self.draw_sample_splitting(n_folds=new_n_folds, n_rep=new_n_rep)
         self.fit_nuisance_models(n_jobs_cv=n_jobs_cv, external_predictions=external_predictions)
         self.estimate_causal_parameters()
         return self
@@ -639,6 +665,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             self._smpls_cluster = None
 
         self._reset_fit_state()
+        self._check_smpls_dependent_inputs()
 
         return self
 
@@ -696,6 +723,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             self._n_folds_per_cluster = None
 
         self._reset_fit_state()
+        self._check_smpls_dependent_inputs()
 
         return self
 
@@ -853,6 +881,18 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._i_rep = None
         self._i_fold = None
 
+    def _check_smpls_dependent_inputs(self) -> None:
+        """
+        Validate inputs whose shape depends on ``n_rep``.
+
+        Called by :meth:`draw_sample_splitting` and :meth:`set_sample_splitting`
+        after ``self._n_rep`` and ``self._smpls`` have been set and fit state has
+        been reset. Subclasses override this hook to validate user-supplied
+        objects whose shape only becomes meaningful once ``n_rep`` is known
+        (e.g. ``weights_bar`` in IRM). The default implementation is a no-op.
+        """
+        return
+
     def evaluate_learners(
         self,
         learners: list[str] | None = None,
@@ -975,8 +1015,6 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
     def _validate_sensitivity_elements(self) -> None:
         """Re-estimate nu2 from riesz representer if nu2 is non-positive (degenerate PS)."""
-        import warnings
-
         if self._sensitivity_elements is None:
             return
         nu2 = self._sensitivity_elements["nu2"]  # (1, 1, n_rep)

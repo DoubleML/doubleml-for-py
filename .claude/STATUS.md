@@ -45,7 +45,7 @@ Missing from `PLR` / `IRM` scalar compared to `DoubleMLPLR` / `DoubleMLIRM`:
 
 Weighted effects in IRM (`weights` dict form):
 - Array weights: ✅ supported
-- Dict weights with `weights_bar`: ⚠️ **gap** — `_check_weights()` called at init with `n_rep=1` (`utils/_checks.py:276`) but `n_rep` is only determined at `draw_sample_splitting()`. Dict weights with `weights_bar.shape == (n_obs, n_rep > 1)` fail validation incorrectly.
+- Dict weights with `weights_bar`: ✅ supported — init defers the `n_rep` column check; `DoubleMLScalar._check_smpls_dependent_inputs()` hook validates `weights_bar.shape == (n_obs, n_rep)` from inside both `draw_sample_splitting()` and `set_sample_splitting()`. `fit(n_folds=..., n_rep=...)` re-draws splits with a `UserWarning` when args conflict with existing splits.
 
 Intentionally **not ported**:
 - Callable score — design decision
@@ -57,7 +57,6 @@ Intentionally **not ported**:
 |------|-------|-------|
 | `cate()` + `gate()` for PLR scalar | `doubleml/plm/plr_scalar.py` | Needs `_partial_out()` first |
 | `cate()` + `gate()` for IRM scalar | `doubleml/irm/irm_scalar.py` | |
-| Fix dict `weights_bar` validation for multi-rep | `doubleml/irm/irm_scalar.py` | Defer n_rep shape check to `fit()` |
 | `DoubleMLPLRVector` | `doubleml/plm/plr_vector.py` + tests | First concrete Vector subclass |
 | `DoubleMLPLIVScalar` | `doubleml/plm/pliv_scalar.py` + 7 test files | Next scalar model |
 | `DoubleMLPLPRScalar` | `doubleml/plm/plpr_scalar.py` + 7 test files | |

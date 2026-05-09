@@ -237,18 +237,57 @@ def test_exception_dict_weights_bar_wrong_n_obs():
 
 @pytest.mark.ci
 def test_exception_dict_weights_bar_wrong_n_rep():
-    """Dict weights_bar with wrong n_rep column raises ValueError at estimate time."""
-    # weights_bar has 2 columns but n_rep=3 is used; mismatch detected in estimate_causal_parameters()
+    """Dict weights_bar with wrong n_rep column raises ValueError at draw_sample_splitting()."""
+    # weights_bar has 2 columns but n_rep=3 is requested; the mismatch is detected as
+    # soon as n_rep becomes known (i.e. inside draw_sample_splitting), before any nuisance fitting.
     dict_weights = {
         "weights": np.ones(_N_OBS),
         "weights_bar": np.ones((_N_OBS, 2)),
     }
     dml_obj = IRM(obj_dml_data, ml_g=ml_g, ml_m=ml_m, weights=dict_weights)
-    dml_obj.draw_sample_splitting(n_folds=2, n_rep=3)
-    dml_obj.fit_nuisance_models()
     msg = r"weights_bar must have shape"
     with pytest.raises(ValueError, match=msg):
-        dml_obj.estimate_causal_parameters()
+        dml_obj.draw_sample_splitting(n_folds=2, n_rep=3)
+
+
+@pytest.mark.ci
+def test_exception_dict_weights_bar_wrong_n_rep_via_set_sample_splitting():
+    """Dict weights_bar mismatch is also caught when splits arrive via set_sample_splitting()."""
+    dict_weights = {
+        "weights": np.ones(_N_OBS),
+        "weights_bar": np.ones((_N_OBS, 1)),
+    }
+    dml_obj = IRM(obj_dml_data, ml_g=ml_g, ml_m=ml_m, weights=dict_weights)
+
+    # Build a manually constructed sample splitting list with n_rep=2.
+    rng = np.random.default_rng(0)
+    indices = np.arange(_N_OBS)
+    all_smpls = []
+    for _ in range(2):
+        perm = rng.permutation(indices)
+        fold_size = _N_OBS // 2
+        test1, test2 = perm[:fold_size], perm[fold_size:]
+        train1 = np.setdiff1d(indices, test1)
+        train2 = np.setdiff1d(indices, test2)
+        all_smpls.append([(train1, test1), (train2, test2)])
+
+    msg = r"weights_bar must have shape"
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.set_sample_splitting(all_smpls)
+
+
+@pytest.mark.ci
+def test_exception_dict_weights_bar_after_redraw():
+    """Re-drawing splits with a different n_rep re-runs the weights_bar check."""
+    dict_weights = {
+        "weights": np.ones(_N_OBS),
+        "weights_bar": np.ones((_N_OBS, 1)),
+    }
+    dml_obj = IRM(obj_dml_data, ml_g=ml_g, ml_m=ml_m, weights=dict_weights)
+    dml_obj.draw_sample_splitting(n_folds=2, n_rep=1)  # OK
+    msg = r"weights_bar must have shape"
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.draw_sample_splitting(n_folds=2, n_rep=2)
 
 
 # ==================== sensitivity_analysis exceptions ====================
