@@ -241,59 +241,65 @@ def _check_benchmarks(benchmarks):
     return
 
 
+def _check_weights_array(weights, n_obs):
+    if (weights.ndim != 1) or weights.shape[0] != n_obs:
+        raise ValueError(f"weights must have shape ({n_obs},). weights of shape {weights.shape} was passed.")
+    if not np.all(0 <= weights):
+        raise ValueError("All weights values must be greater or equal 0.")
+    if weights.sum() == 0:
+        raise ValueError("At least one weight must be non-zero.")
+
+
+def _check_weights_atte(weights):
+    if not isinstance(weights, np.ndarray):
+        raise TypeError(f"weights must be a numpy array for ATTE score. weights of type {str(type(weights))} was passed.")
+
+    is_binary = np.all((np.power(weights, 2) - weights) == 0)
+    if not is_binary:
+        raise ValueError("weights must be binary for ATTE score.")
+
+
+def _check_weights_dict(weights, score, n_obs, n_rep):
+    if score != "ATE":
+        raise ValueError(f"weights as a dictionary is only supported for ATE score, got '{score}'.")
+    expected_keys = ["weights", "weights_bar"]
+    if not set(weights.keys()) == set(expected_keys):
+        raise ValueError(f"weights must have keys {expected_keys}. keys {str(weights.keys())} were passed.")
+
+    if weights["weights"].shape != (n_obs,):
+        raise ValueError(f"weights must have shape ({n_obs},). weights of shape {weights['weights'].shape} was passed.")
+    # weights_bar must be 2D with n_obs rows; the n_rep column is validated later when n_rep is known
+    if weights["weights_bar"].ndim != 2 or weights["weights_bar"].shape[0] != n_obs:
+        raise ValueError(
+            f"weights_bar must be a 2-dimensional array with {n_obs} rows. "
+            f"weights_bar of shape {weights['weights_bar'].shape} was passed."
+        )
+    if n_rep is not None and weights["weights_bar"].shape[1] != n_rep:
+        raise ValueError(
+            f"weights_bar must have shape ({n_obs}, {n_rep}). "
+            f"weights_bar of shape {weights['weights_bar'].shape} was passed."
+        )
+    if (not np.all(weights["weights"] >= 0)) or (not np.all(weights["weights_bar"] >= 0)):
+        raise ValueError("All weights values must be greater or equal 0.")
+    if (weights["weights"].sum() == 0) or (weights["weights_bar"].sum() == 0):
+        raise ValueError("At least one weight must be non-zero.")
+
+
 def _check_weights(weights, score, n_obs, n_rep: int | None = None):
-    if weights is not None:
-        # check general type
-        if (not isinstance(weights, np.ndarray)) and (not isinstance(weights, dict)):
-            raise TypeError(f"weights must be a numpy array or dictionary. weights of type {str(type(weights))} was passed.")
+    if weights is None:
+        return
 
-        # check shape
-        if isinstance(weights, np.ndarray):
-            if (weights.ndim != 1) or weights.shape[0] != n_obs:
-                raise ValueError(f"weights must have shape ({n_obs},). weights of shape {weights.shape} was passed.")
-            if not np.all(0 <= weights):
-                raise ValueError("All weights values must be greater or equal 0.")
-            if weights.sum() == 0:
-                raise ValueError("At least one weight must be non-zero.")
+    if not isinstance(weights, (np.ndarray, dict)):
+        raise TypeError(f"weights must be a numpy array or dictionary. weights of type {str(type(weights))} was passed.")
 
-        # check special form for ATTE score
-        if score == "ATTE":
-            if not isinstance(weights, np.ndarray):
-                raise TypeError(
-                    f"weights must be a numpy array for ATTE score. weights of type {str(type(weights))} was passed."
-                )
+    if isinstance(weights, np.ndarray):
+        _check_weights_array(weights, n_obs)
 
-            is_binary = np.all((np.power(weights, 2) - weights) == 0)
-            if not is_binary:
-                raise ValueError("weights must be binary for ATTE score.")
+    if score == "ATTE":
+        _check_weights_atte(weights)
 
-        # check general form for ATE score
-        if isinstance(weights, dict):
-            assert score == "ATE"
-            expected_keys = ["weights", "weights_bar"]
-            if not set(weights.keys()) == set(expected_keys):
-                raise ValueError(f"weights must have keys {expected_keys}. keys {str(weights.keys())} were passed.")
-
-            if weights["weights"].shape != (n_obs,):
-                raise ValueError(
-                    f"weights must have shape ({n_obs},). weights of shape {weights['weights'].shape} was passed."
-                )
-            # weights_bar must be 2D with n_obs rows; the n_rep column is validated later when n_rep is known
-            if weights["weights_bar"].ndim != 2 or weights["weights_bar"].shape[0] != n_obs:
-                raise ValueError(
-                    f"weights_bar must be a 2-dimensional array with {n_obs} rows. "
-                    f"weights_bar of shape {weights['weights_bar'].shape} was passed."
-                )
-            if n_rep is not None and weights["weights_bar"].shape[1] != n_rep:
-                raise ValueError(
-                    f"weights_bar must have shape ({n_obs}, {n_rep}). "
-                    f"weights_bar of shape {weights['weights_bar'].shape} was passed."
-                )
-            if (not np.all(weights["weights"] >= 0)) or (not np.all(weights["weights_bar"] >= 0)):
-                raise ValueError("All weights values must be greater or equal 0.")
-            if (weights["weights"].sum() == 0) or (weights["weights_bar"].sum() == 0):
-                raise ValueError("At least one weight must be non-zero.")
-    return
+    if isinstance(weights, dict):
+        _check_weights_dict(weights, score, n_obs, n_rep)
 
 
 def _check_external_predictions(external_predictions, valid_treatments, valid_learners, n_obs, n_rep):

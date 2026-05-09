@@ -63,6 +63,65 @@ class LearnerInfo:
         return "predict_proba" if self.is_classifier else "predict"
 
 
+def _check_learner_interface(learner: Any, err_prefix: str) -> None:
+    """Raise TypeError if learner is a class or lacks fit/set_params/get_params."""
+    if isinstance(learner, type):
+        raise TypeError(err_prefix + "provide an instance of a learner instead of a class.")
+    for method in ("fit", "set_params", "get_params"):
+        if not hasattr(learner, method):
+            raise TypeError(err_prefix + f"{str(learner)} has no method .{method}().")
+
+
+def _determine_learner_type(learner: Any, spec: LearnerSpec, warn_prefix: str) -> bool:
+    """Return True if learner should be treated as classifier; warn if type is ambiguous."""
+    if spec.allow_regressor and spec.allow_classifier:
+        if is_classifier(learner):
+            return True
+        if is_regressor(learner):
+            return False
+        warnings.warn(
+            warn_prefix
+            + f"{str(learner)} is (probably) neither a regressor nor a classifier. "
+            + "Method predict is used for prediction."
+        )
+        return False
+    if spec.allow_classifier:
+        if not is_classifier(learner):
+            warnings.warn(warn_prefix + f"{str(learner)} is (probably) no classifier.")
+        return True
+    if not is_regressor(learner):
+        warnings.warn(warn_prefix + f"{str(learner)} is (probably) no regressor.")
+    return False
+
+
+def _check_binary_data_compatibility(
+    learner: Any,
+    spec: LearnerSpec,
+    learner_is_classifier: bool,
+    binary_outcome: bool,
+    binary_treatment: bool,
+) -> None:
+    """Raise on classifier with non-binary data; warn on regressor with binary data."""
+    if not spec.binary_data_check:
+        return
+
+    is_outcome_check = spec.binary_data_check == "outcome"
+    data_is_binary = binary_outcome if is_outcome_check else binary_treatment
+    var_label = "outcome" if is_outcome_check else "treatment"
+
+    if learner_is_classifier and not data_is_binary:
+        raise ValueError(
+            f"The {spec.name} learner {str(learner)} was identified as classifier "
+            f"but the {var_label} variable is not binary with values 0 and 1."
+        )
+
+    if not learner_is_classifier and data_is_binary:
+        action = "fit an additive probability model" if is_outcome_check else "estimate propensity scores"
+        warnings.warn(
+            f"Binary {var_label} detected. Consider using a classifier for {spec.name} " f"with predict_proba() to {action}."
+        )
+
+
 def validate_learner(
     learner: Any,
     spec: LearnerSpec,
@@ -100,80 +159,21 @@ def validate_learner(
     err_msg_prefix = f"Invalid learner provided for {spec.name}: "
     warn_msg_prefix = f"Learner provided for {spec.name} is probably invalid: "
 
-    # Check it's an instance, not a class
-    if isinstance(learner, type):
-        raise TypeError(err_msg_prefix + "provide an instance of a learner instead of a class.")
+    _check_learner_interface(learner, err_msg_prefix)
+    learner_is_classifier = _determine_learner_type(learner, spec, warn_msg_prefix)
 
-    # Check required methods
-    if not hasattr(learner, "fit"):
-        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .fit().")
-    if not hasattr(learner, "set_params"):
-        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .set_params().")
-    if not hasattr(learner, "get_params"):
-        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .get_params().")
-
-    # Determine learner type
-    learner_is_classifier: bool
-    if spec.allow_regressor and spec.allow_classifier:
-        if is_classifier(learner):
-            learner_is_classifier = True
-        elif is_regressor(learner):
-            learner_is_classifier = False
-        else:
-            warnings.warn(
-                warn_msg_prefix
-                + f"{str(learner)} is (probably) neither a regressor nor a classifier. "
-                + "Method predict is used for prediction."
-            )
-            learner_is_classifier = False
-    elif spec.allow_classifier:
-        if not is_classifier(learner):
-            warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no classifier.")
-        learner_is_classifier = True
-    else:
-        if not is_regressor(learner):
-            warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no regressor.")
-        learner_is_classifier = False
-
-    # Check type is allowed
+    # Check type is allowed by spec
     if learner_is_classifier and not spec.allow_classifier:
         raise ValueError(f"Classifier not allowed for {spec.name}. Use a regressor instead.")
     if not learner_is_classifier and not spec.allow_regressor:
         raise ValueError(f"Regressor not allowed for {spec.name}. Use a classifier instead.")
 
     # Check prediction method exists
-    if learner_is_classifier:
-        if not hasattr(learner, "predict_proba"):
-            raise TypeError(err_msg_prefix + f"{str(learner)} has no method .predict_proba().")
-    else:
-        if not hasattr(learner, "predict"):
-            raise TypeError(err_msg_prefix + f"{str(learner)} has no method .predict().")
+    predict_method = "predict_proba" if learner_is_classifier else "predict"
+    if not hasattr(learner, predict_method):
+        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .{predict_method}().")
 
-    # Check binary data compatibility for classifiers
-    if learner_is_classifier and spec.binary_data_check:
-        if spec.binary_data_check == "outcome" and not binary_outcome:
-            raise ValueError(
-                f"The {spec.name} learner {str(learner)} was identified as classifier "
-                "but the outcome variable is not binary with values 0 and 1."
-            )
-        if spec.binary_data_check == "treatment" and not binary_treatment:
-            raise ValueError(
-                f"The {spec.name} learner {str(learner)} was identified as classifier "
-                "but the treatment variable is not binary with values 0 and 1."
-            )
-
-    # Warn if regressor used with binary data
-    if not learner_is_classifier and spec.binary_data_check:
-        if spec.binary_data_check == "outcome" and binary_outcome:
-            warnings.warn(
-                f"Binary outcome detected. Consider using a classifier for {spec.name} "
-                "with predict_proba() to fit an additive probability model."
-            )
-        elif spec.binary_data_check == "treatment" and binary_treatment:
-            warnings.warn(
-                f"Binary treatment detected. Consider using a classifier for {spec.name} "
-                "with predict_proba() to estimate propensity scores."
-            )
+    _check_binary_data_compatibility(learner, spec, learner_is_classifier, binary_outcome, binary_treatment)
 
     return LearnerInfo(
         learner=clone(learner),
