@@ -397,17 +397,12 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._learners[name] = info
 
     @abstractmethod
-    def set_learners(self, **kwargs: object) -> Self:
+    def set_learners(self) -> Self:
         """
         Set the learners for nuisance estimation.
 
         Subclasses must implement this method with explicit keyword arguments
         for each learner (e.g., ``ml_l``, ``ml_m``, ``ml_g`` for PLR).
-
-        Parameters
-        ----------
-        **kwargs
-            Learner keyword arguments specific to the subclass.
 
         Returns
         -------

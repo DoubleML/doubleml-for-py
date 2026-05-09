@@ -36,6 +36,10 @@ class LearnerSpec:
     allow_classifier: bool = True
     binary_data_check: Optional[Literal["outcome", "treatment"]] = None
 
+    def __post_init__(self) -> None:
+        if not (self.allow_regressor or self.allow_classifier):
+            raise ValueError(f"LearnerSpec '{self.name}': at least one of allow_regressor or allow_classifier must be True.")
+
 
 @dataclass
 class LearnerInfo:
@@ -127,7 +131,6 @@ def validate_learner(
             warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no classifier.")
         learner_is_classifier = True
     else:
-        assert spec.allow_regressor  # At least one must be True
         if not is_regressor(learner):
             warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no regressor.")
         learner_is_classifier = False

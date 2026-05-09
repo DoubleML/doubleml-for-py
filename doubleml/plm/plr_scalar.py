@@ -388,11 +388,12 @@ class PLR(LinearScoreMixin):
             u_hat = y[:, np.newaxis] - l_hat
             psi_a = -v_hat * v_hat
             psi_b = v_hat * u_hat
-        else:
-            assert self.score == "IV-type"
+        elif self.score == "IV-type":
             g_hat = self._predictions["ml_g"]
             psi_a = -v_hat * d[:, np.newaxis]
             psi_b = v_hat * (y[:, np.newaxis] - g_hat)
+        else:
+            raise ValueError(f"Invalid score '{self.score}'.")
 
         return {"psi_a": psi_a, "psi_b": psi_b}
 

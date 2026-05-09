@@ -556,6 +556,9 @@ def _check_learner(learner, learner_name, regressor=True, classifier=True):
     err_msg_prefix = f"Invalid learner provided for {learner_name}: "
     warn_msg_prefix = f"Learner provided for {learner_name} is probably invalid: "
 
+    if not (regressor or classifier):
+        raise ValueError("At least one of regressor or classifier must be True.")
+
     if isinstance(learner, type):
         raise TypeError(err_msg_prefix + "provide an instance of a learner instead of a class.")
 
@@ -583,7 +586,6 @@ def _check_learner(learner, learner_name, regressor=True, classifier=True):
             warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no classifier.")
         learner_is_classifier = True
     else:
-        assert regressor  # classifier, regressor or both must be True
         if not is_regressor(learner):
             warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no regressor.")
         learner_is_classifier = False
