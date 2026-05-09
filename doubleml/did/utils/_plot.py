@@ -26,7 +26,7 @@ def add_jitter(data, x_col, is_datetime=None, jitter_value=None):
 
     # Initialize jittered_x with original values
     if is_datetime:
-        data["jittered_x"] = data[x_col]
+        data["jittered_x"] = pd.to_datetime(data[x_col]).astype("datetime64[ns]")
     else:
         data["jittered_x"] = data[x_col].astype(float)
 

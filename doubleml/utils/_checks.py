@@ -1,3 +1,4 @@
+import inspect
 import warnings
 
 import numpy as np
@@ -599,7 +600,9 @@ def _check_learner(learner, learner_name, regressor=True, classifier=True):
 
 
 def _check_supports_sample_weights(learner, learner_name):
-    if not has_fit_parameter(learner, "sample_weight"):
+    has_explicit = has_fit_parameter(learner, "sample_weight")
+    has_var_keyword = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in inspect.signature(learner.fit).parameters.values())
+    if not (has_explicit or has_var_keyword):
         raise ValueError(
             f"The {learner_name} learner {str(learner)} does not support sample weights. "
             "Please choose a learner that supports sample weights."

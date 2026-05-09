@@ -30,12 +30,12 @@ jobs:
           - {os: 'ubuntu-latest', python-version: '3.13'}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0  # allow version retrieval with setuptools_scm
 
     - name: Set up Python ${{ matrix.config.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.config.python-version }}
 
@@ -74,7 +74,7 @@ jobs:
       if: |
         matrix.config.os == 'ubuntu-latest' &&
         matrix.config.python-version == '3.12'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: code-coverage-report
         path: |
