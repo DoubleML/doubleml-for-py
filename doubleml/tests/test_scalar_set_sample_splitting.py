@@ -9,11 +9,11 @@ from doubleml.plm.plr_scalar import PLR
 
 def _assert_smpls_equal(smpls0, smpls1):
     assert len(smpls0) == len(smpls1)
-    for i_rep in range(len(smpls0)):
-        assert len(smpls0[i_rep]) == len(smpls1[i_rep])
-        for i_fold in range(len(smpls0[i_rep])):
-            assert np.array_equal(smpls0[i_rep][i_fold][0], smpls1[i_rep][i_fold][0])
-            assert np.array_equal(smpls0[i_rep][i_fold][1], smpls1[i_rep][i_fold][1])
+    for rep0, rep1 in zip(smpls0, smpls1):
+        assert len(rep0) == len(rep1)
+        for fold0, fold1 in zip(rep0, rep1):
+            assert np.array_equal(fold0[0], fold1[0])
+            assert np.array_equal(fold0[1], fold1[1])
 
 
 @pytest.mark.ci

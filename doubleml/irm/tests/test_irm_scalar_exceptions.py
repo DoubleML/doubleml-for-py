@@ -51,8 +51,6 @@ def test_irm_scalar_exception_instrument():
     df = plr_data.data.copy()
     x_cols = [c for c in df.columns if c.startswith("X")]
 
-    import doubleml as dml
-
     dml_data_iv = dml.DoubleMLData(df, y_col="y", d_cols="d", x_cols=x_cols[:-1], z_cols=x_cols[-1])
 
     msg = r"Incompatible data\. .* have been set as instrumental variable\(s\)\."
@@ -349,7 +347,5 @@ def test_exception_sensitivity_level(fitted_irm_for_sensitivity):
 @pytest.mark.ci
 def test_exception_sensitivity_null_hypothesis(fitted_irm_for_sensitivity):
     """null_hypothesis with wrong shape raises ValueError."""
-    import numpy as np
-
     with pytest.raises(ValueError, match=r"null_hypothesis"):
         fitted_irm_for_sensitivity.sensitivity_analysis(null_hypothesis=np.array([0.0, 0.0]))

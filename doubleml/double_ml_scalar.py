@@ -315,7 +315,6 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             Ordered list of required learner names.
 
         """
-        pass
 
     @property
     def learners(self) -> dict[str, object]:

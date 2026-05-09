@@ -198,7 +198,5 @@ def test_exception_sensitivity_level(fitted_plr_for_sensitivity):
 @pytest.mark.ci
 def test_exception_sensitivity_null_hypothesis(fitted_plr_for_sensitivity):
     """null_hypothesis with wrong shape raises ValueError."""
-    import numpy as np
-
     with pytest.raises(ValueError, match=r"null_hypothesis"):
         fitted_plr_for_sensitivity.sensitivity_analysis(null_hypothesis=np.array([0.0, 0.0]))

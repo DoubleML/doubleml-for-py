@@ -211,7 +211,6 @@ class DoubleMLBase(ABC):
             Number of repetitions.
 
         """
-        pass
 
     @property
     def n_obs(self) -> int:
@@ -351,7 +350,6 @@ class DoubleMLBase(ABC):
             The fitted DoubleML estimator.
 
         """
-        pass
 
     def __str__(self) -> str:
         """
