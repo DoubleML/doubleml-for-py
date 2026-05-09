@@ -62,6 +62,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         The score function being used.
     modellist : list of DoubleMLScalar
         The scalar sub-models, one per treatment column (or model key).
+
     """
 
     def __init__(
@@ -69,6 +70,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         obj_dml_data: DoubleMLData,
         score: str = "default",
     ) -> None:
+        """Initialize DoubleMLVector. See class docstring for parameter details."""
         super().__init__(obj_dml_data)
         self._dml_data: DoubleMLData = obj_dml_data  # narrow for attribute access
         self._score = score
@@ -99,6 +101,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         ------
         ValueError
             If sample splitting has not been drawn yet.
+
         """
         if self._n_rep is None:
             raise ValueError("n_rep not set. Call draw_sample_splitting() first.")
@@ -118,6 +121,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         ------
         ValueError
             If sample splitting has not been drawn yet.
+
         """
         if self._n_folds is None:
             raise ValueError("n_folds not set. Call draw_sample_splitting() first.")
@@ -132,6 +136,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         -------
         str
             Score function name.
+
         """
         return self._score
 
@@ -149,6 +154,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         ------
         ValueError
             If sample splitting has not been drawn yet.
+
         """
         if self._smpls is None:
             raise ValueError("Sample splitting has not been performed. Call draw_sample_splitting() first.")
@@ -163,6 +169,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         -------
         list of DoubleMLScalar or None
             ``None`` before :meth:`_initialize_models` has been called by the subclass.
+
         """
         return self._modellist
 
@@ -174,6 +181,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Returns
         -------
         int or None
+
         """
         return None if self._framework is None else self._framework.n_rep_boot
 
@@ -185,6 +193,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Returns
         -------
         str or None
+
         """
         return None if self._framework is None else self._framework.boot_method
 
@@ -196,6 +205,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Returns
         -------
         np.ndarray or None
+
         """
         return None if self._framework is None else self._framework.boot_t_stat
 
@@ -207,6 +217,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Returns
         -------
         dict or None
+
         """
         return None if self._framework is None else self._framework.sensitivity_elements
 
@@ -219,6 +230,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Returns
         -------
         dict or None
+
         """
         return None if self._framework is None else self._framework.sensitivity_params
 
@@ -235,6 +247,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         ------
         ValueError
             If :meth:`fit` has not been called yet.
+
         """
         if self._framework is None:
             raise ValueError("Apply fit() before accessing sensitivity_summary.")
@@ -252,6 +265,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         -------
         list of str
             Ordered list of required learner names.
+
         """
 
     @abstractmethod
@@ -271,6 +285,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Returns
         -------
         self : Self
+
         """
 
     @abstractmethod
@@ -287,6 +302,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         -------
         list of DoubleMLScalar
             One configured scalar model per element of ``self._dml_data.d_cols``.
+
         """
 
     # ==================== Protected Helpers ====================
@@ -314,6 +330,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         DoubleMLData
             A :class:`~doubleml.data.DoubleMLData` with ``d_cols=[d_col]``
             and all other treatment columns added to ``x_cols``.
+
         """
         other_d_cols = [c for c in self._dml_data.d_cols if c != d_col]
         x_cols = list(self._dml_data.x_cols) + other_d_cols
@@ -385,6 +402,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         ------
         ValueError
             If ``n_folds < 2`` or ``n_rep < 1``.
+
         """
         if not isinstance(n_folds, int) or n_folds < 2:
             raise ValueError(f"n_folds must be an integer >= 2. Got {n_folds}.")
@@ -427,6 +445,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
             If ``all_smpls`` is not a list.
         ValueError
             If the partition is invalid.
+
         """
         if isinstance(all_smpls, tuple):
             raise TypeError("all_smpls must be a list of folds; tuple shorthand is not supported for DoubleMLVector.")
@@ -491,6 +510,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Returns
         -------
         self : Self
+
         """
         if self._smpls is None:
             self.draw_sample_splitting(n_folds=n_folds, n_rep=n_rep)
@@ -529,6 +549,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         -------
         list of dict
             One parameter dict per sub-model, in ``d_cols`` order.
+
         """
         if self._modellist is None:
             raise ValueError("Sub-models are not initialized. Call _initialize_models() in the subclass __init__.")
@@ -548,6 +569,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Returns
         -------
         self : Self
+
         """
         if self._modellist is None:
             raise ValueError("Sub-models are not initialized. Call _initialize_models() in the subclass __init__.")
@@ -644,6 +666,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         ------
         ValueError
             If :meth:`fit` has not been called yet.
+
         """
         if self._framework is None:
             raise ValueError("Apply fit() before sensitivity_plot().")
@@ -689,6 +712,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
             If ``benchmarking_set`` or ``fit_args`` have the wrong type.
         ValueError
             If ``benchmarking_set`` is empty or not a subset of ``x_cols``.
+
         """
         if self._framework is None:
             raise ValueError("Apply fit() before sensitivity_benchmark().")
@@ -738,6 +762,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         -------
         str
             A formatted string summary of the model.
+
         """
         class_name = self.__class__.__name__
         header = f"{'=' * 20} {class_name} Object {'=' * 20}"

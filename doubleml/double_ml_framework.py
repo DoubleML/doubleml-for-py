@@ -167,6 +167,7 @@ class DoubleMLFramework:
     ----------
     dml_core : DoubleMLCore
         A DoubleMLCore object providing the estimated parameters and scores.
+
     """
 
     def __init__(
@@ -383,6 +384,7 @@ class DoubleMLFramework:
         -------
         res : str
             Summary for the sensitivity analysis.
+
         """
         header = "================== Sensitivity Analysis ==================\n"
         if self.sensitivity_params is None:
@@ -713,6 +715,7 @@ class DoubleMLFramework:
         Returns
         -------
         self : object
+
         """
         # check null_hypothesis
         if isinstance(null_hypothesis, float):
@@ -772,6 +775,7 @@ class DoubleMLFramework:
         -------
         df_ci : pd.DataFrame
             A data frame with the confidence interval(s).
+
         """
 
         if not isinstance(joint, bool):
@@ -822,6 +826,7 @@ class DoubleMLFramework:
         Returns
         -------
         self : object
+
         """
 
         _check_bootstrap(method, n_rep_boot)
@@ -858,6 +863,7 @@ class DoubleMLFramework:
             A data frame with adjusted p-values.
         all_p_vals_corrected : np.ndarray
             A numpy array with all corrected p-values for each repetition.
+
         """
         if not isinstance(method, str):
             raise TypeError(f"The p_adjust method must be of str type. {str(method)} of type {str(type(method))} was passed.")
@@ -970,6 +976,7 @@ class DoubleMLFramework:
         -------
         fig : object
             Plotly figure of the sensitivity contours.
+
         """
         _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self.n_thetas - 1)
         if not isinstance(value, str):

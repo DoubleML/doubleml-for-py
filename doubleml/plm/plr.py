@@ -16,7 +16,8 @@ from doubleml.utils.blp import DoubleMLBLP
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):
-    """Double machine learning for partially linear regression models
+    """
+    Double machine learning for partially linear regression models
 
     Parameters
     ----------
@@ -87,6 +88,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     where :math:`Y` is the outcome variable and :math:`D` is the policy variable of interest.
     The high-dimensional vector :math:`X = (X_1, \\ldots, X_p)` consists of other confounding covariates,
     and :math:`\\zeta` and :math:`V` are stochastic errors.
+
     """
 
     def __init__(
@@ -465,6 +467,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         -------
         model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model.
+
         """
         if self._dml_data.n_treat > 1:
             raise NotImplementedError(
@@ -500,6 +503,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         -------
         model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model for Group Effects.
+
         """
 
         if not isinstance(groups, pd.DataFrame):
@@ -530,6 +534,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             The residual of the regression of Y on X.
         D_tilde : :class:`numpy.ndarray`
             The residual of the regression of D on X.
+
         """
         if self.predictions is None:
             raise ValueError("predictions are None. Call .fit(store_predictions=True) to store the predictions.")

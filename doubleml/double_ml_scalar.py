@@ -1,6 +1,4 @@
-"""
-Abstract base class for scalar DoubleML models (single parameter estimation).
-"""
+"""Abstract base class for scalar DoubleML models (single parameter estimation)."""
 
 import warnings
 from abc import ABC, abstractmethod
@@ -52,6 +50,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         Number of repetitions for sample splitting (set via draw_sample_splitting).
     score : str
         The score function being used.
+
     """
 
     # Subclasses define all possible learners for the model
@@ -81,6 +80,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If obj_dml_data contains more than one treatment column.
+
         """
         # Validate single treatment column
         if len(obj_dml_data.d_cols) != 1:
@@ -137,6 +137,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If sample splitting has not been performed yet.
+
         """
         if self._n_folds is None:
             raise ValueError("n_folds not set. Call draw_sample_splitting() first.")
@@ -156,6 +157,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If sample splitting has not been performed yet.
+
         """
         if self._n_rep is None:
             raise ValueError("n_rep not set. Call draw_sample_splitting() first.")
@@ -170,6 +172,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         str
             Score function name.
+
         """
         return self._score
 
@@ -187,6 +190,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If the model has not been fitted yet.
+
         """
         if self._predictions is None:
             raise ValueError("Predictions not available. Call fit() first.")
@@ -208,6 +212,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If the model has not been fitted yet.
+
         """
         if self._nuisance_targets is None:
             raise ValueError("Nuisance targets not available. Call fit() or fit_nuisance_models() first.")
@@ -232,6 +237,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If the model has not been fitted yet.
+
         """
         if self._nuisance_loss is None:
             raise ValueError("Nuisance loss not available. Call fit() or fit_nuisance_models() first.")
@@ -250,6 +256,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         dict[str, np.ndarray] or None
             Dictionary with keys ``'sigma2'``, ``'nu2'`` (shape ``(1, 1, n_rep)``),
             ``'psi_sigma2'``, ``'psi_nu2'``, ``'riesz_rep'`` (shape ``(n_obs, 1, n_rep)``).
+
         """
         return self._sensitivity_elements
 
@@ -262,6 +269,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         list
             List of sample splitting indices for each repetition.
+
         """
         if self._smpls is None:
             raise ValueError("Sample splitting has not been performed. Call draw_sample_splitting() first.")
@@ -281,6 +289,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If cluster data is used but cluster splitting is not available.
+
         """
         if self._dml_data.is_cluster_data and self._smpls_cluster is None:
             raise ValueError("Cluster sample splitting has not been provided. Call set_sample_splitting() first.")
@@ -304,6 +313,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         list of str
             Ordered list of required learner names.
+
         """
         pass
 
@@ -316,6 +326,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         dict
             Dictionary mapping learner names to estimator instances.
+
         """
         return {name: info.learner for name, info in self._learners.items()}
 
@@ -337,6 +348,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If the learner is not registered.
+
         """
         if learner_name not in self._learners:
             raise ValueError(f"Learner '{learner_name}' not registered.")
@@ -362,6 +374,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If the learner is not registered.
+
         """
         if learner_name not in self._learners:
             raise ValueError(f"Learner '{learner_name}' not registered.")
@@ -383,6 +396,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If the learner name is not defined in _LEARNER_SPECS.
+
         """
         if name not in self._LEARNER_SPECS:
             raise ValueError(f"Learner '{name}' not defined for this model.")
@@ -408,6 +422,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         self : Self
             The estimator with learners set.
+
         """
         pass
 
@@ -456,6 +471,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         self : Self
             The fitted estimator.
+
         """
         if self._smpls is None:
             self.draw_sample_splitting(
@@ -511,6 +527,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If sample splitting has not been initialized.
+
         """
         if self._smpls is None:
             raise ValueError("Sample splitting has not been initialized. Call draw_sample_splitting() first.")
@@ -580,6 +597,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If nuisance models have not been fitted yet.
+
         """
         if self._predictions is None:
             raise ValueError("Predictions not available. Call fit_nuisance_models() first.")
@@ -625,6 +643,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If n_folds or n_rep have invalid values.
+
         """
         if not isinstance(n_folds, int) or n_folds < 2:
             raise ValueError(f"n_folds must be an integer >= 2. Got {n_folds}.")
@@ -689,6 +708,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             If ``all_smpls`` is not a list or if tuple shorthand is used.
         ValueError
             If the partition is invalid or cluster splitting is missing.
+
         """
         if isinstance(all_smpls, tuple):
             raise TypeError("all_smpls must be a list of folds; tuple shorthand is not supported for DoubleMLScalar.")
@@ -750,6 +770,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         dict
             Dictionary mapping learner names to NaN-filled arrays.
+
         """
         n_obs = self._n_obs
         n_rep = self.n_rep
@@ -770,6 +791,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             If a value is not a numpy array.
         ValueError
             If a value does not match shape (n_obs, n_rep).
+
         """
         n_obs = self._n_obs
         n_rep = self.n_rep
@@ -798,6 +820,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         ValueError
             If a required learner is missing and not covered by external predictions.
+
         """
         ext_keys = set(external_predictions.keys()) if external_predictions is not None else set()
 
@@ -816,6 +839,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         DoubleMLFramework
             The framework object with estimation results.
+
         """
         # Standardize the score function: psi / E[psi_deriv]
         # Both already in framework shape: (n_obs, n_thetas, n_rep)
@@ -934,6 +958,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         >>> model.evaluate_learners()
         >>> model.evaluate_learners(metric=r2_score)
         >>> model.evaluate_learners(learners=["ml_m"], metric=log_loss)
+
         """
         if self._nuisance_targets is None:
             raise ValueError("Nuisance targets not available. Call fit() or fit_nuisance_models() first.")
@@ -1007,6 +1032,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             Dictionary with keys ``'sigma2'``, ``'nu2'`` (shape ``(1, 1, n_rep)``),
             ``'psi_sigma2'``, ``'psi_nu2'``, ``'riesz_rep'`` (shape ``(n_obs, 1, n_rep)``).
             Return ``None`` (default) if sensitivity analysis is not implemented.
+
         """
         return None
 
@@ -1042,6 +1068,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         dict[str, np.ndarray or None]
             Dictionary mapping learner names to target arrays of shape ``(n_obs, n_rep)``,
             or ``None`` where targets are not available.
+
         """
         pass
 
@@ -1078,6 +1105,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             If provided, a dictionary of external predictions. Learners whose names
             appear as keys should not be fitted; their predictions are already
             pre-filled in self._predictions.
+
         """
         pass
 
@@ -1104,6 +1132,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             psi_a = (D - m_hat) ** 2  # shape: (n_obs, n_rep)
             psi_b = (D - m_hat) * (Y - l_hat)  # shape: (n_obs, n_rep)
             return {'psi_a': psi_a, 'psi_b': psi_b}
+
         """
         pass
 
@@ -1133,6 +1162,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         - self._psi should have shape (n_obs, n_thetas, n_rep)
         - self._psi_deriv should have shape (n_obs, n_thetas, n_rep)
         - self._var_scaling_factors should have shape (n_thetas,)
+
         """
         pass
 
@@ -1188,6 +1218,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         tune_res : dict
             Dict of :class:`~doubleml.utils._tune_optuna.DMLOptunaResult` objects keyed by
             learner name. Returned when ``return_tune_res=True``.
+
         """
         if not isinstance(set_as_params, bool):
             raise TypeError(f"set_as_params must be True or False. Got {str(set_as_params)}.")
@@ -1267,6 +1298,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             alias nor a defined learner name.
         TypeError
             If a parameter space value is not callable.
+
         """
         if not isinstance(ml_param_space, dict):
             raise TypeError(f"ml_param_space must be a dict. Got {type(ml_param_space).__name__}.")
@@ -1317,6 +1349,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             value is not a dict.
         ValueError
             If a key is not a global Optuna setting and not a valid learner name or alias.
+
         """
         if optuna_settings is not None and not isinstance(optuna_settings, dict):
             raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
@@ -1375,6 +1408,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ------
         NotImplementedError
             Always; subclasses must override this method.
+
         """
         raise NotImplementedError(
             f"_get_tuning_data not implemented for {self.__class__.__name__}. " "Subclasses must override this method."
@@ -1388,6 +1422,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         -------
         str
             A formatted string summary of the model.
+
         """
         class_name = self.__class__.__name__
         header = f"{'=' * 20} {class_name} Object {'=' * 20}"

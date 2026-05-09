@@ -13,7 +13,8 @@ from .plr_scalar import PLR
 
 
 class PLRVector(DoubleMLVector):
-    """Multi-treatment double machine learning for partially linear regression models.
+    """
+    Multi-treatment double machine learning for partially linear regression models.
 
     Orchestrates one :class:`~doubleml.plm.plr_scalar.PLR` instance per treatment column
     in ``d_cols``. Sample splits are drawn once and shared across all sub-models;
@@ -35,6 +36,7 @@ class PLRVector(DoubleMLVector):
         Learner for E[D|X]. Can be regressor or classifier.
     ml_g : estimator, optional
         Learner for E[Y - D*theta|X]. Only for IV-type. Must be regressor.
+
     """
 
     def __init__(
@@ -45,6 +47,7 @@ class PLRVector(DoubleMLVector):
         ml_m: object | None = None,
         ml_g: object | None = None,
     ) -> None:
+        """Initialize PLRVector. See class docstring for parameter details."""
         # Validate at the vector level so the error fires before sub-model construction.
         self._check_data(obj_dml_data)
         valid_scores = ["partialling out", "IV-type"]
@@ -61,7 +64,8 @@ class PLRVector(DoubleMLVector):
 
     @staticmethod
     def _check_data(obj_dml_data: Any) -> None:
-        """Validate the data object for PLR vector estimation.
+        """
+        Validate the data object for PLR vector estimation.
 
         Parameters
         ----------
@@ -75,6 +79,7 @@ class PLRVector(DoubleMLVector):
             If ``obj_dml_data`` is not a :class:`~doubleml.data.DoubleMLData`.
         ValueError
             If ``obj_dml_data`` defines instrumental variables (``z_cols``).
+
         """
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
@@ -100,7 +105,8 @@ class PLRVector(DoubleMLVector):
         ml_m: object | None = None,
         ml_g: object | None = None,
     ) -> Self:
-        """Set the learners for nuisance estimation on every sub-model.
+        """
+        Set the learners for nuisance estimation on every sub-model.
 
         Parameters
         ----------
@@ -114,6 +120,7 @@ class PLRVector(DoubleMLVector):
         Returns
         -------
         self : PLRVector
+
         """
         if self._modellist is None:
             raise RuntimeError("Sub-models are not initialized. _initialize_models() must run in __init__.")

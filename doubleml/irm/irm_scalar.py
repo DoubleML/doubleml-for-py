@@ -1,6 +1,4 @@
-"""
-Interactive Regression Model (IRM) based on the new DoubleMLScalar hierarchy.
-"""
+"""Interactive Regression Model (IRM) based on the new DoubleMLScalar hierarchy."""
 
 from __future__ import annotations
 
@@ -23,7 +21,8 @@ from ..utils.propensity_score_processing import PSProcessor, PSProcessorConfig
 
 
 class IRM(LinearScoreMixin):
-    """Double machine learning for interactive regression models.
+    """
+    Double machine learning for interactive regression models.
 
     Based on the DoubleMLScalar + LinearScoreMixin hierarchy.
 
@@ -78,6 +77,7 @@ class IRM(LinearScoreMixin):
     .. math::
 
         \\theta_0 = \\mathbb{E}[g_0(1, X) - g_0(0, X) | D=1].
+
     """
 
     # Define learner specifications for IRM
@@ -122,6 +122,7 @@ class IRM(LinearScoreMixin):
             Weights for weighted ATE.
         ps_processor_config : PSProcessorConfig, optional
             Configuration for propensity score processing.
+
         """
         # Validate data
         self._check_data(obj_dml_data)
@@ -215,6 +216,7 @@ class IRM(LinearScoreMixin):
         -------
         self : IRM
             The estimator with learners set.
+
         """
         # ml_g convenience: clone to ml_g0/ml_g1 if not explicitly set
         if ml_g is not None:
@@ -310,7 +312,8 @@ class IRM(LinearScoreMixin):
     # ==================== Score Elements ====================
 
     def _get_nuisance_targets(self) -> dict[str, np.ndarray | None]:
-        """Return target arrays for nuisance loss evaluation.
+        """
+        Return target arrays for nuisance loss evaluation.
 
         ml_g0 and ml_g1 are fitted only on the d==0 and d==1 subgroups respectively,
         so targets for the opposite group are NaN. ml_m target is d (binary treatment).
@@ -383,6 +386,7 @@ class IRM(LinearScoreMixin):
         -------
         model : :class:`doubleml.DoubleMLBLP`
             Best linear predictor model.
+
         """
         if self.score != "ATE":
             raise ValueError(f"Invalid score '{self.score}'. CATE is only implemented for score='ATE'.")
@@ -413,6 +417,7 @@ class IRM(LinearScoreMixin):
         -------
         model : :class:`doubleml.DoubleMLBLP`
             Best linear predictor model for group effects.
+
         """
         if not isinstance(groups, pd.DataFrame):
             raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
@@ -485,6 +490,7 @@ class IRM(LinearScoreMixin):
         ------
         ValueError
             If ``learner_name`` is not a valid IRM learner name.
+
         """
         y = self._dml_data.y
         d = self._dml_data.d
@@ -527,6 +533,7 @@ class IRM(LinearScoreMixin):
             Shape (n_obs, n_rep) or broadcastable.
         weights_bar : np.ndarray
             Shape (n_obs, n_rep) or broadcastable.
+
         """
         d = self._dml_data.d
 
@@ -572,6 +579,7 @@ class IRM(LinearScoreMixin):
         dict[str, np.ndarray] or None
             Dictionary with keys ``'sigma2'``, ``'nu2'`` (shape ``(1, 1, n_rep)``),
             ``'psi_sigma2'``, ``'psi_nu2'``, ``'riesz_rep'`` (shape ``(n_obs, 1, n_rep)``).
+
         """
         y = self._dml_data.y  # (n_obs,)
         d = self._dml_data.d  # (n_obs,)

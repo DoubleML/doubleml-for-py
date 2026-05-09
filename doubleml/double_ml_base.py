@@ -1,6 +1,4 @@
-"""
-Abstract base class for Double Machine Learning estimators.
-"""
+"""Abstract base class for Double Machine Learning estimators."""
 
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
@@ -46,6 +44,7 @@ class DoubleMLBase(ABC):
         Influence function values (shape: (n_obs, n_thetas, n_rep)).
     n_rep : int
         Number of repetitions for sample splitting.
+
     """
 
     def __init__(
@@ -59,6 +58,7 @@ class DoubleMLBase(ABC):
         ----------
         obj_dml_data : DoubleMLBaseData
             The data object for the double machine learning model.
+
         """
         # Validate and store data
         if not isinstance(obj_dml_data, DoubleMLBaseData):
@@ -89,6 +89,7 @@ class DoubleMLBase(ABC):
         ------
         ValueError
             If framework is not yet initialized (fit() has not been called).
+
         """
         if self._framework is None:
             raise ValueError("The framework is not yet initialized. " "Call fit() before accessing estimation results.")
@@ -103,6 +104,7 @@ class DoubleMLBase(ABC):
         -------
         np.ndarray
             Parameter estimates (shape: (n_thetas,)).
+
         """
         return self.framework.thetas
 
@@ -115,6 +117,7 @@ class DoubleMLBase(ABC):
         -------
         np.ndarray
             Parameter estimates (shape: (n_thetas,)).
+
         """
         return self.thetas
 
@@ -127,6 +130,7 @@ class DoubleMLBase(ABC):
         -------
         np.ndarray
             Parameter estimates for all repetitions (shape: (n_thetas, n_rep)).
+
         """
         return self.framework.all_thetas
 
@@ -139,6 +143,7 @@ class DoubleMLBase(ABC):
         -------
         np.ndarray
             Parameter estimates for all repetitions (shape: (n_thetas, n_rep)).
+
         """
         return self.all_thetas
 
@@ -151,6 +156,7 @@ class DoubleMLBase(ABC):
         -------
         np.ndarray
             Standard errors (shape: (n_thetas,)).
+
         """
         return self.framework.ses
 
@@ -163,6 +169,7 @@ class DoubleMLBase(ABC):
         -------
         np.ndarray
             Standard errors for all repetitions (shape: (n_thetas, n_rep)).
+
         """
         return self.framework.all_ses
 
@@ -175,6 +182,7 @@ class DoubleMLBase(ABC):
         -------
         pd.DataFrame
             Summary statistics for all parameters.
+
         """
         return self.framework.summary
 
@@ -187,6 +195,7 @@ class DoubleMLBase(ABC):
         -------
         np.ndarray
             Influence function values (shape: (n_obs, n_thetas, n_rep)).
+
         """
         return self.framework.scaled_psi
 
@@ -200,6 +209,7 @@ class DoubleMLBase(ABC):
         -------
         int
             Number of repetitions.
+
         """
         pass
 
@@ -212,6 +222,7 @@ class DoubleMLBase(ABC):
         -------
         int
             Number of observations in the dataset.
+
         """
         return self._n_obs
 
@@ -234,6 +245,7 @@ class DoubleMLBase(ABC):
         -------
         pd.DataFrame
             A DataFrame with confidence intervals.
+
         """
         return self.framework.confint(joint=joint, level=level)
 
@@ -254,6 +266,7 @@ class DoubleMLBase(ABC):
         -------
         self : DoubleMLBase
             The DoubleML estimator with bootstrap results.
+
         """
         self.framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
         return self
@@ -271,6 +284,7 @@ class DoubleMLBase(ABC):
         -------
         pd.DataFrame
             A DataFrame with adjusted p-values.
+
         """
         return self.framework.p_adjust(method=method)
 
@@ -307,6 +321,7 @@ class DoubleMLBase(ABC):
         -------
         dict
             A dictionary with sensitivity analysis results.
+
         """
         return self.framework.sensitivity_analysis(
             cf_y=cf_y,
@@ -334,6 +349,7 @@ class DoubleMLBase(ABC):
         -------
         self : DoubleMLBase
             The fitted DoubleML estimator.
+
         """
         pass
 
@@ -345,6 +361,7 @@ class DoubleMLBase(ABC):
         -------
         str
             A formatted string summary of the model.
+
         """
         class_name = self.__class__.__name__
         header = f"{'=' * 20} {class_name} Object {'=' * 20}"
@@ -363,5 +380,6 @@ class DoubleMLBase(ABC):
         -------
         str
             A string representation of the object.
+
         """
         return self.__str__()

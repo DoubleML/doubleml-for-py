@@ -1,6 +1,4 @@
-"""
-Mixin for DoubleML models with linear score functions.
-"""
+"""Mixin for DoubleML models with linear score functions."""
 
 from typing import Dict
 
@@ -34,6 +32,7 @@ class LinearScoreMixin(DoubleMLScalar):
     Subclasses must implement:
     - _nuisance_est(): Estimate nuisance parameters for one fold
     - _get_score_elements(): Return dict with 'psi_a' and 'psi_b' arrays of shape (n_obs, n_rep)
+
     """
 
     def _est_causal_pars_and_se(self, psi_elements: Dict[str, np.ndarray]) -> None:
@@ -60,6 +59,7 @@ class LinearScoreMixin(DoubleMLScalar):
         - self._psi: Influence function values (n_obs, n_thetas=1, n_rep)
         - self._psi_deriv: Score derivative w.r.t. θ (n_obs, n_thetas=1, n_rep)
         - self._var_scaling_factors: Variance scaling factors (n_thetas=1,)
+
         """
         # Extract score elements
         if "psi_a" not in psi_elements or "psi_b" not in psi_elements:
@@ -137,6 +137,7 @@ class LinearScoreMixin(DoubleMLScalar):
         -------
         np.ndarray
             Score function values, shape (n_obs, n_rep).
+
         """
         psi_a = psi_elements["psi_a"]
         psi_b = psi_elements["psi_b"]
@@ -151,5 +152,6 @@ class LinearScoreMixin(DoubleMLScalar):
         -------
         list
             List of score element names: ['psi_a', 'psi_b']
+
         """
         return ["psi_a", "psi_b"]

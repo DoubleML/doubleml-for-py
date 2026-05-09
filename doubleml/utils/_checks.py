@@ -558,6 +558,7 @@ def _check_learner(learner, learner_name, regressor=True, classifier=True):
     TypeError
         If the learner is a class instead of an instance, or lacks
         required methods (fit, set_params, get_params, predict/predict_proba).
+
     """
     err_msg_prefix = f"Invalid learner provided for {learner_name}: "
     warn_msg_prefix = f"Learner provided for {learner_name} is probably invalid: "

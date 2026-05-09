@@ -15,6 +15,7 @@ Example:
     >>> import logging
     >>> logging.basicConfig(level=logging.INFO)
     >>> # Now you'll see tuning progress and information
+
 """
 
 import logging
@@ -85,6 +86,7 @@ class DMLOptunaResult:
 
     tuned : bool
         Indicates whether tuning was performed (True) or skipped (False).
+
     """
 
     learner_name: str
@@ -296,7 +298,8 @@ def _default_optuna_settings():
 
 
 def _resolve_optuna_scoring(scoring_method, learner, params_name):
-    """Resolve the scoring argument for an Optuna-tuned learner.
+    """
+    Resolve the scoring argument for an Optuna-tuned learner.
 
     Parameters
     ----------
@@ -315,6 +318,7 @@ def _resolve_optuna_scoring(scoring_method, learner, params_name):
     :func:`sklearn.model_selection.cross_val_score` (``None`` means use the
     estimator's default ``score``) and a human-readable message describing
     the decision for logging purposes.
+
     """
 
     if scoring_method is not None:
@@ -380,7 +384,8 @@ def _check_tuning_inputs(
     cv,
     params_name,
 ):
-    """Validate Optuna tuning inputs and normalize the cross-validation splitter.
+    """
+    Validate Optuna tuning inputs and normalize the cross-validation splitter.
 
     Parameters
     ----------
@@ -404,6 +409,7 @@ def _check_tuning_inputs(
     cross-validator or list
         Cross-validation splitter or pre-made list of ``(train, test)`` index
         pairs as returned by :func:`resolve_optuna_cv`.
+
     """
 
     if y.shape[0] != x.shape[0]:
@@ -444,6 +450,7 @@ def _get_optuna_settings(optuna_settings, params_name):
     -------
     dict
         Resolved settings dictionary.
+
     """
     default_settings = _default_optuna_settings()
 
@@ -497,6 +504,7 @@ def _create_study(settings, learner_name):
     -------
     optuna.study.Study
         The Optuna study object ready for optimization.
+
     """
 
     # Check if a study instance is provided directly
@@ -548,6 +556,7 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method):
     -------
     callable
         Objective function for Optuna optimization.
+
     """
     # Build scorer once; scoring_method is already resolved (non-None) by _resolve_optuna_scoring
     scorer = check_scoring(clone(learner), scoring=scoring_method)
@@ -627,6 +636,7 @@ def _dml_tune_optuna(
     -------
     DMLOptunaResult
         A tuning result containing the optuna.Study object and further information.
+
     """
 
     scoring_method, scoring_message = _resolve_optuna_scoring(scoring_method, learner, params_name)

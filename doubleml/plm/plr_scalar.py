@@ -1,6 +1,4 @@
-"""
-Partially Linear Regression (PLR) model based on the new DoubleMLScalar hierarchy.
-"""
+"""Partially Linear Regression (PLR) model based on the new DoubleMLScalar hierarchy."""
 
 from __future__ import annotations
 
@@ -21,7 +19,8 @@ from ..utils.blp import DoubleMLBLP
 
 
 class PLR(LinearScoreMixin):
-    """Double machine learning for partially linear regression models.
+    """
+    Double machine learning for partially linear regression models.
 
     Based on the DoubleMLScalar + LinearScoreMixin hierarchy.
 
@@ -38,6 +37,7 @@ class PLR(LinearScoreMixin):
         Learner for E[D|X]. Can be regressor or classifier.
     ml_g : estimator, optional
         Learner for E[Y - D*theta|X]. Only for IV-type. Must be regressor.
+
     """
 
     # Define learner specifications for PLR
@@ -70,6 +70,7 @@ class PLR(LinearScoreMixin):
             Learner for E[D|X]. Can be regressor or classifier.
         ml_g : estimator, optional
             Learner for E[Y - D*theta|X]. Only for IV-type. Must be regressor.
+
         """
         # Validate data
         self._check_data(obj_dml_data)
@@ -124,6 +125,7 @@ class PLR(LinearScoreMixin):
         -------
         self : PLR
             The estimator with learners set.
+
         """
         for name, learner in [("ml_l", ml_l), ("ml_m", ml_m), ("ml_g", ml_g)]:
             if learner is None:
@@ -314,6 +316,7 @@ class PLR(LinearScoreMixin):
         ------
         ValueError
             If ``learner_name`` is not a valid PLR learner name.
+
         """
         y = self._dml_data.y
         d = self._dml_data.d
@@ -360,7 +363,8 @@ class PLR(LinearScoreMixin):
         raise ValueError(f"Unknown learner '{learner_name}' for PLR.")
 
     def _get_nuisance_targets(self) -> dict[str, np.ndarray | None]:
-        """Return target arrays for nuisance loss evaluation.
+        """
+        Return target arrays for nuisance loss evaluation.
 
         Returns y for ml_l, d for ml_m. For IV-type score, ml_g target is None because
         the adjusted outcome y - θ·d depends on the estimated parameter and varies per
@@ -412,6 +416,7 @@ class PLR(LinearScoreMixin):
         -------
         Y_tilde, D_tilde : tuple[np.ndarray, np.ndarray]
             Outcome and treatment residuals, each of shape ``(n_obs, n_rep)``.
+
         """
         if self._predictions is None:
             raise ValueError("predictions are None. Call fit() first.")
@@ -451,6 +456,7 @@ class PLR(LinearScoreMixin):
         -------
         model : :class:`doubleml.DoubleMLBLP`
             Best linear predictor model.
+
         """
         if self._dml_data.n_treat > 1:
             raise NotImplementedError(
@@ -483,6 +489,7 @@ class PLR(LinearScoreMixin):
         -------
         model : :class:`doubleml.DoubleMLBLP`
             Best linear predictor model for group effects.
+
         """
         if not isinstance(groups, pd.DataFrame):
             raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
@@ -515,6 +522,7 @@ class PLR(LinearScoreMixin):
             Dictionary with keys ``'sigma2'``, ``'nu2'`` (shape ``(1, 1, n_rep)``),
             ``'psi_sigma2'``, ``'psi_nu2'``, ``'riesz_rep'`` (shape ``(n_obs, 1, n_rep)``).
             Returns ``None`` for callable scores (no standard Riesz representer).
+
         """
         if callable(self.score):
             return None

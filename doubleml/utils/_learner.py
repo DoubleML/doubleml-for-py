@@ -1,6 +1,4 @@
-"""
-Learner specification and validation utilities for DoubleML.
-"""
+"""Learner specification and validation utilities for DoubleML."""
 
 from __future__ import annotations
 
@@ -29,6 +27,7 @@ class LearnerSpec:
         If specified, warns when using regressor with binary data.
         "outcome" checks binary_outcome, "treatment" checks binary_treatment.
         Default is ``None``.
+
     """
 
     name: str
@@ -52,6 +51,7 @@ class LearnerInfo:
         The learner object (already cloned).
     is_classifier : bool
         Whether the learner is a classifier.
+
     """
 
     learner: Any
@@ -155,6 +155,7 @@ def validate_learner(
     ValueError
         If the learner type is not allowed by the specification.
         If a classifier is used with non-binary data when required.
+
     """
     err_msg_prefix = f"Invalid learner provided for {spec.name}: "
     warn_msg_prefix = f"Learner provided for {spec.name} is probably invalid: "
@@ -198,6 +199,7 @@ def predict_nuisance(learner: Any, X: np.ndarray, is_classifier: bool) -> np.nda
     -------
     np.ndarray
         Predictions. For classifiers, returns probability of class 1.
+
     """
     if is_classifier:
         return learner.predict_proba(X)[:, 1]
