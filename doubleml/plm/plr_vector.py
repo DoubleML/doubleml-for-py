@@ -106,7 +106,7 @@ class PLRVector(DoubleMLVector):
         ml_g: object | None = None,
     ) -> Self:
         """
-        Set the learners for nuisance estimation on every sub-model.
+        Set learners for nuisance estimation on every sub-model.
 
         Parameters
         ----------
