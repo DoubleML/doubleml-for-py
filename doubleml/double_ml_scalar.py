@@ -423,7 +423,6 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             The estimator with learners set.
 
         """
-        pass
 
     # ==================== Concrete fit() Method (Template) ====================
 
