@@ -269,18 +269,13 @@ class DoubleMLVector(DoubleMLBase, ABC):
         """
 
     @abstractmethod
-    def set_learners(self, **kwargs: object) -> Self:
+    def set_learners(self) -> Self:
         """
         Set the learners for nuisance estimation on all sub-models.
 
         Subclasses must implement this method with explicit keyword arguments
         matching their model's learners (e.g., ``ml_l``, ``ml_m`` for PLR).
         The same learners (cloned per sub-model) are applied to every treatment.
-
-        Parameters
-        ----------
-        **kwargs
-            Learner keyword arguments specific to the subclass.
 
         Returns
         -------
