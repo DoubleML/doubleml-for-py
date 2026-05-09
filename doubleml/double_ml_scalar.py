@@ -1068,7 +1068,6 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             or ``None`` where targets are not available.
 
         """
-        pass
 
     @abstractmethod
     def _nuisance_est(
@@ -1105,7 +1104,6 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             pre-filled in self._predictions.
 
         """
-        pass
 
     @abstractmethod
     def _get_score_elements(self) -> dict[str, np.ndarray]:
@@ -1132,7 +1130,6 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             return {'psi_a': psi_a, 'psi_b': psi_b}
 
         """
-        pass
 
     @abstractmethod
     def _est_causal_pars_and_se(self, psi_elements: dict[str, np.ndarray]) -> None:
@@ -1162,7 +1159,6 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         - self._var_scaling_factors should have shape (n_thetas,)
 
         """
-        pass
 
     # ==================== Hyperparameter Tuning ====================
 
