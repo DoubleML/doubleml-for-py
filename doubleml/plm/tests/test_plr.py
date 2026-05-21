@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import scipy
+import statsmodels.api as sm
 from sklearn.base import clone
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Lasso, LinearRegression
@@ -350,23 +351,23 @@ def test_dml_plr_cate_gate_multiple_rep(score, cov_type):
     ml_m = LinearRegression()
 
     if score == "partialling out":
-        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_l=ml_l, ml_m=ml_m, n_folds=3, n_rep=2, score=score)
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_l=ml_l, ml_m=ml_m, n_folds=3, n_rep=4, score=score)
     else:
         assert score == "IV-type"
-        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_l=ml_l, ml_m=ml_m, ml_g=ml_g, n_folds=3, n_rep=2, score=score)
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_l=ml_l, ml_m=ml_m, ml_g=ml_g, n_folds=3, n_rep=4, score=score)
 
     dml_plr_obj.fit()
 
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 2)))
     cate = dml_plr_obj.cate(random_basis, cov_type=cov_type)
     assert isinstance(cate, dml.DoubleMLBLP)
-    assert cate.n_rep == 2
+    assert cate.n_rep == 4
     assert isinstance(cate.blp_model, list)
-    assert len(cate.blp_model) == 2
+    assert len(cate.blp_model) == 4
     assert cate.blp_model[0].cov_type == cov_type
     assert cate.blp_model[1].cov_type == cov_type
-    assert cate.all_coef.shape == (random_basis.shape[1], 2)
-    assert cate.all_se.shape == (random_basis.shape[1], 2)
+    assert cate.all_coef.shape == (random_basis.shape[1], 4)
+    assert cate.all_se.shape == (random_basis.shape[1], 4)
     assert isinstance(cate.confint(), pd.DataFrame)
     assert isinstance(cate.summary, pd.DataFrame)
 
@@ -374,8 +375,85 @@ def test_dml_plr_cate_gate_multiple_rep(score, cov_type):
     groups = pd.DataFrame({"Group 1": x1 <= x1.median(), "Group 2": x1 > x1.median()})
     gate = dml_plr_obj.gate(groups, cov_type=cov_type)
     assert isinstance(gate, dml.DoubleMLBLP)
-    assert gate.n_rep == 2
-    assert gate.all_coef.shape == (groups.shape[1], 2)
-    assert gate.all_se.shape == (groups.shape[1], 2)
+    assert gate.n_rep == 4
+    assert gate.all_coef.shape == (groups.shape[1], 4)
+    assert gate.all_se.shape == (groups.shape[1], 4)
     assert isinstance(gate.confint(), pd.DataFrame)
     assert all(gate.confint().index == groups.columns.tolist())
+
+
+@pytest.mark.ci
+def test_dml_plr_cate_multi_rep_per_rep_correctness():
+    """For n_rep>1 with a multi-column basis, the per-rep BLP fit must use that rep's
+    own D_tilde residuals (not the global broadcasting that the previous expression
+    produced). Verify by comparing against a manual sm.OLS fit on every rep."""
+    n = 150
+    n_rep = 3
+    np.random.seed(42)
+    obj_dml_data = dml.plm.datasets.make_plr_CCDDHNR2018(n_obs=n)
+    ml_l = LinearRegression()
+    ml_m = LinearRegression()
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_l=ml_l, ml_m=ml_m, n_folds=3, n_rep=n_rep, score="partialling out")
+    dml_plr_obj.fit()
+
+    np.random.seed(7)
+    basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 4)), columns=[f"b{i}" for i in range(4)])
+    cate = dml_plr_obj.cate(basis)
+
+    Y_tilde, D_tilde = dml_plr_obj._partial_out()
+    for i_rep in range(n_rep):
+        manual_basis = basis.multiply(D_tilde[:, i_rep], axis=0)
+        manual_blp = sm.OLS(Y_tilde[:, i_rep], manual_basis).fit(cov_type="HC0")
+        np.testing.assert_allclose(cate.all_coef[:, i_rep], manual_blp.params, rtol=1e-12)
+        np.testing.assert_allclose(cate.all_se[:, i_rep], manual_blp.bse, rtol=1e-12)
+
+
+@pytest.mark.ci
+def test_dml_plr_cate_iv_type_multi_rep_per_rep_correctness():
+    """Same per-rep correctness check for score='IV-type', which residualizes Y_tilde
+    using the per-rep theta estimate (not the aggregated coef)."""
+    n = 150
+    n_rep = 3
+    np.random.seed(42)
+    obj_dml_data = dml.plm.datasets.make_plr_CCDDHNR2018(n_obs=n)
+    ml_l = LinearRegression()
+    ml_m = LinearRegression()
+    ml_g = LinearRegression()
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_l=ml_l, ml_m=ml_m, ml_g=ml_g, n_folds=3, n_rep=n_rep, score="IV-type")
+    dml_plr_obj.fit()
+
+    np.random.seed(7)
+    basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 4)), columns=[f"b{i}" for i in range(4)])
+    cate = dml_plr_obj.cate(basis)
+
+    Y_tilde, D_tilde = dml_plr_obj._partial_out()
+    y = obj_dml_data.y.reshape(-1, 1)
+    d = obj_dml_data.d.reshape(-1, 1)
+    ml_m_preds = dml_plr_obj.predictions["ml_m"].squeeze(axis=2)
+    ml_g_preds = dml_plr_obj.predictions["ml_g"].squeeze(axis=2)
+    for i_rep in range(n_rep):
+        theta_rep = dml_plr_obj.all_coef[0, i_rep]
+        expected_Y_tilde = (y - theta_rep * ml_m_preds[:, [i_rep]] - ml_g_preds[:, [i_rep]]).ravel()
+        expected_D_tilde = (d - ml_m_preds[:, [i_rep]]).ravel()
+        np.testing.assert_allclose(Y_tilde[:, i_rep], expected_Y_tilde, rtol=1e-12)
+        np.testing.assert_allclose(D_tilde[:, i_rep], expected_D_tilde, rtol=1e-12)
+
+        manual_basis = basis.multiply(D_tilde[:, i_rep], axis=0)
+        manual_blp = sm.OLS(Y_tilde[:, i_rep], manual_basis).fit(cov_type="HC0")
+        np.testing.assert_allclose(cate.all_coef[:, i_rep], manual_blp.params, rtol=1e-12)
+        np.testing.assert_allclose(cate.all_se[:, i_rep], manual_blp.bse, rtol=1e-12)
+
+
+@pytest.mark.ci
+def test_dml_plr_cate_rejects_non_dataframe_basis():
+    """DoubleMLPLR.cate accepts only a single pd.DataFrame as basis."""
+    n = 100
+    np.random.seed(0)
+    obj_dml_data = dml.plm.datasets.make_plr_CCDDHNR2018(n_obs=n)
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, LinearRegression(), LinearRegression(), n_folds=3, n_rep=2).fit()
+
+    basis_df = pd.DataFrame(np.random.normal(0, 1, size=(n, 2)), columns=["a", "b"])
+    with pytest.raises(TypeError, match="basis must be of DataFrame type"):
+        dml_plr_obj.cate([basis_df, basis_df])
+    with pytest.raises(TypeError, match="basis must be of DataFrame type"):
+        dml_plr_obj.cate(np.zeros((n, 2)))

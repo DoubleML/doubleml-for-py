@@ -160,7 +160,7 @@ def test_doubleml_exception_blp():
     msg = "The signal must be one- or two-dimensional. Signal of dimensions 3 was passed."
     with pytest.raises(ValueError, match=msg):
         dml.DoubleMLBLP(orth_signal=np.array([[[1]], [[2]]]), basis=random_basis)
-    msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
+    msg = "The basis must be of DataFrame type or a list of DataFrames. Basis of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml.DoubleMLBLP(orth_signal=signal, basis=1)
     msg = "The number of observations in signal and basis does not match. Got 3 and 2."
@@ -200,3 +200,77 @@ def test_doubleml_exception_blp():
     msg = "Invalid basis: DataFrame has to have the exact same number and ordering of columns."
     with pytest.raises(ValueError, match=msg):
         dml_blp_confint.confint(basis=pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6]]), columns=["x_1", "x_2", "x_3"]))
+
+
+@pytest.mark.ci
+def test_blp_per_rep_basis_fits():
+    """A list-of-DataFrames basis fits and exposes per-rep coefficient shapes."""
+    n, d, n_rep = 50, 3, 3
+    np.random.seed(0)
+    signal = np.random.normal(0, 1, size=(n, n_rep))
+    cols = [f"b{i}" for i in range(d)]
+    basis_list = [pd.DataFrame(np.random.normal(0, 1, size=(n, d)), columns=cols) for _ in range(n_rep)]
+
+    blp = dml.DoubleMLBLP(signal, basis_list).fit()
+    assert blp.all_coef.shape == (d, n_rep)
+    assert blp.all_se.shape == (d, n_rep)
+    assert blp.coef.shape == (d,)
+    assert blp.se.shape == (d,)
+
+
+@pytest.mark.ci
+def test_blp_per_rep_basis_matches_shared():
+    """Per-rep list of identical bases yields the same fit as the shared-basis call."""
+    n, d, n_rep = 50, 3, 3
+    np.random.seed(1)
+    signal = np.random.normal(0, 1, size=(n, n_rep))
+    basis = pd.DataFrame(np.random.normal(0, 1, size=(n, d)), columns=[f"b{i}" for i in range(d)])
+
+    blp_shared = dml.DoubleMLBLP(signal, basis).fit()
+    blp_list = dml.DoubleMLBLP(signal, [basis] * n_rep).fit()
+
+    np.testing.assert_allclose(blp_list.all_coef, blp_shared.all_coef, rtol=1e-12)
+    np.testing.assert_allclose(blp_list.all_se, blp_shared.all_se, rtol=1e-12)
+    np.testing.assert_allclose(blp_list.coef, blp_shared.coef, rtol=1e-12)
+
+
+@pytest.mark.ci
+def test_blp_per_rep_basis_wrong_length():
+    """Wrong list length raises ValueError."""
+    n, n_rep = 30, 3
+    signal = np.zeros((n, n_rep))
+    basis = pd.DataFrame(np.zeros((n, 2)), columns=["a", "b"])
+    with pytest.raises(ValueError, match=r"length n_rep=3"):
+        dml.DoubleMLBLP(signal, [basis, basis])
+
+
+@pytest.mark.ci
+def test_blp_per_rep_basis_mismatched_columns():
+    """Per-rep bases with different column names raise ValueError."""
+    n, n_rep = 30, 2
+    signal = np.zeros((n, n_rep))
+    basis_a = pd.DataFrame(np.zeros((n, 2)), columns=["a", "b"])
+    basis_b = pd.DataFrame(np.zeros((n, 2)), columns=["a", "c"])
+    with pytest.raises(ValueError, match=r"same column names"):
+        dml.DoubleMLBLP(signal, [basis_a, basis_b])
+
+
+@pytest.mark.ci
+def test_blp_per_rep_basis_mismatched_n_obs():
+    """Per-rep basis with wrong row count raises ValueError."""
+    n, n_rep = 30, 2
+    signal = np.zeros((n, n_rep))
+    basis_ok = pd.DataFrame(np.zeros((n, 2)), columns=["a", "b"])
+    basis_bad = pd.DataFrame(np.zeros((n - 1, 2)), columns=["a", "b"])
+    with pytest.raises(ValueError, match=r"basis entry 1"):
+        dml.DoubleMLBLP(signal, [basis_ok, basis_bad])
+
+
+@pytest.mark.ci
+def test_blp_per_rep_basis_non_dataframe_entry():
+    """A non-DataFrame entry in the list raises TypeError."""
+    n, n_rep = 30, 2
+    signal = np.zeros((n, n_rep))
+    basis = pd.DataFrame(np.zeros((n, 2)), columns=["a", "b"])
+    with pytest.raises(TypeError, match=r"All entries of basis list must be of DataFrame type"):
+        dml.DoubleMLBLP(signal, [basis, np.zeros((n, 2))])
