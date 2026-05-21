@@ -19,9 +19,12 @@ class DoubleMLBLP:
         The orthogonal signal to be predicted. Has to be of shape ``(n_obs,)`` or ``(n_obs, n_rep)``,
         where ``n_obs`` is the number of observations and ``n_rep`` is the number of repetitions.
 
-    basis : :class:`pandas.DataFrame`
-        The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
-        where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+    basis : :class:`pandas.DataFrame` or list of :class:`pandas.DataFrame`
+        The basis for estimating the best linear predictor. Either a single DataFrame of shape
+        ``(n_obs, d)`` (shared across all repetitions) or a list of DataFrames of length ``n_rep``
+        (one basis per repetition, e.g. for PLR CATE where the basis is multiplied by per-rep
+        residuals). When a list is passed, every entry must have the same column names so per-rep
+        coefficients can be aggregated.
 
     is_gate : bool
         Indicates whether the basis is constructed for GATEs (dummy-basis).
@@ -44,16 +47,8 @@ class DoubleMLBLP:
         self._n_rep = self._orth_signal.shape[1]
         self._is_gate = is_gate
 
-        if not isinstance(basis, pd.DataFrame):
-            raise TypeError(f"The basis must be of DataFrame type. Basis of type {str(type(basis))} was passed.")
-        if not basis.columns.is_unique:
-            raise ValueError("Invalid pd.DataFrame: Contains duplicate column names.")
-        if self._orth_signal.shape[0] != basis.shape[0]:
-            raise ValueError(
-                "The number of observations in signal and basis does not match. "
-                f"Got {str(self._orth_signal.shape[0])} and {str(basis.shape[0])}."
-            )
-        self._basis = basis
+        self._basis_list = self._validate_basis(basis, self._orth_signal.shape[0], self._n_rep)
+        self._basis = self._basis_list[0]
 
         # initialize the score and the covariance
         self._blp_model = None
@@ -62,6 +57,48 @@ class DoubleMLBLP:
         self._all_se = None
         self._coef = None
         self._se = None
+
+    @staticmethod
+    def _validate_basis(basis, n_obs, n_rep):
+        """
+        Validate ``basis`` and return a list of length ``n_rep``.
+        ``basis`` may be a single ``pd.DataFrame`` (shared across reps) or a list of
+        ``pd.DataFrame`` of length ``n_rep``. Per-rep DataFrames must share column names
+        so coefficients are comparable for aggregation.
+        """
+        if isinstance(basis, pd.DataFrame):
+            basis_list = [basis] * n_rep
+            is_list_input = False
+        elif isinstance(basis, list):
+            if len(basis) != n_rep:
+                raise ValueError(f"When basis is a list it must have length n_rep={n_rep}. Got length {len(basis)}.")
+            if not all(isinstance(b, pd.DataFrame) for b in basis):
+                raise TypeError("All entries of basis list must be of DataFrame type.")
+            ref_cols = list(basis[0].columns)
+            for i, b in enumerate(basis[1:], start=1):
+                if list(b.columns) != ref_cols:
+                    raise ValueError(
+                        f"All per-rep bases must have the same column names. "
+                        f"Entry 0 columns: {ref_cols}, entry {i} columns: {list(b.columns)}."
+                    )
+            basis_list = basis
+            is_list_input = True
+        else:
+            raise TypeError(
+                f"The basis must be of DataFrame type or a list of DataFrames. "
+                f"Basis of type {str(type(basis))} was passed."
+            )
+
+        if not basis_list[0].columns.is_unique:
+            raise ValueError("Invalid pd.DataFrame: Contains duplicate column names.")
+
+        for i, b in enumerate(basis_list):
+            if b.shape[0] != n_obs:
+                raise ValueError(
+                    "The number of observations in signal and basis does not match. "
+                    f"Got {n_obs} and {b.shape[0]}" + (f" (basis entry {i})." if is_list_input else ".")
+                )
+        return basis_list
 
     def __str__(self):
         class_name = self.__class__.__name__
@@ -91,8 +128,19 @@ class DoubleMLBLP:
     def basis(self):
         """
         Basis.
+
+        Returns the basis for the first repetition. When the BLP was constructed with a
+        per-repetition list of bases (as PLR's :meth:`cate` does), use :attr:`basis_list`
+        to inspect every repetition.
         """
         return self._basis
+
+    @property
+    def basis_list(self):
+        """
+        Per-repetition list of basis DataFrames with length ``n_rep``.
+        """
+        return self._basis_list
 
     @property
     def n_rep(self):
@@ -188,7 +236,7 @@ class DoubleMLBLP:
         self._blp_model = []
 
         for i_rep in range(self.n_rep):
-            blp_model = sm.OLS(self._orth_signal[:, i_rep], self._basis).fit(cov_type=cov_type, **kwargs)
+            blp_model = sm.OLS(self._orth_signal[:, i_rep], self._basis_list[i_rep]).fit(cov_type=cov_type, **kwargs)
             self._blp_model.append(blp_model)
             self._all_coef[:, i_rep] = np.asarray(blp_model.params)
             self._all_se[:, i_rep] = np.asarray(blp_model.bse)

@@ -617,7 +617,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if not isinstance(groups, pd.DataFrame):
             raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
 
-        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
+        if not (all(groups.dtypes == bool) or all(groups.dtypes == int)):
             if groups.shape[1] == 1:
                 groups = pd.get_dummies(groups, prefix="Group", prefix_sep="_")
             else:
