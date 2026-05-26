@@ -129,26 +129,6 @@ def _check_score(score, valid_score, allow_callable=True):
     return
 
 
-def _check_trimming(trimming_rule, trimming_threshold):
-    valid_trimming_rule = ["truncate"]
-    if trimming_rule not in valid_trimming_rule:
-        raise ValueError(
-            "Invalid trimming_rule "
-            + str(trimming_rule)
-            + ". "
-            + "Valid trimming_rule "
-            + " or ".join(valid_trimming_rule)
-            + "."
-        )
-    if not isinstance(trimming_threshold, float):
-        raise TypeError("trimming_threshold has to be a float. " + f"Object of type {str(type(trimming_threshold))} passed.")
-    if (trimming_threshold <= 0) | (trimming_threshold >= 0.5):
-        raise ValueError(
-            "Invalid trimming_threshold " + str(trimming_threshold) + ". " + "trimming_threshold has to be between 0 and 0.5."
-        )
-    return
-
-
 def _check_zero_one_treatment(obj_dml):
     one_treat = obj_dml._dml_data.n_treat == 1
     binary_treat = type_of_target(obj_dml._dml_data.d) == "binary"

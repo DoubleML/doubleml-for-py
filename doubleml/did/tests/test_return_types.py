@@ -12,6 +12,7 @@ from doubleml.utils._check_return_types import (
     check_basic_return_types,
     check_sensitivity_return_types,
 )
+from doubleml.utils.propensity_score_processing import PSProcessor, PSProcessorConfig
 
 # Test constants
 N_OBS = 200
@@ -163,10 +164,8 @@ def test_panel_return_types(dml_obj, cls):
 
     # propensity score properties
     assert isinstance(dml_obj.in_sample_normalization, bool)
-    assert isinstance(dml_obj.trimming_rule, str)
-    assert dml_obj.trimming_rule in ["truncate"]
-    assert isinstance(dml_obj.trimming_threshold, (float, np.floating))
-    assert 0 <= dml_obj.trimming_threshold <= 0.5
+    assert isinstance(dml_obj.ps_processor_config, PSProcessorConfig)
+    assert isinstance(dml_obj.ps_processor, PSProcessor)
 
     # Test n_obs property
     assert isinstance(dml_obj.n_obs, (int, np.integer))
