@@ -25,6 +25,7 @@ from doubleml import (
 from doubleml.did.datasets import make_did_SZ2020
 from doubleml.irm.datasets import make_iivm_data, make_irm_data, make_ssm_data
 from doubleml.plm.datasets import make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
+from doubleml.utils import PSProcessorConfig
 
 np.random.seed(3141)
 n_obs = 200
@@ -125,7 +126,14 @@ pliv_obj = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(), n_rep=n_rep, n
 pliv_obj.fit()
 pliv_obj.bootstrap(n_rep_boot=n_rep_boot)
 
-irm_obj = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), n_rep=n_rep, n_folds=n_folds, trimming_threshold=0.1)
+irm_obj = DoubleMLIRM(
+    dml_data_irm,
+    Lasso(),
+    LogisticRegression(),
+    n_rep=n_rep,
+    n_folds=n_folds,
+    ps_processor_config=PSProcessorConfig(clipping_threshold=0.1),
+)
 irm_obj.fit()
 irm_obj.bootstrap(n_rep_boot=n_rep_boot)
 

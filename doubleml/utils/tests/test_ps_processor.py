@@ -1,4 +1,3 @@
-import warnings
 from unittest.mock import patch
 
 import numpy as np
@@ -9,21 +8,18 @@ from sklearn.model_selection import KFold, cross_val_predict
 from doubleml.utils.propensity_score_processing import PSProcessor, PSProcessorConfig, init_ps_processor
 
 
-# TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
 @pytest.mark.ci
-def test_init_ps_processor_with_deprecated():
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        cfg, proc = init_ps_processor(None, "truncate", 0.02)
-        assert any("deprecated" in str(warn.message) for warn in w)
-        assert isinstance(cfg, PSProcessorConfig)
-        assert proc.clipping_threshold == 0.02
+def test_init_ps_processor_with_default_config():
+    cfg, proc = init_ps_processor(None)
+    assert isinstance(cfg, PSProcessorConfig)
+    assert isinstance(proc, PSProcessor)
+    assert proc.clipping_threshold == PSProcessorConfig().clipping_threshold
 
 
 @pytest.mark.ci
 def test_init_ps_processor_with_config():
     config = PSProcessorConfig(clipping_threshold=0.05)
-    cfg, proc = init_ps_processor(config, None, None)
+    cfg, proc = init_ps_processor(config)
     assert isinstance(cfg, PSProcessorConfig)
     assert isinstance(proc, PSProcessor)
     assert proc.clipping_threshold == 0.05

@@ -41,7 +41,6 @@ from doubleml.utils.gain_statistics import gain_statistics
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
-# TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
 class DoubleMLDIDMulti:
     """Double machine learning for multi-period difference-in-differences models.
 
@@ -95,18 +94,6 @@ class DoubleMLDIDMulti:
     in_sample_normalization : bool
         Indicates whether to use in-sample normalization of weights.
         Default is ``True``.
-
-    trimming_rule : str
-        A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Default is ``'truncate'``.
-
-    trimming_rule : str, optional, deprecated
-        (DEPRECATED) A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Use `ps_processor_config` instead. Will be removed in a future version.
-
-    trimming_threshold : float, optional, deprecated
-        (DEPRECATED) The threshold used for trimming.
-        Use `ps_processor_config` instead. Will be removed in a future version.
 
     ps_processor_config : PSProcessorConfig, optional
         Configuration for propensity score processing (clipping, calibration, etc.).
@@ -172,8 +159,6 @@ class DoubleMLDIDMulti:
         score="observational",
         panel=True,
         in_sample_normalization=True,
-        trimming_rule="truncate",  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-        trimming_threshold=1e-2,  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
         ps_processor_config: Optional[PSProcessorConfig] = None,
         draw_sample_splitting=True,
         print_periods=False,
@@ -222,12 +207,7 @@ class DoubleMLDIDMulti:
         # initialize framework which is constructed after the fit method is called
         self._framework = None
 
-        # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-        self._ps_processor_config, self._ps_processor = init_ps_processor(
-            ps_processor_config, trimming_rule, trimming_threshold
-        )
-        self._trimming_rule = trimming_rule
-        self._trimming_threshold = self._ps_processor.clipping_threshold
+        self._ps_processor_config, self._ps_processor = init_ps_processor(ps_processor_config)
 
         ml_g_is_classifier = DoubleML._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
         if self.score == "observational":
@@ -401,31 +381,6 @@ class DoubleMLDIDMulti:
         Propensity score processor.
         """
         return self._ps_processor
-
-    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-    @property
-    def trimming_rule(self):
-        """
-        Specifies the used trimming rule.
-        """
-        warnings.warn(
-            "'trimming_rule' is deprecated and will be removed in a future version. ", DeprecationWarning, stacklevel=2
-        )
-        return self._trimming_rule
-
-    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-    @property
-    def trimming_threshold(self):
-        """
-        Specifies the used trimming threshold.
-        """
-        warnings.warn(
-            "'trimming_threshold' is deprecated and will be removed in a future version. "
-            "Use 'ps_processor_config.clipping_threshold' or 'ps_processor.clipping_threshold' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._ps_processor.clipping_threshold
 
     @property
     def n_folds(self):

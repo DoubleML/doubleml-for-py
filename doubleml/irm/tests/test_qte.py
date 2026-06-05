@@ -9,6 +9,7 @@ from sklearn.linear_model import LogisticRegression
 
 import doubleml as dml
 from doubleml.irm.datasets import make_irm_data
+from doubleml.utils import PSProcessorConfig
 
 from ...tests._utils import confint_manual, draw_smpls
 from ...utils._estimation import _default_kde
@@ -55,7 +56,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
         "n_folds": n_folds,
         "n_rep": n_rep,
         "normalize_ipw": normalize_ipw,
-        "trimming_threshold": 1e-12,
+        "ps_processor_config": PSProcessorConfig(clipping_threshold=1e-12),
         "kde": kde,
     }
 
@@ -84,8 +85,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
         all_smpls,
         n_rep=n_rep,
         normalize_ipw=normalize_ipw,
-        trimming_rule="truncate",
-        trimming_threshold=1e-12,
+        clipping_threshold=1e-12,
         kde=kde,
         draw_sample_splitting=True,
     )

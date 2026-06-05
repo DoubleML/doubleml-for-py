@@ -4,7 +4,6 @@ from sklearn.model_selection import train_test_split
 
 from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 from ...utils._estimation import _predict_zero_one_propensity
-from ...utils._propensity_score import _trimm
 
 
 def fit_selection(
@@ -18,7 +17,6 @@ def fit_selection(
     learner_m,
     all_smpls,
     score,
-    trimming_rule="truncate",
     clipping_threshold=1e-2,
     normalize_ipw=True,
     n_rep=1,
@@ -54,7 +52,6 @@ def fit_selection(
             learner_m,
             smpls,
             score,
-            trimming_rule=trimming_rule,
             clipping_threshold=clipping_threshold,
             g_d0_params=g_d0_params,
             g_d1_params=g_d1_params,
@@ -107,7 +104,6 @@ def fit_nuisance_selection(
     learner_m,
     smpls,
     score,
-    trimming_rule="truncate",
     clipping_threshold=1e-2,
     g_d0_params=None,
     g_d1_params=None,
@@ -212,7 +208,7 @@ def fit_nuisance_selection(
             # predict conditional outcome
             g_hat_d0 = ml_g_d0.predict(xpi_test)
 
-            m_hat = _trimm(m_hat, trimming_rule, clipping_threshold)
+            m_hat = np.clip(m_hat, clipping_threshold, 1.0 - clipping_threshold)
 
             # append predictions on test sample to final list of predictions
             g_hat_d1_list.append(g_hat_d1)

@@ -1,4 +1,3 @@
-import warnings
 from typing import Optional
 
 import numpy as np
@@ -30,7 +29,6 @@ from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
-# TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
 class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     """Double machine learning for potential quantiles
 
@@ -79,14 +77,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         Default is ``'None'``, which uses :py:class:`statsmodels.nonparametric.kde.KDEUnivariate` with a
         gaussian kernel and silverman for bandwidth determination.
 
-    trimming_rule : str, optional, deprecated
-        (DEPRECATED) A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Use `ps_processor_config` instead. Will be removed in a future version.
-
-    trimming_threshold : float, optional, deprecated
-        (DEPRECATED) The threshold used for trimming.
-        Use `ps_processor_config` instead. Will be removed in a future version.
-
     ps_processor_config : PSProcessorConfig, optional
         Configuration for propensity score processing (clipping, calibration, etc.).
 
@@ -123,8 +113,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         score="PQ",
         normalize_ipw=True,
         kde=None,
-        trimming_rule="truncate",  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-        trimming_threshold=1e-2,  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
         ps_processor_config: Optional[PSProcessorConfig] = None,
         draw_sample_splitting=True,
     ):
@@ -164,12 +152,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         self._external_predictions_implemented = True
 
-        # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-        self._ps_processor_config, self._ps_processor = init_ps_processor(
-            ps_processor_config, trimming_rule, trimming_threshold
-        )
-        self._trimming_rule = trimming_rule
-        self._trimming_threshold = self._ps_processor.clipping_threshold
+        self._ps_processor_config, self._ps_processor = init_ps_processor(ps_processor_config)
 
         _ = self._check_learner(ml_g, "ml_g", regressor=False, classifier=True)
         _ = self._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
@@ -219,31 +202,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         Propensity score processor.
         """
         return self._ps_processor
-
-    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-    @property
-    def trimming_rule(self):
-        """
-        Specifies the used trimming rule.
-        """
-        warnings.warn(
-            "'trimming_rule' is deprecated and will be removed in a future version. ", DeprecationWarning, stacklevel=2
-        )
-        return self._trimming_rule
-
-    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-    @property
-    def trimming_threshold(self):
-        """
-        Specifies the used trimming threshold.
-        """
-        warnings.warn(
-            "'trimming_threshold' is deprecated and will be removed in a future version. "
-            "Use 'ps_processor_config.clipping_threshold' or 'ps_processor.clipping_threshold' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._ps_processor.clipping_threshold
 
     @property
     def _score_element_names(self):

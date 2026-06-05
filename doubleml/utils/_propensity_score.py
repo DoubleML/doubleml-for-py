@@ -11,15 +11,6 @@ def _propensity_score_adjustment(propensity_score, treatment_indicator, normaliz
     return adjusted_propensity_score
 
 
-def _trimm(preds, trimming_rule, trimming_threshold):
-    """Trim predictions based on the specified method and threshold."""
-    if trimming_rule == "truncate":
-        adjusted_predictions = np.clip(a=preds, a_min=trimming_threshold, a_max=1 - trimming_threshold)
-    else:
-        adjusted_predictions = preds
-    return adjusted_predictions
-
-
 def _normalize_ipw(propensity_score, treatment_indicator):
     """Normalize inverse probability weights."""
     mean_treat1 = np.mean(np.divide(treatment_indicator, propensity_score))
