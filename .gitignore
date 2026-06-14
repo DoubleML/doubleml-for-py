@@ -34,3 +34,8 @@ MANIFEST
 
 # Setuptools SCM
 doubleml/_version.py
+
+# Virtual environment
+.venv
+venv/
+env/
