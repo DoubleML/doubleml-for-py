@@ -418,7 +418,12 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         elif self.control_group == "not_yet_treated":
             # adjust max_g_value for anticipation periods
             t_values = self._dml_data.t_values
-            max_g_value = t_values[min(np.where(t_values == eval_t)[0][0] + self.anticipation_periods, len(t_values) - 1)]
+
+            # in case of post-treatment evaluation, the relevant comparison period is eval_t, otherwise g_value
+            comparison_period = max(eval_t, g_value)
+            max_g_value = t_values[
+                min(np.where(t_values == comparison_period)[0][0] + self.anticipation_periods, len(t_values) - 1)
+            ]
             # not in G just as a additional check
             later_treated = (data_subset[g_col] > max_g_value) & (G_indicator == 0)
             not_yet_treated = never_treated | later_treated

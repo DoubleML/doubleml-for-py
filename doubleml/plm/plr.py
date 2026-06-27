@@ -474,8 +474,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 "Only implemented for single treatment. " + f"Number of treatments is {str(self._dml_data.n_treat)}."
             )
 
-        Y_tilde, D_tilde = self._partial_out()
-
         if isinstance(basis, pd.DataFrame):
             basis_list = [basis] * self.n_rep
         elif isinstance(basis, list):
@@ -489,6 +487,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 f"The basis must be of DataFrame type or a list of DataFrames. "
                 f"Basis of type {str(type(basis))} was passed."
             )
+
+        Y_tilde, D_tilde = self._partial_out()
 
         basis_per_rep = [basis_list[i_rep].multiply(D_tilde[:, i_rep], axis=0) for i_rep in range(self.n_rep)]
         model = DoubleMLBLP(
@@ -522,7 +522,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         if not isinstance(groups, pd.DataFrame):
             raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
-        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
+        if not (all(groups.dtypes == bool) or all(groups.dtypes == int)):
             if groups.shape[1] == 1:
                 groups = pd.get_dummies(groups, prefix="Group", prefix_sep="_")
             else:
@@ -564,7 +564,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         else:
             assert self.score == "IV-type"
             ml_g = self.predictions["ml_g"].squeeze(axis=2)
-            Y_tilde = y - (self.coef * ml_m) - ml_g
+            theta_per_rep = self.all_coef[0, :]
+            Y_tilde = y - theta_per_rep * ml_m - ml_g
             D_tilde = d - ml_m
 
         return Y_tilde, D_tilde

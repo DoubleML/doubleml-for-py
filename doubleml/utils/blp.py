@@ -64,13 +64,13 @@ class DoubleMLBLP:
     def _validate_basis(basis, n_obs, n_rep):
         """
         Validate ``basis`` and return a list of length ``n_rep``.
-
         ``basis`` may be a single ``pd.DataFrame`` (shared across reps) or a list of
         ``pd.DataFrame`` of length ``n_rep``. Per-rep DataFrames must share column names
         so coefficients are comparable for aggregation.
         """
         if isinstance(basis, pd.DataFrame):
             basis_list = [basis] * n_rep
+            is_list_input = False
         elif isinstance(basis, list):
             if len(basis) != n_rep:
                 raise ValueError(f"When basis is a list it must have length n_rep={n_rep}. Got length {len(basis)}.")
@@ -84,6 +84,7 @@ class DoubleMLBLP:
                         f"Entry 0 columns: {ref_cols}, entry {i} columns: {list(b.columns)}."
                     )
             basis_list = basis
+            is_list_input = True
         else:
             raise TypeError(
                 f"The basis must be of DataFrame type or a list of DataFrames. "
@@ -97,7 +98,7 @@ class DoubleMLBLP:
             if b.shape[0] != n_obs:
                 raise ValueError(
                     "The number of observations in signal and basis does not match. "
-                    f"Got {n_obs} and {b.shape[0]}" + (f" (basis entry {i})." if len(basis_list) > 1 else ".")
+                    f"Got {n_obs} and {b.shape[0]}" + (f" (basis entry {i})." if is_list_input else ".")
                 )
         return basis_list
 
@@ -129,8 +130,19 @@ class DoubleMLBLP:
     def basis(self):
         """
         Basis.
+
+        Returns the basis for the first repetition. When the BLP was constructed with a
+        per-repetition list of bases (as PLR's :meth:`cate` does), use :attr:`basis_list`
+        to inspect every repetition.
         """
         return self._basis
+
+    @property
+    def basis_list(self):
+        """
+        Per-repetition list of basis DataFrames with length ``n_rep``.
+        """
+        return self._basis_list
 
     @property
     def n_rep(self):

@@ -1435,7 +1435,7 @@ def test_doubleml_exception_plr_cate():
     dml_plr_obj.fit(store_predictions=False)
     msg = r"predictions are None. Call .fit\(store_predictions=True\) to store the predictions."
     with pytest.raises(ValueError, match=msg):
-        dml_plr_obj.cate(basis=2)
+        dml_plr_obj.cate(basis=pd.DataFrame(np.ones((n, 1))))
 
     dml_data_multiple_treat = DoubleMLData(dml_data.data, y_col="y", d_cols=["d", "X1"])
     dml_plr_obj_multiple = DoubleMLPLR(dml_data_multiple_treat, ml_l=Lasso(), ml_m=Lasso(), n_folds=2)
