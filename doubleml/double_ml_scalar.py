@@ -39,8 +39,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     obj_dml_data : DoubleMLBaseData
         The data object for the double machine learning model.
         Must contain exactly one treatment variable.
-    score : str, optional
-        The score function to use. Default is model-specific.
+    score : str
+        The score function to use. Required; concrete subclasses supply their
+        model-specific default (e.g. PLR ``'partialling out'``, IRM ``'ATE'``).
 
     Attributes
     ----------
@@ -64,7 +65,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     def __init__(
         self,
         obj_dml_data: DoubleMLBaseData,
-        score: str = "default",
+        score: str,
     ):
         """
         Initialize DoubleMLScalar.
@@ -73,8 +74,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         ----------
         obj_dml_data : DoubleMLBaseData
             The data object. Must have exactly one treatment column.
-        score : str, optional
-            The score function to use. Default is 'default'.
+        score : str
+            The score function to use. Required; concrete subclasses supply their
+            model-specific default (e.g. PLR ``'partialling out'``, IRM ``'ATE'``).
 
         Raises
         ------

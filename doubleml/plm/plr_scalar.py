@@ -160,23 +160,11 @@ class PLR(LinearScoreMixin):
 
         if has_l and not has_g:
             warnings.warn("For score='IV-type', ml_g not set. Cloning ml_l to ml_g.")
-            # Clone the learner and register with same info
-            from ..utils._learner import LearnerInfo
-
-            ml_l_info = self._learners["ml_l"]
-            self._learners["ml_g"] = LearnerInfo(
-                learner=clone(ml_l_info.learner),
-                is_classifier=ml_l_info.is_classifier,
-            )
+            # Re-register through validation so the clone is checked against ml_g's spec
+            self._register_learner("ml_g", self._learners["ml_l"].learner)
         elif has_g and not has_l:
             warnings.warn("For score='IV-type', ml_l not set. Cloning ml_g to ml_l.")
-            from ..utils._learner import LearnerInfo
-
-            ml_g_info = self._learners["ml_g"]
-            self._learners["ml_l"] = LearnerInfo(
-                learner=clone(ml_g_info.learner),
-                is_classifier=ml_g_info.is_classifier,
-            )
+            self._register_learner("ml_l", self._learners["ml_g"].learner)
 
     @staticmethod
     def _check_data(obj_dml_data):
@@ -260,13 +248,7 @@ class PLR(LinearScoreMixin):
             # If ml_g not explicitly set, clone ml_l (already handled in _handle_iv_cloning)
             if "ml_g" not in self._learners:
                 warnings.warn("For score = 'IV-type', learners ml_l and ml_g should be specified. Set ml_g = clone(ml_l).")
-                from ..utils._learner import LearnerInfo
-
-                ml_l_info = self._learners["ml_l"]
-                self._learners["ml_g"] = LearnerInfo(
-                    learner=clone(ml_l_info.learner),
-                    is_classifier=ml_l_info.is_classifier,
-                )
+                self._register_learner("ml_g", self._learners["ml_l"].learner)
 
             # Compute initial theta from full cross-fitted predictions
             l_hat = self._predictions["ml_l"][:, i_rep]
