@@ -2,7 +2,7 @@
 
 DoubleML is a community effort.
 Everyone is welcome to contribute.
-All contributors should adhere to this contributing guidelines
+All contributors should adhere to these contributing guidelines
 and our [code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/main/CODE_OF_CONDUCT.md).
 The contributing guidelines are particularly helpful to get started for your first contribution.
 
@@ -34,7 +34,7 @@ In case of an exception the full traceback is appreciated.
 ```python
 import platform; print(platform.platform())
 import sys; print("Python", sys.version)
-import doubleml; print("DoubleML", sklearn.__version__)
+import doubleml; print("DoubleML", doubleml.__version__)
 import sklearn; print("Scikit-Learn", sklearn.__version__)
 ```
 
@@ -130,7 +130,7 @@ For the check you can use the following code
 $ git diff upstream/main -u -- "*.py" | uv run ruff check --diff   # or: ... | ruff check --diff
 ```
 
-- [x] Check wether the code formatting adheres to the **Black code style**
+- [x] Check whether the code formatting adheres to the **Black code style**
 by running
 ```bash
 $ uv run black . --check --diff   # or, without uv: black . --check --diff

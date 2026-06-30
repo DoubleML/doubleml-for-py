@@ -28,7 +28,6 @@ share/python-wheels/
 *.vscode
 MANIFEST
 *.idea
-*.vscode
 .flake8
 .coverage
 
