@@ -61,7 +61,7 @@ It further can be readily extended with regards to
 **DoubleML** requires
 
 - Python
-- sklearn
+- scikit-learn
 - numpy
 - scipy
 - pandas
