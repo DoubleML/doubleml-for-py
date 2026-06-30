@@ -79,10 +79,19 @@ $ git merge upstream/main
 ```
 
 5. **Install DoubleML in editable mode** (more details can be found
-[here](https://docs.doubleml.org/stable/intro/install.html#python-building-the-package-from-source))
-via
+[here](https://docs.doubleml.org/stable/intro/install.html#python-building-the-package-from-source)).
+
+We recommend [uv](https://docs.astral.sh/uv/) for development. The following command creates a virtual
+environment, provisions Python 3.12 (as pinned in `.python-version`), and installs DoubleML in editable
+mode together with the `dev` dependency group and the `rdd` extra:
 ```bash
-$ pip install --editable .[dev, rdd]
+$ uv sync --extra rdd
+```
+Prefix tooling commands with `uv run` to execute them inside this environment (e.g. `uv run pytest .`).
+
+Alternatively, you can use `pip` (requires pip >= 25.1 for the `--group` flag):
+```bash
+$ pip install --editable ".[rdd]" --group dev
 ```
 
 6. **Develop** your code changes. The changes can be added and pushed via
@@ -109,7 +118,7 @@ When opening the PR you will be guided with a checklist.
 for details).
 To check, please run
 ```bash
-$ pytest .
+$ uv run pytest .   # or, without uv: pytest .
 ```
 
 - [x] If you add an **enhancements** or **new feature**, **unit tests**
@@ -118,13 +127,13 @@ $ pytest .
 - [x] Check whether your changes adhere to the **PEP8 standards**.
 For the check you can use the following code
 ```bash
-$ git diff upstream/main -u -- "*.py" | ruff check --diff
+$ git diff upstream/main -u -- "*.py" | uv run ruff check --diff   # or: ... | ruff check --diff
 ```
 
 - [x] Check wether the code formatting adheres to the **Black code style**
 by running
 ```bash
-$ black . --check --diff
+$ uv run black . --check --diff   # or, without uv: black . --check --diff
 ```
 
 If your PR is still **work in progress**, please consider marking it a **draft PR**
@@ -137,13 +146,13 @@ To ensure code quality and consistency before committing your changes, we recomm
 1. **Install hooks**:
    If you haven't already, install the required hooks by running:
    ```bash
-   $ pre-commit install
+   $ uv run pre-commit install   # or, without uv: pre-commit install
    ```
 
 2. **Run pre-commit manually**:
     To run the pre-commit checks manually, use:
    ```bash
-   $ pre-commit run --all-files
+   $ uv run pre-commit run --all-files   # or, without uv: pre-commit run --all-files
    ```
 
 ### Unit Tests and Test Coverage
@@ -156,7 +165,7 @@ Coverage reports for the package, PRs, branches etc. are available from
 It is mandatory to equip new features with an appropriate level of unit test coverage.
 To **run all unit tests** (for further option see the [pytest docu](https://docs.pytest.org)) call
 ```bash
-$ pytest --cov .
+$ uv run pytest --cov .   # or, without uv: pytest --cov .
 ```
 If `pytest` is called with the `--cov` flag, a unit test coverage report is being generated.
 

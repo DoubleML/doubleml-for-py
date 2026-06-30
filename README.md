@@ -82,6 +82,15 @@ cd doubleml-for-py
 pip install --editable .
 ```
 
+For development we recommend [uv](https://docs.astral.sh/uv/), which sets up the
+environment (including the `dev` dependency group) in one step:
+
+```
+git clone git@github.com:DoubleML/doubleml-for-py.git
+cd doubleml-for-py
+uv sync --extra rdd
+```
+
 Detailed [installation instructions](https://docs.doubleml.org/stable/intro/install.html) can be found in the documentation.
 
 ## Contributing

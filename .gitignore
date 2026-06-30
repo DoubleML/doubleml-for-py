@@ -34,3 +34,7 @@ MANIFEST
 
 # Setuptools SCM
 doubleml/_version.py
+
+# uv
+.venv/
+uv.lock
