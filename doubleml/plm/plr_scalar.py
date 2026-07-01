@@ -391,8 +391,8 @@ class PLR(LinearScoreMixin):
 
         For score ``'partialling out'``: ``Y_tilde = y - ml_l``, ``D_tilde = d - ml_m``.
         For score ``'IV-type'``: ``Y_tilde = y - theta * ml_m - ml_g`` and
-        ``D_tilde = d - ml_m`` where ``theta = self.coef[0]`` (aggregated across reps,
-        matching the legacy DoubleMLPLR behavior).
+        ``D_tilde = d - ml_m`` where ``theta`` is the per-repetition estimate
+        ``self._all_thetas`` (shape ``(1, n_rep)``), matching the legacy DoubleMLPLR behavior.
 
         Returns
         -------
@@ -411,7 +411,7 @@ class PLR(LinearScoreMixin):
             Y_tilde = y - self._predictions["ml_l"]
             D_tilde = d - m_hat
         else:  # "IV-type"
-            Y_tilde = y - self.coef[0] * m_hat - self._predictions["ml_g"]
+            Y_tilde = y - self._all_thetas * m_hat - self._predictions["ml_g"]
             D_tilde = d - m_hat
         return Y_tilde, D_tilde
 
