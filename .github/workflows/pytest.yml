@@ -46,7 +46,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e .[dev,rdd]
+        pip install -e ".[rdd]" --group dev
 
     - name: Run pre-commit checks
       run: |
