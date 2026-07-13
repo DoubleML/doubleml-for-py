@@ -9,7 +9,7 @@ Review Python code changes against DoubleML project conventions. Report issues o
 
 ## Workflow
 
-1. Run `git diff --name-only HEAD~1` to identify changed files (use Bash)
+1. Run `git diff --name-only origin/main...HEAD -- "*.py"` to identify changed Python files (use Bash)
 2. Read each changed `.py` file
 3. Review against the checklist below
 4. Output findings in the format specified

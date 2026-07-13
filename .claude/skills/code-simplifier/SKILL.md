@@ -66,7 +66,7 @@ Run after completing a feature or fix to ensure code is clean, readable, and fol
 
 1. **Identify Changed Files**
    ```bash
-   git diff --name-only HEAD~1  # Recent changes
+    git diff --name-only origin/main...HEAD  # Branch changes compared to main
    git status --short           # Uncommitted changes
    ```
 
