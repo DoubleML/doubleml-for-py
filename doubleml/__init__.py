@@ -1,7 +1,10 @@
 from .data import DoubleMLClusterData, DoubleMLData, DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from .did.did import DoubleMLDID
 from .did.did_cs import DoubleMLDIDCS
+from .double_ml_base import DoubleMLBase
 from .double_ml_framework import DoubleMLCore, DoubleMLFramework, concat
+from .double_ml_linear_score import LinearScoreMixin
+from .double_ml_scalar import DoubleMLScalar
 from .irm.apo import DoubleMLAPO
 from .irm.apos import DoubleMLAPOS
 from .irm.cvar import DoubleMLCVAR
@@ -20,7 +23,10 @@ from .utils.policytree import DoubleMLPolicyTree
 
 __all__ = [
     "concat",
+    "DoubleMLBase",
     "DoubleMLCore",
+    "DoubleMLScalar",
+    "LinearScoreMixin",
     "DoubleMLFramework",
     "DoubleMLPLR",
     "DoubleMLPLIV",

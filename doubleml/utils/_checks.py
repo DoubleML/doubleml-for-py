@@ -2,6 +2,7 @@ import inspect
 import warnings
 
 import numpy as np
+from sklearn.base import is_classifier, is_regressor
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import has_fit_parameter
 
@@ -109,9 +110,13 @@ def _check_smpl_split_tpl(tpl, n_obs, check_intersect=False):
     return train_index, test_index
 
 
-def _check_finite_predictions(preds, learner, learner_name, smpls):
-    test_indices = np.concatenate([test_index for _, test_index in smpls])
-    if not np.all(np.isfinite(preds[test_indices])):
+def _check_finite_predictions(preds, learner, learner_name, smpls=None):
+    if smpls is not None:
+        indices = np.concatenate([test_index for _, test_index in smpls])
+        check_preds = preds[indices]
+    else:
+        check_preds = preds
+    if not np.all(np.isfinite(check_preds)):
         raise ValueError(f"Predictions from learner {str(learner)} for {learner_name} are not finite.")
     return
 
@@ -189,9 +194,12 @@ def _check_contains_iv(obj_dml_data):
     return
 
 
-def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
-    test_indices = np.concatenate([test_index for _, test_index in smpls])
-    if any((preds[test_indices] < eps) | (preds[test_indices] > 1 - eps)):
+def _check_is_propensity(preds, learner, learner_name, smpls=None, eps=1e-12):
+    if smpls is not None:
+        check_preds = preds[np.concatenate([test_index for _, test_index in smpls])]
+    else:
+        check_preds = preds
+    if any((check_preds < eps) | (check_preds > 1 - eps)):
         warnings.warn(
             f"Propensity predictions from learner {str(learner)} for {learner_name} are close to zero or one (eps={eps})."
         )
@@ -233,54 +241,65 @@ def _check_benchmarks(benchmarks):
     return
 
 
-def _check_weights(weights, score, n_obs, n_rep):
-    if weights is not None:
-        # check general type
-        if (not isinstance(weights, np.ndarray)) and (not isinstance(weights, dict)):
-            raise TypeError(f"weights must be a numpy array or dictionary. weights of type {str(type(weights))} was passed.")
+def _check_weights_array(weights, n_obs):
+    if (weights.ndim != 1) or weights.shape[0] != n_obs:
+        raise ValueError(f"weights must have shape ({n_obs},). weights of shape {weights.shape} was passed.")
+    if not np.all(0 <= weights):
+        raise ValueError("All weights values must be greater or equal 0.")
+    if weights.sum() == 0:
+        raise ValueError("At least one weight must be non-zero.")
 
-        # check shape
-        if isinstance(weights, np.ndarray):
-            if (weights.ndim != 1) or weights.shape[0] != n_obs:
-                raise ValueError(f"weights must have shape ({n_obs},). weights of shape {weights.shape} was passed.")
-            if not np.all(0 <= weights):
-                raise ValueError("All weights values must be greater or equal 0.")
-            if weights.sum() == 0:
-                raise ValueError("At least one weight must be non-zero.")
 
-        # check special form for ATTE score
-        if score == "ATTE":
-            if not isinstance(weights, np.ndarray):
-                raise TypeError(
-                    f"weights must be a numpy array for ATTE score. weights of type {str(type(weights))} was passed."
-                )
+def _check_weights_atte(weights):
+    if not isinstance(weights, np.ndarray):
+        raise TypeError(f"weights must be a numpy array for ATTE score. weights of type {str(type(weights))} was passed.")
 
-            is_binary = np.all((np.power(weights, 2) - weights) == 0)
-            if not is_binary:
-                raise ValueError("weights must be binary for ATTE score.")
+    is_binary = np.all((np.power(weights, 2) - weights) == 0)
+    if not is_binary:
+        raise ValueError("weights must be binary for ATTE score.")
 
-        # check general form for ATE score
-        if isinstance(weights, dict):
-            assert score == "ATE"
-            expected_keys = ["weights", "weights_bar"]
-            if not set(weights.keys()) == set(expected_keys):
-                raise ValueError(f"weights must have keys {expected_keys}. keys {str(weights.keys())} were passed.")
 
-            expected_shapes = [(n_obs,), (n_obs, n_rep)]
-            if weights["weights"].shape != expected_shapes[0]:
-                raise ValueError(
-                    f"weights must have shape {expected_shapes[0]}. weights of shape {weights['weights'].shape} was passed."
-                )
-            if weights["weights_bar"].shape != expected_shapes[1]:
-                raise ValueError(
-                    f"weights_bar must have shape {expected_shapes[1]}. "
-                    f"weights_bar of shape {weights['weights_bar'].shape} was passed."
-                )
-            if (not np.all(weights["weights"] >= 0)) or (not np.all(weights["weights_bar"] >= 0)):
-                raise ValueError("All weights values must be greater or equal 0.")
-            if (weights["weights"].sum() == 0) or (weights["weights_bar"].sum() == 0):
-                raise ValueError("At least one weight must be non-zero.")
-    return
+def _check_weights_dict(weights, score, n_obs, n_rep):
+    if score != "ATE":
+        raise ValueError(f"weights as a dictionary is only supported for ATE score, got '{score}'.")
+    expected_keys = ["weights", "weights_bar"]
+    if not set(weights.keys()) == set(expected_keys):
+        raise ValueError(f"weights must have keys {expected_keys}. keys {str(weights.keys())} were passed.")
+
+    if weights["weights"].shape != (n_obs,):
+        raise ValueError(f"weights must have shape ({n_obs},). weights of shape {weights['weights'].shape} was passed.")
+    # weights_bar must be 2D with n_obs rows; the n_rep column is validated later when n_rep is known
+    if weights["weights_bar"].ndim != 2 or weights["weights_bar"].shape[0] != n_obs:
+        raise ValueError(
+            f"weights_bar must be a 2-dimensional array with {n_obs} rows. "
+            f"weights_bar of shape {weights['weights_bar'].shape} was passed."
+        )
+    if n_rep is not None and weights["weights_bar"].shape[1] != n_rep:
+        raise ValueError(
+            f"weights_bar must have shape ({n_obs}, {n_rep}). "
+            f"weights_bar of shape {weights['weights_bar'].shape} was passed."
+        )
+    if (not np.all(weights["weights"] >= 0)) or (not np.all(weights["weights_bar"] >= 0)):
+        raise ValueError("All weights values must be greater or equal 0.")
+    if (weights["weights"].sum() == 0) or (weights["weights_bar"].sum() == 0):
+        raise ValueError("At least one weight must be non-zero.")
+
+
+def _check_weights(weights, score, n_obs, n_rep: int | None = None):
+    if weights is None:
+        return
+
+    if not isinstance(weights, (np.ndarray, dict)):
+        raise TypeError(f"weights must be a numpy array or dictionary. weights of type {str(type(weights))} was passed.")
+
+    if isinstance(weights, np.ndarray):
+        _check_weights_array(weights, n_obs)
+
+    if score == "ATTE":
+        _check_weights_atte(weights)
+
+    if isinstance(weights, dict):
+        _check_weights_dict(weights, score, n_obs, n_rep)
 
 
 def _check_external_predictions(external_predictions, valid_treatments, valid_learners, n_obs, n_rep):
@@ -512,6 +531,81 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
         smpls_cluster = None
 
     return smpls, smpls_cluster, n_rep, n_folds
+
+
+def _check_learner(learner, learner_name, regressor=True, classifier=True):
+    """
+    Validate that a learner has the required interface for DoubleML estimation.
+
+    Parameters
+    ----------
+    learner : object
+        The learner to validate.
+    learner_name : str
+        Name of the learner (for error messages).
+    regressor : bool
+        Whether regressors are accepted. Default is ``True``.
+    classifier : bool
+        Whether classifiers are accepted. Default is ``True``.
+
+    Returns
+    -------
+    bool
+        ``True`` if the learner is a classifier, ``False`` otherwise.
+
+    Raises
+    ------
+    TypeError
+        If the learner is a class instead of an instance, or lacks
+        required methods (fit, set_params, get_params, predict/predict_proba).
+
+    """
+    err_msg_prefix = f"Invalid learner provided for {learner_name}: "
+    warn_msg_prefix = f"Learner provided for {learner_name} is probably invalid: "
+
+    if not (regressor or classifier):
+        raise ValueError("At least one of regressor or classifier must be True.")
+
+    if isinstance(learner, type):
+        raise TypeError(err_msg_prefix + "provide an instance of a learner instead of a class.")
+
+    if not hasattr(learner, "fit"):
+        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .fit().")
+    if not hasattr(learner, "set_params"):
+        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .set_params().")
+    if not hasattr(learner, "get_params"):
+        raise TypeError(err_msg_prefix + f"{str(learner)} has no method .get_params().")
+
+    if regressor & classifier:
+        if is_classifier(learner):
+            learner_is_classifier = True
+        elif is_regressor(learner):
+            learner_is_classifier = False
+        else:
+            warnings.warn(
+                warn_msg_prefix
+                + f"{str(learner)} is (probably) neither a regressor nor a classifier. "
+                + "Method predict is used for prediction."
+            )
+            learner_is_classifier = False
+    elif classifier:
+        if not is_classifier(learner):
+            warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no classifier.")
+        learner_is_classifier = True
+    else:
+        if not is_regressor(learner):
+            warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no regressor.")
+        learner_is_classifier = False
+
+    # check existence of the prediction method
+    if learner_is_classifier:
+        if not hasattr(learner, "predict_proba"):
+            raise TypeError(err_msg_prefix + f"{str(learner)} has no method .predict_proba().")
+    else:
+        if not hasattr(learner, "predict"):
+            raise TypeError(err_msg_prefix + f"{str(learner)} has no method .predict().")
+
+    return learner_is_classifier
 
 
 def _check_supports_sample_weights(learner, learner_name):

@@ -15,6 +15,7 @@ Example:
     >>> import logging
     >>> logging.basicConfig(level=logging.INFO)
     >>> # Now you'll see tuning progress and information
+
 """
 
 import logging
@@ -27,7 +28,8 @@ from typing import Callable, Union
 import numpy as np
 import optuna
 from sklearn.base import clone, is_classifier, is_regressor
-from sklearn.model_selection import BaseCrossValidator, KFold, cross_val_score
+from sklearn.metrics import check_scoring
+from sklearn.model_selection import BaseCrossValidator, KFold
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +86,7 @@ class DMLOptunaResult:
 
     tuned : bool
         Indicates whether tuning was performed (True) or skipped (False).
+
     """
 
     learner_name: str
@@ -295,7 +298,8 @@ def _default_optuna_settings():
 
 
 def _resolve_optuna_scoring(scoring_method, learner, params_name):
-    """Resolve the scoring argument for an Optuna-tuned learner.
+    """
+    Resolve the scoring argument for an Optuna-tuned learner.
 
     Parameters
     ----------
@@ -314,6 +318,7 @@ def _resolve_optuna_scoring(scoring_method, learner, params_name):
     :func:`sklearn.model_selection.cross_val_score` (``None`` means use the
     estimator's default ``score``) and a human-readable message describing
     the decision for logging purposes.
+
     """
 
     if scoring_method is not None:
@@ -379,7 +384,8 @@ def _check_tuning_inputs(
     cv,
     params_name,
 ):
-    """Validate Optuna tuning inputs and normalize the cross-validation splitter.
+    """
+    Validate Optuna tuning inputs and normalize the cross-validation splitter.
 
     Parameters
     ----------
@@ -400,9 +406,10 @@ def _check_tuning_inputs(
 
     Returns
     -------
-    cross-validator or iterable
-        Cross-validation splitter compatible with
-        :func:`sklearn.model_selection.cross_val_score`.
+    cross-validator or list
+        Cross-validation splitter or pre-made list of ``(train, test)`` index
+        pairs as returned by :func:`resolve_optuna_cv`.
+
     """
 
     if y.shape[0] != x.shape[0]:
@@ -443,6 +450,7 @@ def _get_optuna_settings(optuna_settings, params_name):
     -------
     dict
         Resolved settings dictionary.
+
     """
     default_settings = _default_optuna_settings()
 
@@ -496,6 +504,7 @@ def _create_study(settings, learner_name):
     -------
     optuna.study.Study
         The Optuna study object ready for optimization.
+
     """
 
     # Check if a study instance is provided directly
@@ -520,6 +529,10 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method):
     """
     Create an Optuna objective function for hyperparameter optimization.
 
+    Uses a manual fold loop with per-fold intermediate reporting so that
+    Optuna pruners (e.g. ``MedianPruner``, ``HyperbandPruner``) can stop
+    unpromising trials early after each cross-validation fold.
+
     Parameters
     ----------
     param_grid_func : callable
@@ -531,8 +544,10 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method):
         Features (full dataset).
     y : np.ndarray
         Target variable (full dataset).
-    cv : cross-validation generator
-        KFold or similar cross-validation splitter.
+    cv : cross-validation splitter or list of (train, test) pairs
+        A scikit-learn cross-validation splitter (has a ``.split()`` method) or
+        a pre-made list of ``(train_indices, test_indices)`` pairs as returned
+        by :func:`resolve_optuna_cv`.
     scoring_method : str, callable or None
         Scoring argument for cross-validation. ``None`` delegates to the
         estimator's default ``score`` implementation.
@@ -541,7 +556,12 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method):
     -------
     callable
         Objective function for Optuna optimization.
+
     """
+    # Build scorer once; scoring_method is already resolved (non-None) by _resolve_optuna_scoring
+    scorer = check_scoring(clone(learner), scoring=scoring_method)
+    # Pre-compute splits: cv may be a splitter (has .split) or a list of (train, test) pairs
+    splits = cv if isinstance(cv, list) else list(cv.split(x, y))
 
     def objective(trial):
         """Objective function for Optuna optimization."""
@@ -554,21 +574,19 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method):
                 f"Example: def params(trial): return {{'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1)}}"
             )
 
-        # Clone learner and set parameters
-        estimator = clone(learner).set_params(**params)
+        # Manual fold loop with per-fold intermediate reporting for pruning support
+        fold_scores = []
+        for step, (train_idx, test_idx) in enumerate(splits):
+            est = clone(learner).set_params(**params)
+            est.fit(x[train_idx], y[train_idx])
+            fold_scores.append(scorer(est, x[test_idx], y[test_idx]))
 
-        # Perform cross-validation on full dataset
-        scores = cross_val_score(
-            estimator,
-            x,
-            y,
-            cv=cv,
-            scoring=scoring_method,
-            error_score="raise",
-        )
+            # Report running mean after each fold so pruners can act between folds
+            trial.report(float(np.nanmean(fold_scores)), step)
+            if trial.should_prune():
+                raise optuna.TrialPruned()
 
-        # Return mean test score
-        return np.nanmean(scores)
+        return float(np.nanmean(fold_scores))
 
     return objective
 
@@ -618,6 +636,7 @@ def _dml_tune_optuna(
     -------
     DMLOptunaResult
         A tuning result containing the optuna.Study object and further information.
+
     """
 
     scoring_method, scoring_message = _resolve_optuna_scoring(scoring_method, learner, params_name)

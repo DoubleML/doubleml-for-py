@@ -10,7 +10,8 @@ from ._estimation import _aggregate_coefs_and_ses
 
 
 class DoubleMLBLP:
-    """Best linear predictor (BLP) for DoubleML with orthogonal signals.
+    """
+    Best linear predictor (BLP) for DoubleML with orthogonal signals.
     Manily used for CATE and GATE estimation for IRM models.
 
     Parameters
@@ -29,6 +30,7 @@ class DoubleMLBLP:
     is_gate : bool
         Indicates whether the basis is constructed for GATEs (dummy-basis).
         Default is ``False``.
+
     """
 
     def __init__(self, orth_signal, basis, is_gate=False):
@@ -226,6 +228,7 @@ class DoubleMLBLP:
         Returns
         -------
         self : object
+
         """
 
         # fit the best-linear-predictor of the orthogonal signal with respect to the grid
@@ -274,6 +277,7 @@ class DoubleMLBLP:
         -------
         df_ci : pd.DataFrame
             A data frame with the confidence interval(s).
+
         """
         if not isinstance(joint, bool):
             raise TypeError(f"joint must be True or False. Got {str(joint)}.")

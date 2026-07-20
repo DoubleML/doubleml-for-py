@@ -16,7 +16,8 @@ from doubleml.utils.blp import DoubleMLBLP
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):
-    """Double machine learning for partially linear regression models
+    """
+    Double machine learning for partially linear regression models
 
     Parameters
     ----------
@@ -87,6 +88,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     where :math:`Y` is the outcome variable and :math:`D` is the policy variable of interest.
     The high-dimensional vector :math:`X = (X_1, \\ldots, X_p)` consists of other confounding covariates,
     and :math:`\\zeta` and :math:`V` are stochastic errors.
+
     """
 
     def __init__(
@@ -465,18 +467,30 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         -------
         model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model.
+
         """
         if self._dml_data.n_treat > 1:
             raise NotImplementedError(
                 "Only implemented for single treatment. " + f"Number of treatments is {str(self._dml_data.n_treat)}."
             )
 
-        if not isinstance(basis, pd.DataFrame):
-            raise TypeError(f"The basis must be of DataFrame type. Basis of type {str(type(basis))} was passed.")
+        if isinstance(basis, pd.DataFrame):
+            basis_list = [basis] * self.n_rep
+        elif isinstance(basis, list):
+            if len(basis) != self.n_rep:
+                raise ValueError(f"When basis is a list it must have length n_rep={self.n_rep}. Got length {len(basis)}.")
+            if not all(isinstance(b, pd.DataFrame) for b in basis):
+                raise TypeError("All entries of basis list must be of DataFrame type.")
+            basis_list = basis
+        else:
+            raise TypeError(
+                f"The basis must be of DataFrame type or a list of DataFrames. "
+                f"Basis of type {str(type(basis))} was passed."
+            )
 
         Y_tilde, D_tilde = self._partial_out()
 
-        basis_per_rep = [basis.multiply(D_tilde[:, i_rep], axis=0) for i_rep in range(self.n_rep)]
+        basis_per_rep = [basis_list[i_rep].multiply(D_tilde[:, i_rep], axis=0) for i_rep in range(self.n_rep)]
         model = DoubleMLBLP(
             orth_signal=Y_tilde,
             basis=basis_per_rep,
@@ -503,6 +517,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         -------
         model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model for Group Effects.
+
         """
 
         if not isinstance(groups, pd.DataFrame):
@@ -533,6 +548,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             The residual of the regression of Y on X.
         D_tilde : :class:`numpy.ndarray`
             The residual of the regression of D on X.
+
         """
         if self.predictions is None:
             raise ValueError("predictions are None. Call .fit(store_predictions=True) to store the predictions.")

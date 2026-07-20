@@ -445,15 +445,25 @@ def test_dml_plr_cate_iv_type_multi_rep_per_rep_correctness():
 
 
 @pytest.mark.ci
-def test_dml_plr_cate_rejects_non_dataframe_basis():
-    """DoubleMLPLR.cate accepts only a single pd.DataFrame as basis."""
+def test_dml_plr_cate_basis_validation():
+    """DoubleMLPLR.cate accepts a single pd.DataFrame or a per-rep list of DataFrames,
+    and rejects genuine non-DataFrame input and lists of the wrong length."""
     n = 100
+    n_rep = 2
     np.random.seed(0)
     obj_dml_data = dml.plm.datasets.make_plr_CCDDHNR2018(n_obs=n)
-    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, LinearRegression(), LinearRegression(), n_folds=3, n_rep=2).fit()
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, LinearRegression(), LinearRegression(), n_folds=3, n_rep=n_rep).fit()
 
     basis_df = pd.DataFrame(np.random.normal(0, 1, size=(n, 2)), columns=["a", "b"])
-    with pytest.raises(TypeError, match="basis must be of DataFrame type"):
-        dml_plr_obj.cate([basis_df, basis_df])
-    with pytest.raises(TypeError, match="basis must be of DataFrame type"):
+
+    # A per-rep list of length n_rep is accepted.
+    cate = dml_plr_obj.cate([basis_df] * n_rep)
+    assert isinstance(cate, dml.DoubleMLBLP)
+
+    # Genuine non-DataFrame input is rejected.
+    with pytest.raises(TypeError, match="basis must be of DataFrame type or a list of DataFrames"):
         dml_plr_obj.cate(np.zeros((n, 2)))
+
+    # A list of the wrong length is rejected.
+    with pytest.raises(ValueError, match=f"When basis is a list it must have length n_rep={n_rep}"):
+        dml_plr_obj.cate([basis_df])

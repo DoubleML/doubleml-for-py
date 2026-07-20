@@ -160,7 +160,7 @@ def test_doubleml_exception_blp():
     msg = "The signal must be one- or two-dimensional. Signal of dimensions 3 was passed."
     with pytest.raises(ValueError, match=msg):
         dml.DoubleMLBLP(orth_signal=np.array([[[1]], [[2]]]), basis=random_basis)
-    msg = "The basis must be of DataFrame type or a list of DataFrames. Basis of type <class 'int'> was passed."
+    msg = r"The basis must be of DataFrame type or a list of DataFrames. Basis of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml.DoubleMLBLP(orth_signal=signal, basis=1)
     msg = "The number of observations in signal and basis does not match. Got 3 and 2."

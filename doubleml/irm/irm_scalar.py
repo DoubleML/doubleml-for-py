@@ -1,0 +1,629 @@
+"""Interactive Regression Model (IRM) based on the new DoubleMLScalar hierarchy."""
+
+from __future__ import annotations
+
+import warnings
+from typing import Any, ClassVar
+
+import numpy as np
+import pandas as pd
+from sklearn.base import clone
+from sklearn.utils.multiclass import type_of_target
+from typing_extensions import Self
+
+from ..data.base_data import DoubleMLData
+from ..double_ml_linear_score import LinearScoreMixin
+from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_score, _check_weights
+from ..utils._learner import LearnerSpec, predict_nuisance
+from ..utils._propensity_score import _propensity_score_adjustment
+from ..utils.blp import DoubleMLBLP
+from ..utils.propensity_score_processing import PSProcessor, PSProcessorConfig
+
+
+class IRM(LinearScoreMixin):
+    """
+    Double machine learning for interactive regression models.
+
+    Based on the DoubleMLScalar + LinearScoreMixin hierarchy.
+
+    Parameters
+    ----------
+    obj_dml_data : DoubleMLData
+        The data object providing the data and specifying the variables for the causal model.
+        Must contain exactly one binary treatment variable with values 0 and 1.
+    score : str
+        The score function (``'ATE'`` or ``'ATTE'``).
+        Default is ``'ATE'``.
+    ml_g : estimator, optional
+        A machine learner implementing ``fit()`` and ``predict()`` for the nuisance
+        function :math:`g_0(D, X) = E[Y|X, D]`. Cloned to ``ml_g0`` and ``ml_g1``
+        internally. For a binary outcome, a classifier implementing ``fit()`` and
+        ``predict_proba()`` can also be specified.
+    ml_m : classifier, optional
+        A machine learner implementing ``fit()`` and ``predict_proba()`` for the
+        nuisance function :math:`m_0(X) = E[D|X]`. Must be a classifier.
+    normalize_ipw : bool
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``False``.
+    weights : array, dict or None
+        Weights for each individual observation. If ``None``, uniform weights are used
+        (corresponds to standard ATE). Can only be used with ``score='ATE'``.
+        An array must have shape ``(n,)``. A dictionary must contain keys ``'weights'``
+        and ``'weights_bar'``.
+        Default is ``None``.
+    ps_processor_config : PSProcessorConfig, optional
+        Configuration for propensity score processing (clipping, calibration, etc.).
+        Default is ``None`` (uses default clipping threshold of 0.01).
+
+    Notes
+    -----
+    **Interactive regression (IRM)** models take the form
+
+    .. math::
+
+        Y = g_0(D, X) + U, & &\\mathbb{E}(U | X, D) = 0,
+
+        D = m_0(X) + V, & &\\mathbb{E}(V | X) = 0,
+
+    where the treatment variable is binary, :math:`D \\in \\lbrace 0,1 \\rbrace`.
+    Target parameters of interest are the average treatment effect (ATE),
+
+    .. math::
+
+        \\theta_0 = \\mathbb{E}[g_0(1, X) - g_0(0, X)]
+
+    and the average treatment effect of the treated (ATTE),
+
+    .. math::
+
+        \\theta_0 = \\mathbb{E}[g_0(1, X) - g_0(0, X) | D=1].
+
+    """
+
+    # Define learner specifications for IRM
+    _LEARNER_SPECS: ClassVar[dict[str, LearnerSpec]] = {
+        "ml_g0": LearnerSpec("ml_g0", allow_regressor=True, allow_classifier=True, binary_data_check="outcome"),
+        "ml_g1": LearnerSpec("ml_g1", allow_regressor=True, allow_classifier=True, binary_data_check="outcome"),
+        "ml_m": LearnerSpec("ml_m", allow_regressor=False, allow_classifier=True),
+    }
+
+    # ml_g is a shorthand for tuning both ml_g0 and ml_g1 with the same param function.
+    # Explicit ml_g0 or ml_g1 keys always override the alias.
+    _LEARNER_PARAM_ALIASES: ClassVar[dict[str, list[str]]] = {
+        "ml_g": ["ml_g0", "ml_g1"],
+    }
+
+    def __init__(
+        self,
+        obj_dml_data: DoubleMLData,
+        score: str = "ATE",
+        ml_g: object | None = None,
+        ml_m: object | None = None,
+        normalize_ipw: bool = False,
+        weights: np.ndarray | dict | None = None,
+        ps_processor_config: PSProcessorConfig | None = None,
+    ):
+        """
+        Initialize IRM model.
+
+        Parameters
+        ----------
+        obj_dml_data : DoubleMLData
+            The data object. Must have exactly one binary treatment variable.
+        score : str
+            Score function (``'ATE'`` or ``'ATTE'``).
+        ml_g : estimator, optional
+            Learner for E[Y|X, D]. Cloned to ml_g0 and ml_g1.
+        ml_m : classifier, optional
+            Learner for E[D|X]. Must be a classifier.
+        normalize_ipw : bool
+            Whether to normalize inverse probability weights.
+        weights : array, dict or None, optional
+            Weights for weighted ATE.
+        ps_processor_config : PSProcessorConfig, optional
+            Configuration for propensity score processing.
+
+        """
+        # Validate data
+        self._check_data(obj_dml_data)
+
+        # Validate score
+        valid_scores = ["ATE", "ATTE"]
+        _check_score(score, valid_scores, allow_callable=False)
+
+        super().__init__(
+            obj_dml_data=obj_dml_data,
+            score=score,
+        )
+
+        # Enable stratified sample splitting for binary treatment
+        self._stratify_variable = self._dml_data.d
+
+        # Normalize IPW
+        if not isinstance(normalize_ipw, bool):
+            raise TypeError("Normalization indicator has to be boolean. " f"Object of type {str(type(normalize_ipw))} passed.")
+        self._normalize_ipw = normalize_ipw
+
+        # Propensity score processing
+        if ps_processor_config is not None:
+            self._ps_processor_config = ps_processor_config
+            self._ps_processor = PSProcessor.from_config(ps_processor_config)
+        else:
+            self._ps_processor_config = PSProcessorConfig()
+            self._ps_processor = PSProcessor.from_config(self._ps_processor_config)
+
+        # Weights — n_rep shape deferred to _get_weights() when n_rep is known
+        _check_weights(weights, score, obj_dml_data.n_obs)
+        self._initialize_weights(weights)
+
+        # Set learners if provided
+        if any(learner is not None for learner in [ml_g, ml_m]):
+            self.set_learners(ml_g=ml_g, ml_m=ml_m)
+
+    # ==================== Properties ====================
+
+    @property
+    def normalize_ipw(self) -> bool:
+        """Indicates whether the inverse probability weights are normalized."""
+        return self._normalize_ipw
+
+    @property
+    def ps_processor_config(self) -> PSProcessorConfig:
+        """Configuration for propensity score processing."""
+        return self._ps_processor_config
+
+    @property
+    def ps_processor(self) -> PSProcessor:
+        """Propensity score processor."""
+        return self._ps_processor
+
+    @property
+    def weights(self) -> dict:
+        """Weights for weighted ATE/ATTE."""
+        return self._weights
+
+    @property
+    def required_learners(self) -> list[str]:
+        """Required learners for IRM: ml_g0, ml_g1, and ml_m."""
+        return ["ml_g0", "ml_g1", "ml_m"]
+
+    # ==================== Learner Management ====================
+
+    def set_learners(
+        self,
+        ml_g: object | None = None,
+        ml_g0: object | None = None,
+        ml_g1: object | None = None,
+        ml_m: object | None = None,
+    ) -> Self:
+        """
+        Set the learners for nuisance estimation.
+
+        Parameters
+        ----------
+        ml_g : estimator or None, optional
+            A machine learner for the outcome regression :math:`g_0(D, X) = E[Y|X, D]`.
+            Cloned to ``ml_g0`` and ``ml_g1`` if they are not explicitly set.
+        ml_g0 : estimator or None, optional
+            A machine learner for :math:`E[Y|X, D=0]`. Takes precedence over ``ml_g``.
+        ml_g1 : estimator or None, optional
+            A machine learner for :math:`E[Y|X, D=1]`. Takes precedence over ``ml_g``.
+        ml_m : classifier or None, optional
+            A machine learner for the propensity score :math:`m_0(X) = E[D|X]`.
+            Must be a classifier with ``predict_proba()`` method.
+
+        Returns
+        -------
+        self : IRM
+            The estimator with learners set.
+
+        """
+        # ml_g convenience: clone to ml_g0/ml_g1 if not explicitly set
+        if ml_g is not None:
+            # Validate ml_g is an instance (not a class) before cloning
+            if isinstance(ml_g, type):
+                raise TypeError("Invalid learner provided for ml_g: provide an instance of a learner instead of a class.")
+            if ml_g0 is None:
+                ml_g0 = clone(ml_g)
+            if ml_g1 is None:
+                ml_g1 = clone(ml_g)
+
+        # Register each learner
+        for name, learner in [("ml_g0", ml_g0), ("ml_g1", ml_g1), ("ml_m", ml_m)]:
+            if learner is not None:
+                self._register_learner(name, learner)
+
+        self._reset_fit_state()
+        return self
+
+    # ==================== Nuisance Estimation ====================
+
+    def _post_nuisance_checks(self) -> None:
+        """Check predictions for validity after cross-fitting completes."""
+        for i_rep in range(self.n_rep):
+            # After full K-fold cross-fitting all observations are test observations
+            # in exactly one fold, so the full prediction array is populated.
+
+            # Skip checks for learners with external predictions (not registered in _learners)
+            if "ml_g0" in self._learners:
+                _check_finite_predictions(self._predictions["ml_g0"][:, i_rep], self._learners["ml_g0"].learner, "ml_g0")
+                if self._dml_data.binary_outcome:
+                    _check_binary_predictions(
+                        self._predictions["ml_g0"][:, i_rep],
+                        self._learners["ml_g0"].learner,
+                        "ml_g0",
+                        self._dml_data.y_col,
+                    )
+            if "ml_g1" in self._learners:
+                _check_finite_predictions(self._predictions["ml_g1"][:, i_rep], self._learners["ml_g1"].learner, "ml_g1")
+                if self._dml_data.binary_outcome:
+                    _check_binary_predictions(
+                        self._predictions["ml_g1"][:, i_rep],
+                        self._learners["ml_g1"].learner,
+                        "ml_g1",
+                        self._dml_data.y_col,
+                    )
+            if "ml_m" in self._learners:
+                _check_finite_predictions(self._predictions["ml_m"][:, i_rep], self._learners["ml_m"].learner, "ml_m")
+
+    def _nuisance_est(
+        self,
+        train_idx: np.ndarray,
+        test_idx: np.ndarray,
+        i_rep: int,
+        i_fold: int,
+        external_predictions: dict[str, np.ndarray] | None = None,
+    ) -> None:
+        x = self._dml_data.x
+        y = self._dml_data.y
+        d = self._dml_data.d
+
+        x_train, x_test = x[train_idx], x[test_idx]
+        d_train = d[train_idx]
+
+        # Check which learners have external predictions
+        g0_external = external_predictions is not None and "ml_g0" in external_predictions
+        g1_external = external_predictions is not None and "ml_g1" in external_predictions
+        m_external = external_predictions is not None and "ml_m" in external_predictions
+
+        # ml_g0: fit on d==0 subset of training data, predict on ALL test observations
+        if not g0_external:
+            train_d0 = train_idx[d[train_idx] == 0]
+            ml_g0_info = self._learners["ml_g0"]
+            ml_g0 = clone(ml_g0_info.learner)
+            ml_g0.fit(x[train_d0], y[train_d0])
+            self._predictions["ml_g0"][test_idx, i_rep] = predict_nuisance(ml_g0, x_test, ml_g0_info.is_classifier)
+
+        # ml_g1: fit on d==1 subset of training data, predict on ALL test observations
+        if not g1_external:
+            train_d1 = train_idx[d[train_idx] == 1]
+            ml_g1_info = self._learners["ml_g1"]
+            ml_g1 = clone(ml_g1_info.learner)
+            ml_g1.fit(x[train_d1], y[train_d1])
+            self._predictions["ml_g1"][test_idx, i_rep] = predict_nuisance(ml_g1, x_test, ml_g1_info.is_classifier)
+
+        # ml_m: fit on ALL training data, predict on test
+        if not m_external:
+            ml_m_info = self._learners["ml_m"]
+            ml_m = clone(ml_m_info.learner)
+            ml_m.fit(x_train, d_train)
+            self._predictions["ml_m"][test_idx, i_rep] = predict_nuisance(ml_m, x_test, ml_m_info.is_classifier)
+
+    # ==================== Score Elements ====================
+
+    def _get_nuisance_targets(self) -> dict[str, np.ndarray | None]:
+        """
+        Return target arrays for nuisance loss evaluation.
+
+        ml_g0 and ml_g1 are fitted only on the d==0 and d==1 subgroups respectively,
+        so targets for the opposite group are NaN. ml_m target is d (binary treatment).
+        """
+        y = self._dml_data.y
+        d = self._dml_data.d
+        return {
+            "ml_g0": np.tile(np.where(d == 0, y, np.nan)[:, np.newaxis], (1, self.n_rep)),
+            "ml_g1": np.tile(np.where(d == 1, y, np.nan)[:, np.newaxis], (1, self.n_rep)),
+            "ml_m": np.tile(d[:, np.newaxis], (1, self.n_rep)),
+        }
+
+    def _get_score_elements(self) -> dict[str, np.ndarray]:
+        y = self._dml_data.y
+        d = self._dml_data.d
+
+        g_hat0 = self._predictions["ml_g0"]  # (n_obs, n_rep)
+        g_hat1 = self._predictions["ml_g1"]  # (n_obs, n_rep)
+        m_hat_raw = self._predictions["ml_m"]  # (n_obs, n_rep)
+
+        # Apply PS processing per repetition
+        m_hat = np.zeros_like(m_hat_raw)
+        for i_rep in range(self.n_rep):
+            m_hat[:, i_rep] = self._ps_processor.adjust_ps(m_hat_raw[:, i_rep], d, cv=self._smpls[i_rep], learner_name="ml_m")
+
+        # Apply IPW normalization per repetition
+        m_hat_adj = np.zeros_like(m_hat)
+        for i_rep in range(self.n_rep):
+            m_hat_adj[:, i_rep] = _propensity_score_adjustment(
+                propensity_score=m_hat[:, i_rep],
+                treatment_indicator=d,
+                normalize_ipw=self.normalize_ipw,
+            )
+
+        # Residuals: (n_obs, n_rep)
+        u_hat0 = y[:, np.newaxis] - g_hat0
+        u_hat1 = y[:, np.newaxis] - g_hat1
+
+        d_col = d[:, np.newaxis]  # (n_obs, 1) for broadcasting
+
+        if self.score == "ATE" or self.score == "ATTE":
+            weights, weights_bar = self._get_weights(m_hat_adj)
+
+            psi_b = weights * (g_hat1 - g_hat0) + weights_bar * (
+                np.divide(d_col * u_hat1, m_hat_adj) - np.divide((1.0 - d_col) * u_hat0, 1.0 - m_hat_adj)
+            )
+            psi_a = -1.0 * np.divide(weights, np.mean(weights, axis=0, keepdims=True))
+
+        return {"psi_a": psi_a, "psi_b": psi_b}
+
+    # ==================== Heterogeneous Effects ====================
+
+    def cate(self, basis: pd.DataFrame, is_gate: bool = False, **kwargs: Any) -> DoubleMLBLP:
+        """
+        Calculate conditional average treatment effects (CATE) for a given basis.
+
+        Parameters
+        ----------
+        basis : :class:`pandas.DataFrame`
+            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
+            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+        is_gate : bool
+            Indicates whether the basis is constructed for GATEs (dummy-basis).
+            Default is ``False``.
+        **kwargs : dict
+            Additional keyword arguments passed to :meth:`statsmodels.regression.linear_model.OLS.fit`,
+            e.g. ``cov_type``.
+
+        Returns
+        -------
+        model : :class:`doubleml.DoubleMLBLP`
+            Best linear predictor model.
+
+        """
+        if self.score != "ATE":
+            raise ValueError(f"Invalid score '{self.score}'. CATE is only implemented for score='ATE'.")
+        if self._predictions is None:
+            raise ValueError("CATE requires a fitted model. Call fit() first.")
+
+        orth_signal = self._get_score_elements()["psi_b"]
+
+        model = DoubleMLBLP(orth_signal, basis=basis, is_gate=is_gate)
+        model.fit(**kwargs)
+        return model
+
+    def gate(self, groups: pd.DataFrame, **kwargs: Any) -> DoubleMLBLP:
+        """
+        Calculate group average treatment effects (GATE) for mutually exclusive groups.
+
+        Parameters
+        ----------
+        groups : :class:`pandas.DataFrame`
+            The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
+            Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of groups, or ``(n_obs, 1)`` containing the corresponding groups (as str).
+        **kwargs : dict
+            Additional keyword arguments passed to :meth:`statsmodels.regression.linear_model.OLS.fit`,
+            e.g. ``cov_type``.
+
+        Returns
+        -------
+        model : :class:`doubleml.DoubleMLBLP`
+            Best linear predictor model for group effects.
+
+        """
+        if not isinstance(groups, pd.DataFrame):
+            raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
+
+        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
+            if groups.shape[1] == 1:
+                groups = pd.get_dummies(groups, prefix="Group", prefix_sep="_")
+            else:
+                raise TypeError(
+                    "Columns of groups must be of bool type or int type (dummy coded). "
+                    "Alternatively, groups should only contain one column."
+                )
+
+        if any(groups.sum(0) <= 5):
+            warnings.warn("At least one group effect is estimated with less than 6 observations.")
+
+        return self.cate(groups, is_gate=True, **kwargs)
+
+    # ==================== Private Helpers ====================
+
+    @staticmethod
+    def _check_data(obj_dml_data: object) -> None:
+        """Validate that the data is compatible with IRM."""
+        if not isinstance(obj_dml_data, DoubleMLData):
+            raise TypeError(
+                f"The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+            )
+        if obj_dml_data.z_cols is not None:
+            raise ValueError(
+                "Incompatible data. " + " and ".join(obj_dml_data.z_cols) + " have been set as instrumental variable(s). "
+                "To fit an interactive IV regression model use DoubleMLIIVM instead of IRM."
+            )
+        one_treat = obj_dml_data.n_treat == 1
+        binary_treat = type_of_target(obj_dml_data.d) == "binary"
+        zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
+        if not (one_treat & binary_treat & zero_one_treat):
+            raise ValueError(
+                "Incompatible data. "
+                "To fit an IRM model with DML "
+                "exactly one binary variable with values 0 and 1 "
+                "needs to be specified as treatment variable."
+            )
+
+    def _get_tuning_data(
+        self,
+        learner_name: str,
+        _partial_results: dict[str, Any],
+        _cv: Any,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Return ``(y_target, x)`` for tuning the given IRM learner.
+
+        Parameters
+        ----------
+        learner_name : str
+            Learner to tune: ``'ml_g0'``, ``'ml_g1'``, or ``'ml_m'``.
+        _partial_results : dict
+            Already-tuned DMLOptunaResult objects (unused for IRM).
+        _cv : cross-validator
+            Cross-validation splitter (unused for IRM).
+
+        Returns
+        -------
+        y_target : np.ndarray
+            Target array for the learner.
+        x : np.ndarray
+            Feature matrix.
+
+        Raises
+        ------
+        ValueError
+            If ``learner_name`` is not a valid IRM learner name.
+
+        """
+        y = self._dml_data.y
+        d = self._dml_data.d
+        x = self._dml_data.x
+
+        if learner_name == "ml_g0":
+            mask = d == 0
+            return y[mask], x[mask]
+        if learner_name == "ml_g1":
+            mask = d == 1
+            return y[mask], x[mask]
+        if learner_name == "ml_m":
+            return d, x
+
+        raise ValueError(f"Unknown learner '{learner_name}' for IRM.")
+
+    def _initialize_weights(self, weights: np.ndarray | dict | None) -> None:
+        """Initialize weights storage."""
+        if weights is None:
+            weights = np.ones(self._dml_data.n_obs)
+        if isinstance(weights, np.ndarray):
+            self._weights = {"weights": weights}
+        else:
+            if not isinstance(weights, dict):
+                raise TypeError(f"weights must be np.ndarray or dict, got {type(weights).__name__}")
+            self._weights = weights
+
+    def _get_weights(self, m_hat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Compute weights and weights_bar for score computation.
+
+        Parameters
+        ----------
+        m_hat : np.ndarray
+            Adjusted propensity scores, shape (n_obs, n_rep).
+
+        Returns
+        -------
+        weights : np.ndarray
+            Shape (n_obs, n_rep) or broadcastable.
+        weights_bar : np.ndarray
+            Shape (n_obs, n_rep) or broadcastable.
+
+        """
+        d = self._dml_data.d
+
+        if self.score == "ATE":
+            w = self._weights["weights"]
+            weights = w[:, np.newaxis] * np.ones((1, self.n_rep))  # (n_obs, n_rep)
+            if "weights_bar" in self._weights:
+                weights_bar = self._weights["weights_bar"]
+            else:
+                weights_bar = weights.copy()
+        else:
+            # ATTE (score validated in __init__)
+            w = self._weights["weights"]
+            subgroup = w * d
+            subgroup_probability = np.mean(subgroup)
+            weights = np.divide(subgroup, subgroup_probability)[:, np.newaxis] * np.ones((1, self.n_rep))
+
+            # weights_bar depends on m_hat per repetition
+            weights_bar = np.divide(m_hat * w[:, np.newaxis], subgroup_probability)
+
+        return weights, weights_bar
+
+    def _check_smpls_dependent_inputs(self) -> None:
+        """Validate ``weights_bar`` shape now that ``n_rep`` is known."""
+        if "weights_bar" in self._weights:
+            weights_bar = self._weights["weights_bar"]
+            expected = (self.n_obs, self.n_rep)
+            if weights_bar.shape != expected:
+                raise ValueError(
+                    f"weights_bar must have shape {expected}. " f"weights_bar of shape {weights_bar.shape} was passed."
+                )
+
+    def _sensitivity_element_est(self) -> dict[str, np.ndarray] | None:
+        """
+        Compute IRM sensitivity elements vectorized over all repetitions.
+
+        Reproduces the propensity score processing and weight computation from
+        :meth:`_get_score_elements` to compute sigma2, nu2, their influence
+        functions, and the Riesz representer.
+
+        Returns
+        -------
+        dict[str, np.ndarray] or None
+            Dictionary with keys ``'sigma2'``, ``'nu2'`` (shape ``(1, 1, n_rep)``),
+            ``'psi_sigma2'``, ``'psi_nu2'``, ``'riesz_rep'`` (shape ``(n_obs, 1, n_rep)``).
+
+        """
+        y = self._dml_data.y  # (n_obs,)
+        d = self._dml_data.d  # (n_obs,)
+        g_hat0 = self._predictions["ml_g0"]  # (n_obs, n_rep)
+        g_hat1 = self._predictions["ml_g1"]  # (n_obs, n_rep)
+        m_hat_raw = self._predictions["ml_m"]  # (n_obs, n_rep)
+
+        # Reproduce PS processing (same per-rep loop as _get_score_elements)
+        m_hat = np.zeros_like(m_hat_raw)
+        for i_rep in range(self.n_rep):
+            m_hat[:, i_rep] = self._ps_processor.adjust_ps(m_hat_raw[:, i_rep], d, cv=self._smpls[i_rep], learner_name="ml_m")
+        m_hat_adj = np.zeros_like(m_hat)
+        for i_rep in range(self.n_rep):
+            m_hat_adj[:, i_rep] = _propensity_score_adjustment(
+                propensity_score=m_hat[:, i_rep],
+                treatment_indicator=d,
+                normalize_ipw=self.normalize_ipw,
+            )
+
+        d2d = d[:, np.newaxis]  # (n_obs, 1) for broadcasting
+
+        # sigma2: squared residual of the outcome regression
+        sigma2_score = (y[:, np.newaxis] - d2d * g_hat1 - (1.0 - d2d) * g_hat0) ** 2  # (n_obs, n_rep)
+        sigma2_mean = np.mean(sigma2_score, axis=0)  # (n_rep,)
+        psi_sigma2 = sigma2_score - sigma2_mean[np.newaxis, :]  # (n_obs, n_rep)
+        sigma2 = sigma2_mean[np.newaxis, np.newaxis, :]  # (1, 1, n_rep)
+        psi_sigma2 = psi_sigma2[:, np.newaxis, :]  # (n_obs, 1, n_rep)
+
+        # Riesz representer and nu2 — uses _get_weights which vectorizes over n_rep
+        weights, weights_bar = self._get_weights(m_hat_adj)  # each (n_obs, n_rep)
+        rr_2d = weights_bar * (np.divide(d2d, m_hat_adj) - np.divide(1.0 - d2d, 1.0 - m_hat_adj))  # (n_obs, n_rep)
+        m_alpha = weights * weights_bar * (np.divide(1.0, m_hat_adj) + np.divide(1.0, 1.0 - m_hat_adj))  # (n_obs, n_rep)
+
+        nu2_score = 2.0 * m_alpha - rr_2d**2  # (n_obs, n_rep)
+        nu2_mean = np.mean(nu2_score, axis=0)  # (n_rep,)
+        psi_nu2 = nu2_score - nu2_mean[np.newaxis, :]  # (n_obs, n_rep)
+        nu2 = nu2_mean[np.newaxis, np.newaxis, :]  # (1, 1, n_rep)
+        psi_nu2 = psi_nu2[:, np.newaxis, :]  # (n_obs, 1, n_rep)
+        rr = rr_2d[:, np.newaxis, :]  # (n_obs, 1, n_rep)
+
+        return {
+            "sigma2": sigma2,
+            "nu2": nu2,
+            "psi_sigma2": psi_sigma2,
+            "psi_nu2": psi_nu2,
+            "riesz_rep": rr,
+        }
