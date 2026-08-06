@@ -337,11 +337,12 @@ class DoubleMLBLP:
 
             for i_rep in range(self.n_rep):
                 normal_samples = np.random.normal(size=[basis.shape[1], n_rep_boot])
-                omega_sqrt = sqrtm(self._blp_omega[:, :, i_rep])
+                omega_sqrt = np.real(sqrtm(self._blp_omega[:, :, i_rep]))
+                # shape (n_rep_boot, n_obs_basis); max over the basis points, quantile over the bootstrap draws
                 bootstrap_samples = np.multiply(
                     np.dot(np_basis, np.dot(omega_sqrt, normal_samples)).T, (1.0 / all_blp_se[:, i_rep])
                 )
-                critical_values[i_rep] = np.quantile(np.max(np.abs(bootstrap_samples), axis=0), q=level)
+                critical_values[i_rep] = np.quantile(np.max(np.abs(bootstrap_samples), axis=1), q=level)
         else:
             critical_values = np.repeat(norm.ppf(q=1 - alpha / 2), self.n_rep)
 
