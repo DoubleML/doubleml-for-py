@@ -220,13 +220,14 @@ def _double_dml_cv_predict(
 
         res["preds_inner"].append(res_inner["preds"])
         res["targets_inner"].append(res_inner["targets"])
+        test_idx = smpls_single_split[1]
         for model in res_inner["models"]:
             res["models"].append(model)
             if method == "predict_proba":
-                res["preds"][smpls_single_split[1]] += model.predict_proba(x[smpls_single_split[1]])[:, 1]
+                res["preds"][test_idx] += model.predict_proba(x[test_idx])[:, 1]
             else:
-                res["preds"][smpls_single_split[1]] += model.predict(x[smpls_single_split[1]])
-    res["preds"] /= len(smpls)
+                res["preds"][test_idx] += model.predict(x[test_idx])
+        res["preds"][test_idx] /= len(res_inner["models"])
     res["targets"] = np.copy(y)
     return res
 
