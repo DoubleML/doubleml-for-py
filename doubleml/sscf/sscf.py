@@ -12,16 +12,17 @@ import warnings
 from typing import Optional
 
 import numpy as np
+from scipy.stats import chi2, norm
+from sklearn.base import clone
+from sklearn.model_selection import train_test_split
+from sklearn.utils import check_X_y
+
 from doubleml.data.base_data import DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_score
 from doubleml.utils._estimation import _predict_zero_one_propensity
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
-from scipy.stats import chi2, norm
-from sklearn.base import clone
-from sklearn.model_selection import train_test_split
-from sklearn.utils import check_X_y
 
 from .utils import generalized_inverse_mills_ratio
 

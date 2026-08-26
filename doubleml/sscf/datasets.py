@@ -2,9 +2,10 @@
 
 import numpy as np
 import pandas as pd
-from doubleml.data.base_data import DoubleMLData
 from scipy.optimize import brentq
 from scipy.stats import norm
+
+from doubleml.data.base_data import DoubleMLData
 
 _ARRAY_ALIAS = ["array", "np.ndarray", "np.array", np.ndarray]
 _DATA_FRAME_ALIAS = ["DataFrame", "pd.DataFrame", pd.DataFrame]

@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 import pytest
-from doubleml import DoubleMLData
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
+from doubleml import DoubleMLData
 from doubleml.sscf import DoubleMLSSCF, make_green_silence_data
 
 
