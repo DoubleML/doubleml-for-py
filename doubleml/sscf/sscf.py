@@ -35,16 +35,28 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
     .. math::
 
         Y_i &= g_0(X_i) + \varepsilon_i, \\
-        D_i &= \mathbb{1}\{Z_i'\beta_0 + v_i > 0\},
+        D_i &= \mathbb{1}\{f_0(Z_i) + v_i > 0\},
 
-    where :math:`Y_i` is observed only if :math:`D_i = 1` and :math:`Z_i = (X_i, U_i)`
+    where :math:`Y_i` is observed only if :math:`D_i = 1`, :math:`Z_i = (X_i, U_i)`
     contains the outcome covariates :math:`X_i` plus additional variables :math:`U_i`
-    which are excluded from the outcome equation. Under joint normality of
-    :math:`(\varepsilon_i, v_i)` the selection bias in the observed subpopulation is
+    which are excluded from the outcome equation, and :math:`f_0` is an **unknown,
+    possibly non-linear** index function. Linearity of the index is a parametric
+    convention of Heckman (1979) and is *not* an identifying assumption here: the
+    derivation only requires :math:`v_i \mid Z_i \sim N(0, 1)`, which gives the probit
+    link :math:`\pi(Z_i) = P(D_i = 1 \mid Z_i) = \Phi(f_0(Z_i))`, together with joint
+    normality of :math:`(\varepsilon_i, v_i)`, which gives
+    :math:`\mathbb{E}[\varepsilon_i \mid v_i] = \theta_0 v_i`. The selection bias in the
+    observed subpopulation is then
     :math:`\mathbb{E}[\varepsilon_i \mid X_i, Z_i, D_i = 1] = \theta_0 h_i`, with the
-    inverse Mills ratio :math:`h_i = \varphi(Z_i'\beta_0) / \Phi(Z_i'\beta_0)` and
-    :math:`\theta_0 = \sigma_{\varepsilon v}` the target parameter (the sample selection
-    bias coefficient). The observed outcome equation reads
+    generalized inverse Mills ratio
+
+    .. math::
+
+        h_i = \frac{\varphi(f_0(Z_i))}{\Phi(f_0(Z_i))}
+            = \frac{\varphi\big(\Phi^{-1}(\pi(Z_i))\big)}{\pi(Z_i)},
+
+    and :math:`\theta_0 = \sigma_{\varepsilon v}` the target parameter (the sample
+    selection bias coefficient). The observed outcome equation reads
 
     .. math::
 
@@ -59,11 +71,13 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
 
     evaluated on the selected subpopulation :math:`\{D = 1\}`, with nuisance elements
     :math:`h = h(\pi(Z))`, :math:`g(X) = \mathbb{E}[Y \mid X, D = 1]` and
-    :math:`m(X) = \mathbb{E}[h \mid X, D = 1]`. The inverse Mills ratio is obtained from
-    the estimated participation propensity score :math:`\pi(Z) = P(D = 1 \mid Z)` via
-    :math:`h = \varphi(\Phi^{-1}(\pi)) / \pi`, so that any probabilistic classifier can
-    be used for the selection equation (a probit specification is the special case
-    :math:`\Phi^{-1}(\pi) = Z'\beta`).
+    :math:`m(X) = \mathbb{E}[h \mid X, D = 1]`. The generalized inverse Mills ratio is
+    obtained from the estimated participation propensity score
+    :math:`\pi(Z) = P(D = 1 \mid Z)` via :math:`h = \varphi(\Phi^{-1}(\pi)) / \pi`, so
+    that the selection equation can be estimated with *any* probabilistic classifier
+    rather than a probit; a probit is the special case
+    :math:`\Phi^{-1}(\pi) = Z'\beta`. See the notes on the choice of ``ml_pi`` below:
+    this construction is link free but **not** calibration free.
 
     Parameters
     ----------
@@ -121,12 +135,12 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> from sklearn.linear_model import LassoCV, LogisticRegressionCV
-    >>> from doubleml_sscf import DoubleMLSSCF, make_green_silence_data
+    >>> from doubleml.sscf import DoubleMLSSCF, make_green_silence_data
     >>> np.random.seed(3141)
     >>> dml_data = make_green_silence_data(n_obs=1000, dim_x=8, dim_z=5, n_deciles=5, theta=-0.6)
     >>> ml_pi = LogisticRegressionCV(Cs=5, max_iter=2000)
-    >>> ml_g = LassoCV(n_alphas=20)
-    >>> ml_m = LassoCV(n_alphas=20)
+    >>> ml_g = LassoCV()
+    >>> ml_m = LassoCV()
     >>> dml_obj = DoubleMLSSCF(dml_data, ml_pi, ml_g, ml_m, n_folds=3)
     >>> dml_obj.fit().summary  # doctest: +SKIP
            coef   std err         t     P>|t|     2.5 %    97.5 %
@@ -134,6 +148,16 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
 
     Notes
     -----
+    **Choice of** ``ml_pi`` **(calibration matters).** Because the propensity score enters
+    through :math:`h = \varphi(\Phi^{-1}(\pi))/\pi`, a non-linear transformation whose
+    slope grows in the tails, the estimator is sensitive to the *calibration* of
+    :math:`\hat\pi` and not only to its accuracy. This is a stronger requirement than
+    inverse-probability-weighting scores impose. Uncalibrated tree ensembles can induce a
+    substantial bias in :math:`\hat\theta` even when the index is in fact linear, and
+    wrapping them in :py:class:`sklearn.calibration.CalibratedClassifierCV` (Platt scaling)
+    removes most of it. Well-specified (penalized) logistic or probit learners are
+    naturally well calibrated and need no wrapper.
+
     The score is defined on the selected subpopulation only; the score elements are set
     to zero for :math:`D_i = 0`. With :math:`n = \sum_i D_i` observed outcomes this
     yields the estimator
@@ -149,6 +173,15 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
     :math:`-\hat J_0 = \mathbb{E}_n[(\hat h - \hat m)^2 \mid D = 1]`, i.e. inference is
     driven by the variation in the selection propensity which is orthogonal to
     :math:`X` (the exclusion restriction).
+
+    References
+    ----------
+    Chen, C. Y.-H., Lioui, A. and Scaillet, O. (2025), Green Silence: Double Machine
+    Learning Carbon Emissions under Sample Selection Bias. Available at SSRN:
+    https://ssrn.com/abstract=5368583
+
+    Heckman, J. J. (1979), Sample selection bias as a specification error,
+    Econometrica 47(1), 153-161.
     """
 
     def __init__(

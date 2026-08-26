@@ -93,7 +93,7 @@ def _toeplitz_cov(dim, rho=0.5):
 
 def make_green_silence_data(
     n_obs=4000,
-    dim_x=20,
+    dim_x=50,
     dim_z=10,
     n_deciles=10,
     theta=-0.5,
@@ -107,8 +107,8 @@ def make_green_silence_data(
     bandwidth=0.5,
     x_corr=0.5,
     disjoint_active_sets=True,
+    nonlinear_index=False,
     return_type="DoubleMLData",
-    **kwargs,
 ):
     r"""Generate data from the high-dimensional sample selection ("green silence") DGP.
 
@@ -124,11 +124,17 @@ def make_green_silence_data(
         Y_i = \sum_{j=1}^{J}\sum_{\ell=1}^{L} b_{0,j\ell}\, k(X_{ij}, P_{j\ell}) + \varepsilon_i
             \equiv \mathbf{k}_i b_0 + \varepsilon_i,
 
-    selection (disclosure) equation with :math:`Z_i = (X_i, U_i)`,
+    selection (disclosure) equation with :math:`Z_i = (X_i, U_i)` and index function
+    :math:`f_0`,
 
     .. math::
 
-        D_i = \mathbb{1}\{Z_i'\beta_0 + c + v_i > 0\},
+        D_i = \mathbb{1}\{f_0(Z_i) + c + v_i > 0\},
+        \qquad
+        f_0(Z_i) = \begin{cases}
+        Z_i'\beta_0 & \text{if } \texttt{nonlinear\_index=False},\\
+        0.6\, Z_i'\beta_0 + \text{non-linear terms} & \text{otherwise.}
+        \end{cases}
 
     and jointly normal errors
 
@@ -155,7 +161,7 @@ def make_green_silence_data(
         Number of observations (firms) :math:`N`. Default is ``4000``.
 
     dim_x : int
-        Number of characteristics :math:`J`. Default is ``20``.
+        Number of characteristics :math:`J`. Default is ``50``.
 
     dim_z : int
         Number of additional selection variables :math:`U` (candidate exclusion
@@ -200,6 +206,14 @@ def make_green_silence_data(
     disjoint_active_sets : bool
         If ``True`` the characteristics entering the selection equation are disjoint
         from those entering the outcome equation. Default is ``True``.
+
+    nonlinear_index : bool
+        If ``True`` the selection index :math:`f_0` is a non-linear function of
+        :math:`Z`, combining the linear index with sine, quadratic, interaction and
+        absolute-value terms in the active variables. A correctly specified probit or
+        linear logistic learner is then misspecified, so this option is useful to
+        demonstrate that the control function correction does not rely on a linear
+        index. Default is ``False``.
 
     return_type : str
         ``'DoubleMLData'`` (default), ``'DataFrame'``, ``'array'`` or ``'dict'``. The
@@ -273,6 +287,28 @@ def make_green_silence_data(
     # ------------------------------------------------- selection with calibrated rate
     z_full = np.column_stack((x, u))
     index = z_full @ beta
+    if nonlinear_index:
+        # a genuinely non-linear f_0(Z): the linear index is attenuated and combined with
+        # smooth, quadratic and interaction terms in the active selection variables
+        j0, j1 = active_selection_x[0], active_selection_x[-1]
+        l0 = active_selection_z[0]
+        l1 = active_selection_z[1 % active_selection_z.shape[0]]
+        l2 = active_selection_z[2 % active_selection_z.shape[0]]
+        l3 = active_selection_z[3 % active_selection_z.shape[0]]
+        index_linear = index
+        index = (
+            0.6 * index_linear
+            + 1.1 * np.sin(1.5 * u[:, l0])
+            + 0.9 * (u[:, l1] ** 2 - 1.0)
+            + 1.0 * u[:, l2] * u[:, l3]
+            + 0.8 * np.abs(x[:, j0])
+            + 0.5 * x[:, j1] ** 2
+        )
+        # rescale so that the dispersion of the index - and hence the degree of overlap -
+        # is comparable to the linear design; otherwise the non-linear terms fatten the
+        # tails of the propensity score and trimming, rather than misspecification,
+        # would drive any difference between the two designs
+        index = index * (index_linear.std() / index.std())
 
     def _rate(const):
         return np.mean(norm.cdf(index + const)) - selection_rate
@@ -319,6 +355,7 @@ def make_green_silence_data(
             "beta": beta,
             "theta": theta,
             "const": const,
+            "nonlinear_index": nonlinear_index,
             "active_outcome": active_outcome,
             "active_selection_x": active_selection_x,
             "active_selection_z": active_selection_z,

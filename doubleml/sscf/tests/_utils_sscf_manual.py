@@ -1,6 +1,6 @@
 """Manual (non object-oriented) implementation of the SSCF estimator.
 
-The unit tests compare the output of :class:`doubleml_sscf.DoubleMLSSCF` against
+The unit tests compare the output of :class:`doubleml.sscf.DoubleMLSSCF` against
 this reference implementation, which follows Algorithm 1 of the paper line by line.
 """
 

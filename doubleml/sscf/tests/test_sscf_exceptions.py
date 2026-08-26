@@ -4,7 +4,7 @@ import pytest
 from doubleml import DoubleMLData
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
-from doubleml_sscf import DoubleMLSSCF, make_green_silence_data
+from doubleml.sscf import DoubleMLSSCF, make_green_silence_data
 
 
 @pytest.fixture(scope="module")

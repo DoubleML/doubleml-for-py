@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from doubleml_sscf import (
+from doubleml.sscf import (
     AdaptiveKernelGroupLasso,
     adaptive_weights,
     kg_lasso_path,
@@ -11,7 +11,7 @@ from doubleml_sscf import (
     selection_metrics,
     variable_selection,
 )
-from doubleml_sscf.kgl import _prox_kernel_group
+from doubleml.sscf.kgl import _prox_kernel_group
 
 
 def test_prox_reduces_to_group_soft_thresholding():
