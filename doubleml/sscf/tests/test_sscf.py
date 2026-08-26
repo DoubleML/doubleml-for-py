@@ -194,8 +194,7 @@ def test_nonlinear_index_dgp():
     assert np.allclose(generalized_inverse_mills_ratio(propensity[stable]), sim["imr"][stable], atol=1e-6)
 
     # a linear index cannot reproduce f_0 (in contrast to the default DGP)
-    from sklearn.linear_model import LinearRegression
-
+    
     z_full = np.column_stack((sim["x"], sim["u"]))
     r2_nonlinear = LinearRegression().fit(z_full, sim["index"]).score(z_full, sim["index"])
     assert r2_nonlinear < 0.8
