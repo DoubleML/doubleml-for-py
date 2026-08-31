@@ -6,6 +6,7 @@ from scipy.optimize import brentq
 from scipy.stats import norm
 
 from doubleml.data.base_data import DoubleMLData
+from doubleml.data.ssm_data import DoubleMLSSMData
 
 _ARRAY_ALIAS = ["array", "np.ndarray", "np.array", np.ndarray]
 _DATA_FRAME_ALIAS = ["DataFrame", "pd.DataFrame", pd.DataFrame]
@@ -337,7 +338,7 @@ def make_green_silence_data(
     if return_type in _DATA_FRAME_ALIAS:
         return data
 
-    dml_data = DoubleMLData(data, y_col="y", d_cols="d", x_cols=x_cols + k_cols, z_cols=z_cols)
+    dml_data = DoubleMLSSMData(data, y_col="y", d_cols=None, x_cols=x_cols + k_cols, z_cols=z_cols, s_col="d")
 
     if return_type in _DML_DATA_ALIAS:
         return dml_data

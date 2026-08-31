@@ -235,3 +235,101 @@ def test_fit_runs_with_nonlinear_index():
     )
     dml_obj.fit()
     assert np.isfinite(dml_obj.coef[0]) and np.isfinite(dml_obj.se[0])
+
+
+@pytest.mark.ci
+def test_selection_bias_test_output_structure():
+    """The selection_bias_test method returns a dict with the documented keys and types."""
+    np.random.seed(99)
+    dml_data = make_green_silence_data(
+        n_obs=600,
+        dim_x=5,
+        dim_z=3,
+        n_deciles=4,
+        n_active_outcome=2,
+        n_active_selection_x=2,
+        n_active_selection_z=2,
+    )
+    dml_obj = DoubleMLSSCF(dml_data, LogisticRegression(max_iter=5000), LinearRegression(), LinearRegression(), n_folds=3)
+    dml_obj.fit()
+    res = dml_obj.selection_bias_test()
+
+    expected_keys = {"statistic", "p_value", "critical_value", "reject", "n_selected"}
+    assert set(res.keys()) == expected_keys
+
+    assert isinstance(res["statistic"], float)
+    assert isinstance(res["p_value"], float)
+    assert isinstance(res["critical_value"], float)
+    assert isinstance(res["reject"], bool)
+    assert isinstance(res["n_selected"], int)
+
+    assert np.isfinite(res["statistic"])
+    assert 0.0 <= res["p_value"] <= 1.0
+    assert res["critical_value"] > 0.0
+    assert res["n_selected"] > 0
+
+
+@pytest.mark.ci
+def test_bias_quantification_output_structure():
+    """The bias_quantification method returns a dict with the documented keys and shapes."""
+    np.random.seed(98)
+    n_obs = 600
+    dml_data = make_green_silence_data(
+        n_obs=n_obs,
+        dim_x=5,
+        dim_z=3,
+        n_deciles=4,
+        n_active_outcome=2,
+        n_active_selection_x=2,
+        n_active_selection_z=2,
+    )
+    dml_obj = DoubleMLSSCF(dml_data, LogisticRegression(max_iter=5000), LinearRegression(), LinearRegression(), n_folds=3)
+    dml_obj.fit()
+    res = dml_obj.bias_quantification()
+
+    expected_keys = {"imr", "bias", "y_corrected", "summary"}
+    assert set(res.keys()) == expected_keys
+
+    assert res["imr"].shape == (n_obs,)
+    assert res["bias"].shape == (n_obs,)
+    assert res["y_corrected"].shape == (n_obs,)
+
+    d = dml_obj._selection_indicator
+    assert np.all(np.isfinite(res["imr"]))
+    assert np.all(np.isfinite(res["bias"]))
+    assert np.all(np.isfinite(res["y_corrected"][d == 1]))
+    assert np.all(np.isnan(res["y_corrected"][d == 0]))
+
+    summary_keys = {
+        "theta",
+        "se",
+        "mean_imr_selected",
+        "mean_imr_non_selected",
+        "mean_bias_selected",
+        "mean_bias_non_selected",
+        "selection_rate",
+    }
+    assert set(res["summary"].keys()) == summary_keys
+    for key in summary_keys:
+        assert isinstance(res["summary"][key], float), f"summary['{key}'] is not float"
+    assert 0.0 < res["summary"]["selection_rate"] < 1.0
+
+
+@pytest.mark.ci
+def test_methods_raise_before_fit():
+    """selection_bias_test and bias_quantification raise ValueError before fit."""
+    np.random.seed(97)
+    dml_data = make_green_silence_data(
+        n_obs=400,
+        dim_x=4,
+        dim_z=3,
+        n_deciles=3,
+        n_active_outcome=2,
+        n_active_selection_x=1,
+        n_active_selection_z=2,
+    )
+    dml_obj = DoubleMLSSCF(dml_data, LogisticRegression(max_iter=5000), LinearRegression(), LinearRegression(), n_folds=3)
+    with pytest.raises(ValueError, match="fit"):
+        dml_obj.selection_bias_test()
+    with pytest.raises(ValueError, match="fit"):
+        dml_obj.bias_quantification()

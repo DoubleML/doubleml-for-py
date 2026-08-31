@@ -18,6 +18,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import check_X_y
 
 from doubleml.data.base_data import DoubleMLData
+from doubleml.data.ssm_data import DoubleMLSSMData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_score
@@ -82,13 +83,16 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
 
     Parameters
     ----------
-    obj_dml_data : :class:`doubleml.DoubleMLData` object
-        The :class:`doubleml.DoubleMLData` object providing the data. The (single)
-        treatment variable ``d_cols`` has to be the **binary selection / participation
-        indicator** :math:`D`, ``x_cols`` are the covariates :math:`X` of the outcome
-        equation and ``z_cols`` are the additional variables :math:`U` entering only
-        the selection equation (exclusion restrictions). Values of the outcome ``y``
-        for :math:`D_i = 0` are never used and may be set to any finite value.
+    obj_dml_data : :class:`doubleml.data.DoubleMLSSMData` or :class:`doubleml.DoubleMLData`
+        The data object providing the data. Preferred: a
+        :class:`~doubleml.data.DoubleMLSSMData` object with the selection indicator
+        in ``s_col`` and ``d_cols=None`` (no treatment variable). For backward
+        compatibility a :class:`~doubleml.DoubleMLData` object with the selection
+        indicator in ``d_cols`` is also accepted.
+        ``x_cols`` are the covariates :math:`X` of the outcome equation and
+        ``z_cols`` are the additional variables :math:`U` entering only the selection
+        equation (exclusion restrictions). Values of the outcome ``y`` for
+        :math:`D_i = 0` are never used and may be set to any finite value.
 
     ml_pi : classifier implementing ``fit()`` and ``predict_proba()``
         A machine learner for the participation propensity score
@@ -220,7 +224,7 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
         _check_score(self.score, ["orthogonal"], allow_callable=False)
 
         # stratified sample splitting by the selection indicator
-        self._strata = self._dml_data.d.reshape(-1, 1)
+        self._strata = self._selection_indicator.reshape(-1, 1)
         if not isinstance(draw_sample_splitting, bool):
             raise TypeError(f"draw_sample_splitting must be True or False. Got {draw_sample_splitting!s}.")
         if draw_sample_splitting:
@@ -273,30 +277,46 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
+        if not isinstance(obj_dml_data, (DoubleMLData, DoubleMLSSMData)):
             raise TypeError(
-                "For the sample selection control function model the data must be of DoubleMLData type. "
-                f"{obj_dml_data!s} of type {type(obj_dml_data)!s} was passed."
+                "For the sample selection control function model the data must be of "
+                "DoubleMLData or DoubleMLSSMData type. "
+                f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
-        if obj_dml_data.n_treat != 1:
+        # determine which column holds the selection indicator
+        if isinstance(obj_dml_data, DoubleMLSSMData) and obj_dml_data.s_col is not None:
+            s_col_name = obj_dml_data.s_col
+            d_values = obj_dml_data.data[s_col_name].values
+        else:
+            if obj_dml_data.n_treat != 1:
+                raise ValueError(
+                    "Incompatible data. To fit a DoubleMLSSCF model exactly one "
+                    "variable has to be specified as selection indicator via d_cols "
+                    f"(or s_col). {str(obj_dml_data.n_treat)} variables were passed."
+                )
+            d_values = obj_dml_data.d
+        if not np.array_equal(np.sort(np.unique(d_values)), np.array([0, 1])):
             raise ValueError(
-                "Incompatible data. To fit a DoubleMLSSCF model exactly one variable has to be specified as "
-                "selection indicator via d_cols. "
-                f"{obj_dml_data.n_treat!s} variables were passed."
-            )
-        d_values = np.unique(obj_dml_data.d)
-        if not np.array_equal(np.sort(d_values), np.array([0, 1])):
-            raise ValueError(
-                "Incompatible data. The selection indicator (d_cols) has to be binary with values 0 and 1. "
-                f"Observed values: {d_values!s}."
+                "Incompatible data. The selection indicator has to be binary with "
+                f"values 0 and 1. Observed values: {str(np.unique(d_values))}."
             )
         if obj_dml_data.z_cols is None:
             warnings.warn(
-                "No exclusion restrictions were specified (z_cols is None). Identification of the sample "
-                "selection bias coefficient then relies exclusively on the nonlinearity of the inverse Mills "
-                "ratio in X, which is typically weak. Consider adding variables which shift participation but "
-                "are excluded from the outcome equation."
+                "No exclusion restrictions were specified (z_cols is None). "
+                "Identification of the sample selection bias coefficient then "
+                "relies exclusively on the nonlinearity of the inverse Mills "
+                "ratio in X, which is typically weak. Consider adding variables "
+                "which shift participation but are excluded from the outcome equation."
             )
+        return
+
+    @property
+    def _selection_indicator(self):
+        """Binary selection indicator, read from s_col or d_cols."""
+        data = self._dml_data
+        if isinstance(data, DoubleMLSSMData) and data.s_col is not None:
+            return data.s.astype(int)
+        return data.d.astype(int)
 
     def _selection_features(self):
         """Regressors Z = (X, U) of the selection equation."""
@@ -307,7 +327,8 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        d = self._selection_indicator
+        x, d = check_X_y(x, d, ensure_all_finite=False)
         z_sel = self._selection_features()
 
         n_obs = self._dml_data.n_obs
@@ -423,7 +444,7 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
         if (level <= 0) or (level >= 1):
             raise ValueError(f"The significance level must be in (0, 1). {level!s} was passed.")
 
-        d = self._dml_data.d
+        d = self._selection_indicator
         selected = d == 1
         n_selected = int(np.sum(selected))
 
@@ -468,7 +489,7 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
         if self._framework is None:
             raise ValueError("Apply fit() before bias_quantification().")
 
-        d = self._dml_data.d
+        d = self._selection_indicator
         y = self._dml_data.y
         theta = float(self.coef[0])
         h_hat = self.imr
@@ -493,7 +514,8 @@ class DoubleMLSSCF(LinearScoreMixin, DoubleML):
         from doubleml.utils._estimation import _dml_tune
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        d = self._selection_indicator
+        x, d = check_X_y(x, d, ensure_all_finite=False)
         z_sel = self._selection_features()
 
         if scoring_methods is None:
