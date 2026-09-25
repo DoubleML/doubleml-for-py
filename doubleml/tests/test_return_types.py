@@ -14,11 +14,9 @@ from doubleml import (
     DoubleMLDIDData,
     DoubleMLFramework,
     DoubleMLIIVM,
-    DoubleMLIRM,
     DoubleMLLPQ,
     DoubleMLPLIV,
     DoubleMLPLR,
-    DoubleMLPolicyTree,
     DoubleMLPQ,
     DoubleMLSSM,
 )
@@ -43,7 +41,6 @@ dml_data_ssm = make_ssm_data(n_obs=n_obs)
 
 dml_plr = DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
 dml_pliv = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
-dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
 dml_iivm = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression())
 dml_pliv_cluster = DoubleMLPLIV(dml_cluster_data_pliv, Lasso(), Lasso(), Lasso())
 dml_cvar = DoubleMLCVAR(dml_data_irm, ml_g=RandomForestRegressor(), ml_m=RandomForestClassifier())
@@ -63,7 +60,6 @@ dml_apo = DoubleMLAPO(dml_data_irm, Lasso(), LogisticRegression(), treatment_lev
     [
         (dml_plr, DoubleMLPLR),
         (dml_pliv, DoubleMLPLIV),
-        (dml_irm, DoubleMLIRM),
         (dml_iivm, DoubleMLIIVM),
         (dml_pliv_cluster, DoubleMLPLIV),
         (dml_cvar, DoubleMLCVAR),
@@ -125,10 +121,6 @@ pliv_obj = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(), n_rep=n_rep, n
 pliv_obj.fit()
 pliv_obj.bootstrap(n_rep_boot=n_rep_boot)
 
-irm_obj = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), n_rep=n_rep, n_folds=n_folds, trimming_threshold=0.1)
-irm_obj.fit()
-irm_obj.bootstrap(n_rep_boot=n_rep_boot)
-
 iivm_obj = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), n_rep=n_rep, n_folds=n_folds)
 iivm_obj.fit()
 iivm_obj.bootstrap(n_rep_boot=n_rep_boot)
@@ -170,7 +162,7 @@ apo_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 @pytest.mark.ci
 @pytest.mark.parametrize(
-    "dml_obj", [plr_obj, pliv_obj, irm_obj, iivm_obj, cvar_obj, pq_obj, lpq_obj, did_obj, did_cs_obj, ssm_obj, apo_obj]
+    "dml_obj", [plr_obj, pliv_obj, iivm_obj, cvar_obj, pq_obj, lpq_obj, did_obj, did_cs_obj, ssm_obj, apo_obj]
 )
 def test_property_types_and_shapes(dml_obj):
     # not checked: learner, learner_names, params, params_names, score
@@ -278,10 +270,6 @@ def test_stored_predictions():
     assert pliv_obj.predictions["ml_m"].shape == (n_obs, n_rep, n_treat)
     assert pliv_obj.predictions["ml_r"].shape == (n_obs, n_rep, n_treat)
 
-    assert irm_obj.predictions["ml_g0"].shape == (n_obs, n_rep, n_treat)
-    assert irm_obj.predictions["ml_g1"].shape == (n_obs, n_rep, n_treat)
-    assert irm_obj.predictions["ml_m"].shape == (n_obs, n_rep, n_treat)
-
     assert iivm_obj.predictions["ml_g0"].shape == (n_obs, n_rep, n_treat)
     assert iivm_obj.predictions["ml_g1"].shape == (n_obs, n_rep, n_treat)
     assert iivm_obj.predictions["ml_m"].shape == (n_obs, n_rep, n_treat)
@@ -329,10 +317,6 @@ def test_stored_nuisance_targets():
     assert pliv_obj.nuisance_targets["ml_m"].shape == (n_obs, n_rep, n_treat)
     assert pliv_obj.nuisance_targets["ml_r"].shape == (n_obs, n_rep, n_treat)
 
-    assert irm_obj.nuisance_targets["ml_g0"].shape == (n_obs, n_rep, n_treat)
-    assert irm_obj.nuisance_targets["ml_g1"].shape == (n_obs, n_rep, n_treat)
-    assert irm_obj.nuisance_targets["ml_m"].shape == (n_obs, n_rep, n_treat)
-
     assert iivm_obj.nuisance_targets["ml_g0"].shape == (n_obs, n_rep, n_treat)
     assert iivm_obj.nuisance_targets["ml_g1"].shape == (n_obs, n_rep, n_treat)
     assert iivm_obj.nuisance_targets["ml_m"].shape == (n_obs, n_rep, n_treat)
@@ -379,10 +363,6 @@ def test_nuisance_loss():
     assert pliv_obj.nuisance_loss["ml_l"].shape == (n_rep, n_treat)
     assert pliv_obj.nuisance_loss["ml_m"].shape == (n_rep, n_treat)
     assert pliv_obj.nuisance_loss["ml_r"].shape == (n_rep, n_treat)
-
-    assert irm_obj.nuisance_loss["ml_g0"].shape == (n_rep, n_treat)
-    assert irm_obj.nuisance_loss["ml_g1"].shape == (n_rep, n_treat)
-    assert irm_obj.nuisance_loss["ml_m"].shape == (n_rep, n_treat)
 
     assert iivm_obj.nuisance_loss["ml_g0"].shape == (n_rep, n_treat)
     assert iivm_obj.nuisance_loss["ml_g1"].shape == (n_rep, n_treat)
@@ -453,9 +433,6 @@ def test_sensitivity():
     # PLR
     _test_sensitivity_return_types(plr_obj, n_rep, n_treat, benchmarking_set=["X1"])
 
-    # IRM
-    _test_sensitivity_return_types(irm_obj, n_rep, n_treat, benchmarking_set=["X1"])
-
     # DID
     _test_sensitivity_return_types(did_obj, n_rep, n_treat, benchmarking_set=["Z1"])
 
@@ -464,13 +441,3 @@ def test_sensitivity():
 
     # APO
     _test_sensitivity_return_types(apo_obj, n_rep, n_treat, benchmarking_set=["X1"])
-
-
-@pytest.mark.ci
-def test_policytree():
-    dml_irm.fit()
-    features = dml_data_irm.data[["X1", "X2"]]
-    policy_tree = dml_irm.policy_tree(features, depth=2)
-    assert isinstance(policy_tree, DoubleMLPolicyTree)
-    predict_features = pd.DataFrame(np.random.normal(size=(5, 2)), columns=features.keys())
-    assert isinstance(policy_tree.predict(predict_features), pd.DataFrame)

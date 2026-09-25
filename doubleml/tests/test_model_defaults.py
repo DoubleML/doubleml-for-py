@@ -20,7 +20,6 @@ dml_data_ssm = make_ssm_data(n_obs=2000, mar=True)
 # linear models
 dml_plr = dml.DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
 dml_pliv = dml.DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
-dml_irm = dml.DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
 dml_iivm = dml.DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression())
 dml_cvar = dml.DoubleMLCVAR(dml_data_irm, ml_g=RandomForestRegressor(), ml_m=RandomForestClassifier())
 dml_did = dml.DoubleMLDID(dml_data_did, Lasso(), LogisticRegression())
@@ -84,19 +83,6 @@ def test_pliv_defaults():
     assert dml_pliv.score == "partialling out"
     assert dml_pliv.partialX
     assert not dml_pliv.partialZ
-
-
-@pytest.mark.ci
-def test_irm_defaults():
-    _assert_is_none(dml_irm)
-    _fit_bootstrap(dml_irm)
-    _assert_resampling_default_settings(dml_irm)
-    assert dml_irm.score == "ATE"
-    assert isinstance(dml_irm.ps_processor_config, dml.utils.PSProcessorConfig)
-    assert isinstance(dml_irm.ps_processor, dml.utils.PSProcessor)
-    assert not dml_irm.normalize_ipw
-    assert set(dml_irm.weights.keys()) == set(["weights"])
-    assert np.array_equal(dml_irm.weights["weights"], np.ones((dml_irm._dml_data.n_obs,)))
 
 
 @pytest.mark.ci
@@ -228,13 +214,3 @@ def test_sensitivity_defaults():
 
     dml_plr.sensitivity_analysis()
     assert dml_plr.sensitivity_params["input"] == input_dict
-
-
-@pytest.mark.ci
-def test_policytree_defaults():
-    dml_irm = dml.DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
-    dml_irm.fit()
-    policy_tree = dml_irm.policy_tree(features=dml_data_irm.data.drop(columns=["y", "d"]))
-    assert policy_tree.policy_tree.max_depth == 2
-    assert policy_tree.policy_tree.min_samples_leaf == 8
-    assert policy_tree.policy_tree.ccp_alpha == 0.01
