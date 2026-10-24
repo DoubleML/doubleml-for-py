@@ -212,7 +212,7 @@ def iivm_dml2(y, x, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_h
     )
 
     if normalize_ipw:
-        m_hat_adj = _normalize_ipw(m_hat, d)
+        m_hat_adj = _normalize_ipw(m_hat, z)
     else:
         m_hat_adj = m_hat
 
@@ -347,7 +347,7 @@ def boot_iivm_single_split(
     )
 
     if normalize_ipw:
-        m_hat_adj = _normalize_ipw(m_hat, d)
+        m_hat_adj = _normalize_ipw(m_hat, z)
     else:
         m_hat_adj = m_hat
 
