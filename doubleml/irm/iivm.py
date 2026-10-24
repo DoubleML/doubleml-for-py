@@ -455,7 +455,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         w_hat1 = d - r_hat1
 
         if self.normalize_ipw:
-            m_hat_adj = _normalize_ipw(m_hat, d)
+            m_hat_adj = _normalize_ipw(m_hat, z)
         else:
             m_hat_adj = m_hat
 
