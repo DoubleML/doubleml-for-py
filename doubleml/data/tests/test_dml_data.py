@@ -584,6 +584,9 @@ def test_dml_data_w_missing_d(generate_data1):
     dml_data = DoubleMLData(force_all_d_finite=True, **pd_args)
 
     data["d"] = np.nan
+    dml_data3 = DoubleMLData(force_all_d_finite="allow-nan", **pd_args)
+    assert not dml_data3.binary_treats.any()
+
     np_args = {
         "x": data.loc[:, x_cols].values,
         "y": data["y"].values,
