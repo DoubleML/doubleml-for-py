@@ -1,3 +1,5 @@
+"""Sample splitting for DoubleML models with independent or clustered observations."""
+
 from abc import abstractmethod
 
 from doubleml.utils._checks import _check_sample_splitting
@@ -63,7 +65,8 @@ class SampleSplittingMixin:
         """
         Set the sample splitting for DoubleML models.
 
-        The  attributes ``n_folds`` and ``n_rep`` are derived from the provided partition.
+        The attributes ``n_folds`` and ``n_rep`` are derived from the provided partition.
+        For cluster data, the number of folds per cluster variable is also derived from the partition.
 
         Parameters
         ----------
@@ -121,9 +124,23 @@ class SampleSplittingMixin:
         if self._double_sample_splitting:
             raise ValueError("set_sample_splitting not supported for double sample splitting.")
 
-        self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self._n_obs_sample_splitting
+        dml_data = self._dml_data
+        is_cluster_data = self._is_cluster_data
+        smpls, smpls_cluster, n_rep, n_folds = _check_sample_splitting(
+            all_smpls, all_smpls_cluster, dml_data, is_cluster_data, n_obs=self._n_obs_sample_splitting
         )
+        if is_cluster_data:
+            n_cluster_vars = dml_data.n_cluster_vars
+            n_folds_per_cluster = int(round(n_folds ** (1.0 / n_cluster_vars)))
+            if n_folds_per_cluster**n_cluster_vars != n_folds:
+                raise ValueError(
+                    "Invalid cluster sample splitting. n_folds must be a power of n_folds_per_cluster "
+                    "for the number of cluster variables. "
+                    f"Got {n_folds} folds for {n_cluster_vars} cluster variables."
+                )
+            self._n_folds_per_cluster = n_folds_per_cluster
+
+        self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = smpls, smpls_cluster, n_rep, n_folds
 
         self._initialize_dml_model()
 
