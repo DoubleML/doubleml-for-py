@@ -45,7 +45,7 @@ Identify and fix technical debt aligned with project standards.
 1. **Run Automated Checks**
    ```bash
    # Type checking
-   mypy doubleml
+   mypy
 
    # Linting
    ruff check .
@@ -78,7 +78,7 @@ Identify and fix technical debt aligned with project standards.
 6. **Verify**
    ```bash
    ruff check .
-   mypy doubleml
+   mypy
    pytest -m ci  # Run CI tests
    ```
 

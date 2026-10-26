@@ -28,7 +28,7 @@ These instructions guide code and test authoring. Keep changes aligned with the 
 Run relevant checks when changes warrant it:
 - `black .`
 - `ruff check --fix .`
-- `mypy doubleml`
+- `mypy` (checks the allowlist in `[tool.mypy] files` in `pyproject.toml`)
 - `pytest -m ci`
 
 ## References (canonical rules)

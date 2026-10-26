@@ -87,7 +87,7 @@ Run after completing a feature or fix to ensure code is clean, readable, and fol
 
 5. **Type Check**
    ```bash
-   mypy doubleml
+   mypy
    ```
 
 6. **Verify**
