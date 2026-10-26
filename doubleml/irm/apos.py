@@ -604,7 +604,7 @@ class DoubleMLAPOS(SampleSplittingMixin):
         value="theta",
         rho=1.0,
         level=0.95,
-        null_hypothesis=0.0,
+        null_hypothesis=None,
         include_scenario=True,
         benchmarks=None,
         fill=True,
