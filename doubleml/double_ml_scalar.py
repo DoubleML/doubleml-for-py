@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 import numpy as np
 from sklearn.metrics import log_loss, root_mean_squared_error
 
-from .data.base_data import DoubleMLBaseData
+from .data.base_data import DoubleMLData
 from .double_ml_base import DoubleMLBase
 from .double_ml_framework import DoubleMLCore as DoubleMLCoreData
 from .double_ml_framework import DoubleMLFramework
@@ -36,7 +36,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
     Parameters
     ----------
-    obj_dml_data : DoubleMLBaseData
+    obj_dml_data : DoubleMLData
         The data object for the double machine learning model.
         Must contain exactly one treatment variable.
     score : str
@@ -62,9 +62,11 @@ class DoubleMLScalar(DoubleMLBase, ABC):
     # Subclasses override as needed; default is no aliases.
     _LEARNER_PARAM_ALIASES: ClassVar[dict[str, list[str]]] = {}
 
+    _dml_data: DoubleMLData
+
     def __init__(
         self,
-        obj_dml_data: DoubleMLBaseData,
+        obj_dml_data: DoubleMLData,
         score: str,
     ):
         """
@@ -72,7 +74,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
 
         Parameters
         ----------
-        obj_dml_data : DoubleMLBaseData
+        obj_dml_data : DoubleMLData
             The data object. Must have exactly one treatment column.
         score : str
             The score function to use. Required; concrete subclasses supply their
@@ -434,7 +436,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         n_rep: int | None = None,
         n_jobs_cv: int | None = None,
         external_predictions: dict[str, np.ndarray] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Self:
         """
         Estimate the DoubleML model.
@@ -655,14 +657,14 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             self._n_rep = n_rep
             self._n_folds = n_folds**self._dml_data.n_cluster_vars
 
-            resampler = DoubleMLClusterResampling(
+            cluster_resampler = DoubleMLClusterResampling(
                 n_folds=n_folds,
                 n_rep=n_rep,
                 n_obs=self._n_obs,
                 n_cluster_vars=self._dml_data.n_cluster_vars,
                 cluster_vars=self._dml_data.cluster_vars,
             )
-            self._smpls, self._smpls_cluster = resampler.split_samples()
+            self._smpls, self._smpls_cluster = cluster_resampler.split_samples()
         else:
             self._n_folds = n_folds
             self._n_folds_per_cluster = None
@@ -841,6 +843,15 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             The framework object with estimation results.
 
         """
+        if (
+            self._psi is None
+            or self._psi_deriv is None
+            or self._all_thetas is None
+            or self._all_ses is None
+            or self._var_scaling_factors is None
+        ):
+            raise ValueError("Causal parameters not estimated. Call estimate_causal_parameters() first.")
+
         # Standardize the score function: psi / E[psi_deriv]
         # Both already in framework shape: (n_obs, n_thetas, n_rep)
         scaled_psi = np.divide(self._psi, np.mean(self._psi_deriv, axis=0, keepdims=True))
@@ -960,7 +971,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         >>> model.evaluate_learners(learners=["ml_m"], metric=log_loss)  # doctest: +SKIP
 
         """
-        if self._nuisance_targets is None:
+        if self._nuisance_targets is None or self._predictions is None:
             raise ValueError("Nuisance targets not available. Call fit() or fit_nuisance_models() first.")
         if metric is not None and not callable(metric):
             raise TypeError(f"metric must be callable or None. Got {type(metric).__name__}.")
