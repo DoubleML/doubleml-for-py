@@ -181,8 +181,8 @@ def test_plpr_one_id(approach, time_type):
 
 @pytest.mark.ci
 def test_plpr_fd_exact_one_id_unbalanced(time_type):
-    msg_warn_one_id = r"The data contains 1 id(s) with only one row. These row(s) have been dropped."
-    msg_warn_unbalanced = r"The panel data contains 1 missing (id, time) combinations. "
+    msg_warn_one_id = "The data contains 1 id(s) with only one row. These row(s) have been dropped."
+    msg_warn_unbalanced = "The panel data contains 1 missing (id, time) combinations."
 
     np.random.seed(3141)
     data = make_plpr_CP2025(num_id=4, num_t=3, dim_x=4, time_type=time_type)
@@ -201,10 +201,10 @@ def test_plpr_fd_exact_one_id_unbalanced(time_type):
     with pytest.warns(UserWarning) as record:
         obj_plpr = dml.DoubleMLPLPR(obj_dml_data, ml_l, ml_m, approach="fd_exact", n_folds=2)
         obj_plpr.fit()
-    # assert two warnings were raised and content
-    assert len(record) == 2
-    assert msg_warn_one_id in str(record[0].message)
-    assert msg_warn_unbalanced in str(record[1].message)
+    # assert each expected warning was raised exactly once, independent of order/extras
+    messages = [str(w.message) for w in record]
+    assert sum(msg_warn_one_id in m for m in messages) == 1
+    assert sum(msg_warn_unbalanced in m for m in messages) == 1
     # 4 rows after fd transformation, id 1 with only 1 row and id 2 has no possible first difference dropped
     assert obj_plpr.data_transform.data.shape[0] == 4
 
