@@ -1,4 +1,7 @@
+import warnings
+
 import numpy as np
+import plotly.graph_objects as go
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
@@ -138,3 +141,76 @@ def test_dml_framework_sensitivity_operations(dml_framework_sensitivity_fixture)
     assert np.allclose(sub_obj.sensitivity_params["ci"]["upper"], -1 * sub_obj.sensitivity_params["ci"]["lower"])
     assert sub_obj.sensitivity_params["rv"] < 0.01
     assert sub_obj.sensitivity_params["rva"] < 0.01
+
+
+@pytest.mark.ci
+def test_dml_framework_sensitivity_plot_orientation(dml_framework_sensitivity_fixture):
+    """Contour value z[i, j] equals the bound at cf_d=x[j], cf_y=y[i] for asymmetric grid bounds."""
+    framework = dml_framework_sensitivity_fixture["dml_framework_obj"]
+    fig = framework.sensitivity_plot(grid_bounds=(0.1, 0.3), grid_size=11)
+    contour = fig.data[0]
+    z = np.asarray(contour.z)
+    assert z.shape == (len(contour.y), len(contour.x))
+
+    null_hypothesis = framework.sensitivity_params["input"]["null_hypothesis"][0]
+    bound = "upper" if null_hypothesis > framework.thetas[0] else "lower"
+    for i, j in [(10, 2), (2, 10), (5, 7)]:
+        expected = framework._calc_sensitivity_analysis(cf_y=contour.y[i], cf_d=contour.x[j], rho=1.0, level=0.95)
+        np.testing.assert_allclose(z[i, j], expected["theta"][bound][0], rtol=1e-12)
+
+
+@pytest.mark.ci
+def test_dml_framework_sensitivity_plot_markers_match_contour(dml_framework_sensitivity_fixture):
+    """Scenario and benchmarks are evaluated with the rho of the plot, with a warning if it differs from the scenario."""
+    framework = dml_framework_sensitivity_fixture["dml_framework_obj"]
+    cf_d_vec = np.linspace(0, 0.1, 11)
+    cf_y_vec = np.linspace(0, 0.3, 11)
+    benchmarks = {"cf_y": [cf_y_vec[9]], "cf_d": [cf_d_vec[4]], "name": ["bench"]}
+
+    msg = r"The scenario is evaluated with the values of sensitivity_plot\(\)."
+    with pytest.warns(UserWarning, match=msg):
+        fig = framework.sensitivity_plot(rho=0.5, benchmarks=benchmarks, grid_bounds=(0.1, 0.3), grid_size=11)
+    z = np.asarray(fig.data[0].z)
+    benchmark_trace = next(trace for trace in fig.data if trace.name == "Benchmarks")
+    np.testing.assert_allclose(benchmark_trace.customdata[0][0], z[9, 4], rtol=1e-12)
+
+    null_hypothesis = framework.sensitivity_params["input"]["null_hypothesis"][0]
+    bound = "upper" if null_hypothesis > framework.thetas[0] else "lower"
+    scenario_input = framework.sensitivity_params["input"]
+    expected_scenario = framework._calc_sensitivity_analysis(
+        cf_y=scenario_input["cf_y"], cf_d=scenario_input["cf_d"], rho=0.5, level=0.95
+    )["theta"][bound][0]
+    scenario_trace = next(trace for trace in fig.data if trace.name == "Scenario")
+    assert f": {round(expected_scenario, 3)}</b>" in scenario_trace.hovertemplate
+
+    # no warning if rho and level match the scenario
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        _ = framework.sensitivity_plot(grid_size=10)
+
+
+@pytest.mark.ci
+def test_dml_framework_sensitivity_plot_null_hypothesis(dml_framework_sensitivity_fixture):
+    """The null_hypothesis argument determines the bound and defaults to the value of sensitivity_analysis()."""
+    framework = dml_framework_sensitivity_fixture["dml_framework_obj"]
+    theta = framework.thetas[0]
+    z_upper = np.asarray(framework.sensitivity_plot(null_hypothesis=float(theta + 1.0), grid_size=10).data[0].z)
+    z_lower = np.asarray(framework.sensitivity_plot(null_hypothesis=float(theta - 1.0), grid_size=10).data[0].z)
+    z_default = np.asarray(framework.sensitivity_plot(grid_size=10).data[0].z)
+
+    assert np.all(z_upper >= theta)
+    assert np.all(z_lower <= theta)
+    assert np.any(z_upper > z_lower)
+    expected_default = z_upper if framework.sensitivity_params["input"]["null_hypothesis"][0] > theta else z_lower
+    np.testing.assert_allclose(z_default, expected_default)
+
+
+@pytest.mark.ci
+def test_dml_framework_sensitivity_plot_without_analysis(dml_framework_sensitivity_fixture):
+    """sensitivity_plot works without sensitivity_analysis() if no scenario is included."""
+    framework = dml_framework_sensitivity_fixture["dml_obj_2"].construct_framework()
+    assert framework.sensitivity_params is None
+    for value in ["theta", "ci"]:
+        fig = framework.sensitivity_plot(value=value, include_scenario=False, grid_size=10)
+        assert isinstance(fig, go.Figure)
+        assert all(trace.name != "Scenario" for trace in fig.data)

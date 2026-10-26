@@ -628,18 +628,23 @@ class DoubleMLAPOS(SampleSplittingMixin):
         rho: float
             The correlation between the differences in short and long representations in the main regression and
             Riesz representer. Has to be in [-1,1]. The absolute value determines the adversarial strength of the
-            confounding (maximizes at 1.0).
+            confounding (maximizes at 1.0). Used for the contours, the scenario and the benchmarks.
             Default is ``1.0``.
 
         level : float
-            The confidence level.
+            The confidence level. Used for the contours, the scenario and the benchmarks.
             Default is ``0.95``.
 
-        null_hypothesis : float
+        null_hypothesis : float or None
             Null hypothesis for the effect. Determines the direction of the contour lines.
+            If ``None``, the null hypothesis from :meth:`sensitivity_analysis` is used, or ``0.0`` if no sensitivity
+            analysis has been performed.
+            Default is ``None``.
 
         include_scenario : bool
             Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
+            The scenario is placed at its ``cf_d`` and ``cf_y``, but its bound is evaluated with ``rho`` and ``level``
+            of this plot (a warning is raised if these differ from the values of :meth:`sensitivity_analysis`).
             Default is ``True``.
 
         benchmarks : dict or None

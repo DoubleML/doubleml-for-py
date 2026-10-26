@@ -1,4 +1,5 @@
 import copy
+import warnings
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -918,7 +919,7 @@ class DoubleMLFramework:
         value="theta",
         rho=1.0,
         level=0.95,
-        null_hypothesis=0.0,
+        null_hypothesis=None,
         include_scenario=True,
         benchmarks=None,
         fill=True,
@@ -942,18 +943,23 @@ class DoubleMLFramework:
         rho: float
             The correlation between the differences in short and long representations in the main regression and
             Riesz representer. Has to be in [-1,1]. The absolute value determines the adversarial strength of the
-            confounding (maximizes at 1.0).
+            confounding (maximizes at 1.0). Used for the contours, the scenario and the benchmarks.
             Default is ``1.0``.
 
         level : float
-            The confidence level.
+            The confidence level. Used for the contours, the scenario and the benchmarks.
             Default is ``0.95``.
 
-        null_hypothesis : float
+        null_hypothesis : float or None
             Null hypothesis for the effect. Determines the direction of the contour lines.
+            If ``None``, the null hypothesis from :meth:`sensitivity_analysis` is used, or ``0.0`` if no sensitivity
+            analysis has been performed.
+            Default is ``None``.
 
         include_scenario : bool
             Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
+            The scenario is placed at its ``cf_d`` and ``cf_y``, but its bound is evaluated with ``rho`` and ``level``
+            of this plot (a warning is raised if these differ from the values of :meth:`sensitivity_analysis`).
             Default is ``True``.
 
         benchmarks : dict or None
@@ -984,7 +990,8 @@ class DoubleMLFramework:
         valid_values = ["theta", "ci"]
         if value not in valid_values:
             raise ValueError("Invalid value " + value + ". " + "Valid values " + " or ".join(valid_values) + ".")
-        _check_float(null_hypothesis, "null_hypothesis")
+        if null_hypothesis is not None:
+            _check_float(null_hypothesis, "null_hypothesis")
         _check_bool(include_scenario, "include_scenario")
         if include_scenario and self.sensitivity_params is None:
             raise ValueError("Apply sensitivity_analysis() to include senario in sensitivity_plot. ")
@@ -994,7 +1001,11 @@ class DoubleMLFramework:
         _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
         _check_integer(grid_size, "grid_size", lower_bound=10)
 
-        null_hypothesis = self.sensitivity_params["input"]["null_hypothesis"][idx_treatment]
+        if null_hypothesis is None:
+            if self.sensitivity_params is not None:
+                null_hypothesis = self.sensitivity_params["input"]["null_hypothesis"][idx_treatment]
+            else:
+                null_hypothesis = 0.0
         unadjusted_theta = self.thetas[idx_treatment]
         # check which side is relvant
         bound = "upper" if (null_hypothesis > unadjusted_theta) else "lower"
@@ -1003,28 +1014,46 @@ class DoubleMLFramework:
         cf_d_vec = np.linspace(0, grid_bounds[0], grid_size)
         cf_y_vec = np.linspace(0, grid_bounds[1], grid_size)
 
-        # compute contour values
-        contour_values = np.full(shape=(grid_size, grid_size), fill_value=np.nan)
-        for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
-            for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
+        # compute contour values (plotly convention: rows <-> y (cf_y), cols <-> x (cf_d))
+        contour_values = np.full(shape=(len(cf_y_vec), len(cf_d_vec)), fill_value=np.nan)
+        for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
+            for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
                 sens_dict = self._calc_sensitivity_analysis(
                     cf_y=cf_y_grid,
                     cf_d=cf_d_grid,
                     rho=rho,
                     level=level,
                 )
-                contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict[value][bound][idx_treatment]
+                contour_values[i_cf_y_grid, i_cf_d_grid] = sens_dict[value][bound][idx_treatment]
 
         # get the correct unadjusted value for confidence bands
         if value == "theta":
             unadjusted_value = unadjusted_theta
         else:
             assert value == "ci"
-            ci = self.confint(level=self.sensitivity_params["input"]["level"])
+            ci = self.confint(level=level)
             if bound == "upper":
                 unadjusted_value = ci.iloc[idx_treatment, 1]
             else:
                 unadjusted_value = ci.iloc[idx_treatment, 0]
+
+        # compute the value for the scenario (with the same rho and level as the contours)
+        if include_scenario:
+            scenario_rho = self.sensitivity_params["input"]["rho"]
+            scenario_level = self.sensitivity_params["input"]["level"]
+            if (rho != scenario_rho) or (level != scenario_level):
+                warnings.warn(
+                    f"The scenario from sensitivity_analysis() used rho={scenario_rho} and level={scenario_level}, "
+                    f"but sensitivity_plot() uses rho={rho} and level={level}. "
+                    "The scenario is evaluated with the values of sensitivity_plot().",
+                    UserWarning,
+                )
+            scenario_cf_d = self.sensitivity_params["input"]["cf_d"]
+            scenario_cf_y = self.sensitivity_params["input"]["cf_y"]
+            sens_dict_scenario = self._calc_sensitivity_analysis(cf_y=scenario_cf_y, cf_d=scenario_cf_d, rho=rho, level=level)
+            scenario_value = sens_dict_scenario[value][bound][idx_treatment]
+        else:
+            scenario_cf_d, scenario_cf_y, scenario_value = None, None, None
 
         # compute the values for the benchmarks
         benchmark_dict = copy.deepcopy(benchmarks)
@@ -1035,8 +1064,8 @@ class DoubleMLFramework:
                 sens_dict_bench = self._calc_sensitivity_analysis(
                     cf_y=benchmarks["cf_y"][benchmark_idx],
                     cf_d=benchmarks["cf_d"][benchmark_idx],
-                    rho=self.sensitivity_params["input"]["rho"],
-                    level=self.sensitivity_params["input"]["level"],
+                    rho=rho,
+                    level=level,
                 )
                 benchmark_values[benchmark_idx] = sens_dict_bench[value][bound][idx_treatment]
             benchmark_dict["value"] = benchmark_values
@@ -1045,10 +1074,11 @@ class DoubleMLFramework:
             y=cf_y_vec,
             contour_values=contour_values,
             unadjusted_value=unadjusted_value,
-            scenario_x=self.sensitivity_params["input"]["cf_d"],
-            scenario_y=self.sensitivity_params["input"]["cf_y"],
-            scenario_value=self.sensitivity_params[value][bound][idx_treatment],
+            scenario_x=scenario_cf_d,
+            scenario_y=scenario_cf_y,
+            scenario_value=scenario_value,
             include_scenario=include_scenario,
+            rho=rho,
             benchmarks=benchmark_dict,
             fill=fill,
         )
