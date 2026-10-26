@@ -761,8 +761,8 @@ class DoubleMLData(DoubleMLBaseData):
 
     def _check_binary_treats(self):
         is_binary = pd.Series(dtype=bool, index=self.d_cols)
-        if not self.force_all_d_finite:
-            is_binary[:] = False  # if we allow infinite values, we cannot check for binary
+        if self.force_all_d_finite is not True:
+            is_binary[:] = False  # if we allow missings or infinite values, we cannot check for binary
         else:
             for treatment_var in self.d_cols:
                 this_d = self.data.loc[:, treatment_var]
