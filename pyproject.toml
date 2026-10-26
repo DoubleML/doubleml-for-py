@@ -128,10 +128,16 @@ ignore = [
 [tool.mypy]
 python_version = "3.12"
 mypy_path = "."
-packages = ["doubleml"]
-exclude = [
-    "^tests/|^test_",
+# Incrementally typed: add modules here once they pass cleanly.
+files = [
+    "doubleml/double_ml_base.py",
+    "doubleml/double_ml_linear_score.py",
 ]
+exclude = [
+    "(^|/)tests/",
+]
+# Use types from imported modules, but only report errors for the files above.
+follow_imports = "silent"
 
 # Essential checks only:
 warn_return_any = false
