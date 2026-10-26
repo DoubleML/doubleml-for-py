@@ -133,6 +133,7 @@ files = [
     "doubleml/double_ml_base.py",
     "doubleml/double_ml_linear_score.py",
     "doubleml/double_ml_scalar.py",
+    "doubleml/plm/plr_scalar.py",
 ]
 exclude = [
     "(^|/)tests/",
