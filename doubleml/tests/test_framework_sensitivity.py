@@ -206,6 +206,27 @@ def test_dml_framework_sensitivity_plot_null_hypothesis(dml_framework_sensitivit
 
 
 @pytest.mark.ci
+def test_dml_framework_sensitivity_plot_defaults_from_analysis(dml_framework_sensitivity_fixture):
+    """rho and level default to the values of sensitivity_analysis(), so the scenario matches sensitivity_params."""
+    framework = dml_framework_sensitivity_fixture["dml_obj"].construct_framework()
+    framework.sensitivity_analysis(rho=0.5, level=0.9)
+
+    fig_default = framework.sensitivity_plot(value="ci", grid_size=10)
+    fig_explicit = framework.sensitivity_plot(value="ci", rho=0.5, level=0.9, grid_size=10)
+    np.testing.assert_allclose(np.asarray(fig_default.data[0].z), np.asarray(fig_explicit.data[0].z))
+
+    null_hypothesis = framework.sensitivity_params["input"]["null_hypothesis"][0]
+    bound = "upper" if null_hypothesis > framework.thetas[0] else "lower"
+    expected_scenario = framework.sensitivity_params["ci"][bound][0]
+    scenario_trace = next(trace for trace in fig_default.data if trace.name == "Scenario")
+    assert f": {round(expected_scenario, 3)}</b>" in scenario_trace.hovertemplate
+
+    msg = r"The scenario is evaluated with the values of sensitivity_plot\(\)."
+    with pytest.warns(UserWarning, match=msg):
+        _ = framework.sensitivity_plot(rho=1.0, grid_size=10)
+
+
+@pytest.mark.ci
 def test_dml_framework_sensitivity_plot_without_analysis(dml_framework_sensitivity_fixture):
     """sensitivity_plot works without sensitivity_analysis() if no scenario is included."""
     framework = dml_framework_sensitivity_fixture["dml_obj_2"].construct_framework()

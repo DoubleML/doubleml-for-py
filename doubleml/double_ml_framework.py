@@ -917,8 +917,8 @@ class DoubleMLFramework:
         self,
         idx_treatment=0,
         value="theta",
-        rho=1.0,
-        level=0.95,
+        rho=None,
+        level=None,
         null_hypothesis=None,
         include_scenario=True,
         benchmarks=None,
@@ -940,15 +940,19 @@ class DoubleMLFramework:
             and ``'ci'`` (refers to the bounds including statistical uncertainty).
             Default is ``'theta'``.
 
-        rho: float
+        rho: float or None
             The correlation between the differences in short and long representations in the main regression and
             Riesz representer. Has to be in [-1,1]. The absolute value determines the adversarial strength of the
             confounding (maximizes at 1.0). Used for the contours, the scenario and the benchmarks.
-            Default is ``1.0``.
+            If ``None``, ``rho`` from :meth:`sensitivity_analysis` is used, or ``1.0`` if no sensitivity analysis
+            has been performed.
+            Default is ``None``.
 
-        level : float
+        level : float or None
             The confidence level. Used for the contours, the scenario and the benchmarks.
-            Default is ``0.95``.
+            If ``None``, ``level`` from :meth:`sensitivity_analysis` is used, or ``0.95`` if no sensitivity analysis
+            has been performed.
+            Default is ``None``.
 
         null_hypothesis : float or None
             Null hypothesis for the effect. Determines the direction of the contour lines.
@@ -959,7 +963,8 @@ class DoubleMLFramework:
         include_scenario : bool
             Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
             The scenario is placed at its ``cf_d`` and ``cf_y``, but its bound is evaluated with ``rho`` and ``level``
-            of this plot (a warning is raised if these differ from the values of :meth:`sensitivity_analysis`).
+            of this plot (a warning is raised if explicitly passed values differ from the values of
+            :meth:`sensitivity_analysis`).
             Default is ``True``.
 
         benchmarks : dict or None
@@ -1001,11 +1006,17 @@ class DoubleMLFramework:
         _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
         _check_integer(grid_size, "grid_size", lower_bound=10)
 
-        if null_hypothesis is None:
-            if self.sensitivity_params is not None:
-                null_hypothesis = self.sensitivity_params["input"]["null_hypothesis"][idx_treatment]
-            else:
-                null_hypothesis = 0.0
+        # fall back to the inputs of sensitivity_analysis() (or the defaults if no analysis has been performed)
+        if self.sensitivity_params is not None:
+            scenario_input = self.sensitivity_params["input"]
+            rho = scenario_input["rho"] if rho is None else rho
+            level = scenario_input["level"] if level is None else level
+            if null_hypothesis is None:
+                null_hypothesis = scenario_input["null_hypothesis"][idx_treatment]
+        else:
+            rho = 1.0 if rho is None else rho
+            level = 0.95 if level is None else level
+            null_hypothesis = 0.0 if null_hypothesis is None else null_hypothesis
         unadjusted_theta = self.thetas[idx_treatment]
         # check which side is relvant
         bound = "upper" if (null_hypothesis > unadjusted_theta) else "lower"

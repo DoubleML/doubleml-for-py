@@ -611,8 +611,8 @@ class DoubleMLVector(DoubleMLBase, ABC):
         self,
         idx_treatment: int = 0,
         value: str = "theta",
-        rho: float = 1.0,
-        level: float = 0.95,
+        rho: float | None = None,
+        level: float | None = None,
         null_hypothesis: float | None = None,
         include_scenario: bool = True,
         benchmarks: dict | None = None,
@@ -630,11 +630,15 @@ class DoubleMLVector(DoubleMLBase, ABC):
         value : str, optional
             Contour value: ``'theta'`` for bounds, ``'ci'`` for bounds including
             statistical uncertainty. Default is ``'theta'``.
-        rho : float, optional
+        rho : float or None, optional
             Correlation between confounders in the main regression and Riesz
-            representer. Used for the contours, the scenario and the benchmarks. Default is ``1.0``.
-        level : float, optional
-            The confidence level. Used for the contours, the scenario and the benchmarks. Default is ``0.95``.
+            representer. Used for the contours, the scenario and the benchmarks. If ``None``, ``rho`` from
+            :meth:`sensitivity_analysis` is used, or ``1.0`` if no sensitivity analysis has been performed.
+            Default is ``None``.
+        level : float or None, optional
+            The confidence level. Used for the contours, the scenario and the benchmarks. If ``None``, ``level``
+            from :meth:`sensitivity_analysis` is used, or ``0.95`` if no sensitivity analysis has been performed.
+            Default is ``None``.
         null_hypothesis : float or None, optional
             Null hypothesis for the direction of contour lines. If ``None``, the null hypothesis from
             :meth:`sensitivity_analysis` is used, or ``0.0`` if no sensitivity analysis has been performed.
@@ -642,7 +646,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         include_scenario : bool, optional
             Whether to highlight the last :meth:`sensitivity_analysis` scenario. The scenario is placed at its
             ``cf_d`` and ``cf_y``, but evaluated with ``rho`` and ``level`` of this plot (a warning is raised if
-            these differ from the values of :meth:`sensitivity_analysis`). Default is ``True``.
+            explicitly passed values differ from the values of :meth:`sensitivity_analysis`). Default is ``True``.
         benchmarks : dict or None, optional
             Benchmark dictionary with keys ``'cf_y'``, ``'cf_d'``, ``'name'``.
             Default is ``None``.
