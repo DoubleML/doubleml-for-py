@@ -124,3 +124,46 @@ jobs:
 
       - name: Import Smoke Test
         run: python -c "import doubleml; print(f'Successfully imported DoubleML version {doubleml.__version__}')"
+
+  update-citation:
+    name: Update CITATION.cff 📝
+    needs: verify-pypi
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Set version and date-released
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          PUBLISHED_AT: ${{ github.event.release.published_at }}
+        run: |
+          VERSION="${TAG_NAME#v}"
+          RELEASE_DATE="${PUBLISHED_AT:0:10}"
+          sed -i -e '/^version:/d' -e '/^date-released:/d' CITATION.cff
+          sed -i "/^license:/a version: ${VERSION}\ndate-released: '${RELEASE_DATE}'" CITATION.cff
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          if git diff --quiet CITATION.cff; then
+            echo "CITATION.cff already up to date"
+            exit 0
+          fi
+          BRANCH="chore/citation-${TAG_NAME}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit -am "chore: update CITATION.cff for ${TAG_NAME}"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "chore: update CITATION.cff for ${TAG_NAME}" \
+            --body "Automated update of \`version\` and \`date-released\` after release ${TAG_NAME}."
