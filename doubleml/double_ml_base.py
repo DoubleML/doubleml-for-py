@@ -1,7 +1,7 @@
 """Abstract base class for Double Machine Learning estimators."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -277,15 +277,27 @@ class DoubleMLBase(ABC):
         Parameters
         ----------
         method : str, optional
-            The p-value adjustment method. Default is 'romano-wolf'.
+            A str (``'romano-wolf'``, ``'bonferroni'``, ``'holm'``, etc.) specifying the adjustment method.
+            In addition to ``'romano-wolf'``, all methods implemented in
+            :py:func:`statsmodels.stats.multitest.multipletests` can be applied.
+            Default is ``'romano-wolf'``.
 
         Returns
         -------
         pd.DataFrame
-            A DataFrame with adjusted p-values.
+            A DataFrame indexed by treatment names with columns ``'thetas'`` (the estimated parameters)
+            and ``'pval'`` (the median over repetitions of the adjusted p-values).
+
+        Notes
+        -----
+        The adjusted p-values for each repetition (shape ``(n_thetas, n_rep)``) are returned as the
+        second element of :meth:`~doubleml.DoubleMLFramework.p_adjust` on :attr:`framework`.
 
         """
-        return self.framework.p_adjust(method=method)
+        df_p_vals, _ = self.framework.p_adjust(method=method)
+        if self.framework.treatment_names is not None:
+            df_p_vals.set_index(pd.Index(self.framework.treatment_names), inplace=True)
+        return df_p_vals
 
     def sensitivity_analysis(
         self,
@@ -293,10 +305,12 @@ class DoubleMLBase(ABC):
         cf_d: float = 0.03,
         rho: float = 1.0,
         level: float = 0.95,
-        null_hypothesis: float = 0.0,
-    ) -> Dict:
+        null_hypothesis: float | np.ndarray = 0.0,
+    ) -> Self:
         """
         Sensitivity analysis for DoubleML models.
+
+        The evaluated scenario is stored as a dictionary in ``framework.sensitivity_params``.
 
         Parameters
         ----------
@@ -312,23 +326,25 @@ class DoubleMLBase(ABC):
         level : float, optional
             The confidence level for robustness analysis.
             Default is 0.95.
-        null_hypothesis : float, optional
-            The null hypothesis value for the parameter.
+        null_hypothesis : float or np.ndarray, optional
+            Null hypothesis for the effect. Determines the robustness values.
+            A single float is used for all parameters; an array must have shape ``(n_thetas,)``.
             Default is 0.0.
 
         Returns
         -------
-        dict
-            A dictionary with sensitivity analysis results.
+        self : DoubleMLBase
+            The DoubleML estimator with sensitivity analysis results.
 
         """
-        return self.framework.sensitivity_analysis(
+        self.framework.sensitivity_analysis(
             cf_y=cf_y,
             cf_d=cf_d,
             rho=rho,
             level=level,
             null_hypothesis=null_hypothesis,
         )
+        return self
 
     # ==================== Abstract Methods ====================
 

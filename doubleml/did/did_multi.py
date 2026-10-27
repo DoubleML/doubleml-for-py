@@ -830,9 +830,9 @@ class DoubleMLDIDMulti:
         self,
         idx_treatment=0,
         value="theta",
-        rho=1.0,
-        level=0.95,
-        null_hypothesis=0.0,
+        rho=None,
+        level=None,
+        null_hypothesis=None,
         include_scenario=True,
         benchmarks=None,
         fill=True,
@@ -851,18 +851,28 @@ class DoubleMLDIDMulti:
             Determines which contours to plot. Valid values are ``'theta'`` (refers to the bounds)
             and ``'ci'`` (refers to the bounds including statistical uncertainty).
             Default is ``'theta'``.
-        rho: float
+        rho: float or None
             The correlation between the differences in short and long representations in the main regression and
             Riesz representer. Has to be in [-1,1]. The absolute value determines the adversarial strength of the
-            confounding (maximizes at 1.0).
-            Default is ``1.0``.
-        level : float
-            The confidence level.
-            Default is ``0.95``.
-        null_hypothesis : float
+            confounding (maximizes at 1.0). Used for the contours, the scenario and the benchmarks.
+            If ``None``, ``rho`` from :meth:`sensitivity_analysis` is used, or ``1.0`` if no sensitivity analysis
+            has been performed.
+            Default is ``None``.
+        level : float or None
+            The confidence level. Used for the contours, the scenario and the benchmarks.
+            If ``None``, ``level`` from :meth:`sensitivity_analysis` is used, or ``0.95`` if no sensitivity analysis
+            has been performed.
+            Default is ``None``.
+        null_hypothesis : float or None
             Null hypothesis for the effect. Determines the direction of the contour lines.
+            If ``None``, the null hypothesis from :meth:`sensitivity_analysis` is used, or ``0.0`` if no sensitivity
+            analysis has been performed.
+            Default is ``None``.
         include_scenario : bool
             Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
+            The scenario is placed at its ``cf_d`` and ``cf_y``, but its bound is evaluated with ``rho`` and ``level``
+            of this plot (a warning is raised if explicitly passed values differ from the values of
+            :meth:`sensitivity_analysis`).
             Default is ``True``.
         benchmarks : dict or None
             Dictionary of benchmarks to be included in the plot. The keys are ``cf_y``, ``cf_d`` and ``name``.
