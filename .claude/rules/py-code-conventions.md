@@ -8,8 +8,11 @@
 |------|--------|---------|
 | **black** | line-length=127, preview=true, target py310-313 | `black .` |
 | **ruff** | rules E,F,W,I; ignores E721; target py312 | `ruff check .` / `ruff check --fix .` |
-| **mypy** | `disallow_untyped_defs=true`, `no_implicit_optional=true`, excludes tests | `mypy doubleml` |
+| **mypy** | `files` allowlist, `follow_imports=silent`, `disallow_untyped_defs=true`, `no_implicit_optional=true`, excludes tests | `mypy` |
 | **pre-commit** | black + ruff + trailing whitespace + debug statements | `pre-commit run --all-files` |
+
+mypy is adopted incrementally: it only reports errors for the modules listed in `[tool.mypy] files` in `pyproject.toml`.
+Add a module to that list once it passes cleanly (every new scalar model must be added).
 
 ## File Structure
 
@@ -183,7 +186,7 @@ Before completing any task, run:
 ```bash
 black .                    # Format
 ruff check --fix .         # Lint + auto-fix
-mypy doubleml              # Type check
+mypy                       # Type check (allowlist: [tool.mypy] files in pyproject.toml)
 pytest -m ci               # Tests
 ```
 

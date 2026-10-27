@@ -246,25 +246,25 @@ class IRM(LinearScoreMixin):
 
             # Skip checks for learners with external predictions (not registered in _learners)
             if "ml_g0" in self._learners:
-                _check_finite_predictions(self._predictions["ml_g0"][:, i_rep], self._learners["ml_g0"].learner, "ml_g0")
+                _check_finite_predictions(self.predictions["ml_g0"][:, i_rep], self._learners["ml_g0"].learner, "ml_g0")
                 if self._dml_data.binary_outcome:
                     _check_binary_predictions(
-                        self._predictions["ml_g0"][:, i_rep],
+                        self.predictions["ml_g0"][:, i_rep],
                         self._learners["ml_g0"].learner,
                         "ml_g0",
                         self._dml_data.y_col,
                     )
             if "ml_g1" in self._learners:
-                _check_finite_predictions(self._predictions["ml_g1"][:, i_rep], self._learners["ml_g1"].learner, "ml_g1")
+                _check_finite_predictions(self.predictions["ml_g1"][:, i_rep], self._learners["ml_g1"].learner, "ml_g1")
                 if self._dml_data.binary_outcome:
                     _check_binary_predictions(
-                        self._predictions["ml_g1"][:, i_rep],
+                        self.predictions["ml_g1"][:, i_rep],
                         self._learners["ml_g1"].learner,
                         "ml_g1",
                         self._dml_data.y_col,
                     )
             if "ml_m" in self._learners:
-                _check_finite_predictions(self._predictions["ml_m"][:, i_rep], self._learners["ml_m"].learner, "ml_m")
+                _check_finite_predictions(self.predictions["ml_m"][:, i_rep], self._learners["ml_m"].learner, "ml_m")
 
     def _nuisance_est(
         self,
@@ -292,7 +292,7 @@ class IRM(LinearScoreMixin):
             ml_g0_info = self._learners["ml_g0"]
             ml_g0 = clone(ml_g0_info.learner)
             ml_g0.fit(x[train_d0], y[train_d0])
-            self._predictions["ml_g0"][test_idx, i_rep] = predict_nuisance(ml_g0, x_test, ml_g0_info.is_classifier)
+            self.predictions["ml_g0"][test_idx, i_rep] = predict_nuisance(ml_g0, x_test, ml_g0_info.is_classifier)
 
         # ml_g1: fit on d==1 subset of training data, predict on ALL test observations
         if not g1_external:
@@ -300,14 +300,14 @@ class IRM(LinearScoreMixin):
             ml_g1_info = self._learners["ml_g1"]
             ml_g1 = clone(ml_g1_info.learner)
             ml_g1.fit(x[train_d1], y[train_d1])
-            self._predictions["ml_g1"][test_idx, i_rep] = predict_nuisance(ml_g1, x_test, ml_g1_info.is_classifier)
+            self.predictions["ml_g1"][test_idx, i_rep] = predict_nuisance(ml_g1, x_test, ml_g1_info.is_classifier)
 
         # ml_m: fit on ALL training data, predict on test
         if not m_external:
             ml_m_info = self._learners["ml_m"]
             ml_m = clone(ml_m_info.learner)
             ml_m.fit(x_train, d_train)
-            self._predictions["ml_m"][test_idx, i_rep] = predict_nuisance(ml_m, x_test, ml_m_info.is_classifier)
+            self.predictions["ml_m"][test_idx, i_rep] = predict_nuisance(ml_m, x_test, ml_m_info.is_classifier)
 
     # ==================== Score Elements ====================
 
@@ -330,14 +330,14 @@ class IRM(LinearScoreMixin):
         y = self._dml_data.y
         d = self._dml_data.d
 
-        g_hat0 = self._predictions["ml_g0"]  # (n_obs, n_rep)
-        g_hat1 = self._predictions["ml_g1"]  # (n_obs, n_rep)
-        m_hat_raw = self._predictions["ml_m"]  # (n_obs, n_rep)
+        g_hat0 = self.predictions["ml_g0"]  # (n_obs, n_rep)
+        g_hat1 = self.predictions["ml_g1"]  # (n_obs, n_rep)
+        m_hat_raw = self.predictions["ml_m"]  # (n_obs, n_rep)
 
         # Apply PS processing per repetition
         m_hat = np.zeros_like(m_hat_raw)
         for i_rep in range(self.n_rep):
-            m_hat[:, i_rep] = self._ps_processor.adjust_ps(m_hat_raw[:, i_rep], d, cv=self._smpls[i_rep], learner_name="ml_m")
+            m_hat[:, i_rep] = self._ps_processor.adjust_ps(m_hat_raw[:, i_rep], d, cv=self.smpls[i_rep], learner_name="ml_m")
 
         # Apply IPW normalization per repetition
         m_hat_adj = np.zeros_like(m_hat)
@@ -583,14 +583,14 @@ class IRM(LinearScoreMixin):
         """
         y = self._dml_data.y  # (n_obs,)
         d = self._dml_data.d  # (n_obs,)
-        g_hat0 = self._predictions["ml_g0"]  # (n_obs, n_rep)
-        g_hat1 = self._predictions["ml_g1"]  # (n_obs, n_rep)
-        m_hat_raw = self._predictions["ml_m"]  # (n_obs, n_rep)
+        g_hat0 = self.predictions["ml_g0"]  # (n_obs, n_rep)
+        g_hat1 = self.predictions["ml_g1"]  # (n_obs, n_rep)
+        m_hat_raw = self.predictions["ml_m"]  # (n_obs, n_rep)
 
         # Reproduce PS processing (same per-rep loop as _get_score_elements)
         m_hat = np.zeros_like(m_hat_raw)
         for i_rep in range(self.n_rep):
-            m_hat[:, i_rep] = self._ps_processor.adjust_ps(m_hat_raw[:, i_rep], d, cv=self._smpls[i_rep], learner_name="ml_m")
+            m_hat[:, i_rep] = self._ps_processor.adjust_ps(m_hat_raw[:, i_rep], d, cv=self.smpls[i_rep], learner_name="ml_m")
         m_hat_adj = np.zeros_like(m_hat)
         for i_rep in range(self.n_rep):
             m_hat_adj[:, i_rep] = _propensity_score_adjustment(

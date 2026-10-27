@@ -315,7 +315,7 @@ When adding a new scalar model `<Model>` to the `DoubleMLScalar` hierarchy:
   - [ ] All new tests pass: `pytest doubleml/<module>/tests/test_<model>_scalar*.py -v -m ci`
   - [ ] Lint: `ruff check doubleml/<module>/<model>_scalar.py`
   - [ ] Format: `black doubleml/<module>/<model>_scalar.py`
-  - [ ] Type check: `mypy doubleml/<module>/<model>_scalar.py`
+  - [ ] Type check: add `doubleml/<module>/<model>_scalar.py` to `[tool.mypy] files` in `pyproject.toml`, then run `mypy`
   - [ ] Old tests still pass: `pytest doubleml/<module>/tests/ -v`
 
 - [ ] **Documentation**: Update `doc/diagrams/architecture.md` class hierarchy

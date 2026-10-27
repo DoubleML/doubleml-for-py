@@ -1,7 +1,7 @@
 """Abstract base class for Double Machine Learning estimators."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -349,7 +349,7 @@ class DoubleMLBase(ABC):
     # ==================== Abstract Methods ====================
 
     @abstractmethod
-    def fit(self, **kwargs) -> Self:
+    def fit(self, **kwargs: Any) -> Self:
         """
         Estimate the DoubleML model.
 

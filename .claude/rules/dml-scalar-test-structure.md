@@ -134,4 +134,4 @@ dml_new._smpls = dml_old.smpls  # Old/new consume random state differently
 ### Quality
 - [ ] `black doubleml/<module>/`
 - [ ] `ruff check doubleml/<module>/`
-- [ ] `mypy doubleml/<module>/`
+- [ ] `doubleml/<module>/<model>_scalar.py` added to `[tool.mypy] files` in `pyproject.toml`, and `mypy` passes

@@ -71,7 +71,7 @@ Before completing any task:
 ```bash
 black .                    # Format
 ruff check --fix .         # Lint
-mypy doubleml              # Type check
+mypy                       # Type check (allowlist: [tool.mypy] files in pyproject.toml)
 pytest -m ci               # Tests
 ```
 

@@ -167,7 +167,7 @@ class PLR(LinearScoreMixin):
             self._register_learner("ml_l", self._learners["ml_g"].learner)
 
     @staticmethod
-    def _check_data(obj_dml_data):
+    def _check_data(obj_dml_data: object) -> None:
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
                 f"The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
@@ -186,14 +186,14 @@ class PLR(LinearScoreMixin):
 
             # Skip checks for learners with external predictions (not registered in _learners)
             if "ml_l" in self._learners:
-                _check_finite_predictions(self._predictions["ml_l"][:, i_rep], self._learners["ml_l"].learner, "ml_l")
+                _check_finite_predictions(self.predictions["ml_l"][:, i_rep], self._learners["ml_l"].learner, "ml_l")
             if "ml_m" in self._learners:
-                _check_finite_predictions(self._predictions["ml_m"][:, i_rep], self._learners["ml_m"].learner, "ml_m")
+                _check_finite_predictions(self.predictions["ml_m"][:, i_rep], self._learners["ml_m"].learner, "ml_m")
 
                 # Propensity score range check when ml_m is a classifier
                 if self._learners["ml_m"].is_classifier:
                     _check_is_propensity(
-                        self._predictions["ml_m"][:, i_rep],
+                        self.predictions["ml_m"][:, i_rep],
                         self._learners["ml_m"].learner,
                         "ml_m",
                     )
@@ -201,7 +201,7 @@ class PLR(LinearScoreMixin):
                 # Binary predictions check for binary treatment
                 if self._dml_data.binary_treats.all():
                     _check_binary_predictions(
-                        self._predictions["ml_m"][:, i_rep],
+                        self.predictions["ml_m"][:, i_rep],
                         self._learners["ml_m"].learner,
                         "ml_m",
                         self._dml_data.d_cols[0],
@@ -233,14 +233,14 @@ class PLR(LinearScoreMixin):
             ml_l_info = self._learners["ml_l"]
             ml_l = clone(ml_l_info.learner)
             ml_l.fit(x_train, y_train)
-            self._predictions["ml_l"][test_idx, i_rep] = predict_nuisance(ml_l, x_test, ml_l_info.is_classifier)
+            self.predictions["ml_l"][test_idx, i_rep] = predict_nuisance(ml_l, x_test, ml_l_info.is_classifier)
 
         # Fit and predict ml_m: E[D|X]
         if not m_external:
             ml_m_info = self._learners["ml_m"]
             ml_m = clone(ml_m_info.learner)
             ml_m.fit(x_train, d_train)
-            self._predictions["ml_m"][test_idx, i_rep] = predict_nuisance(ml_m, x_test, ml_m_info.is_classifier)
+            self.predictions["ml_m"][test_idx, i_rep] = predict_nuisance(ml_m, x_test, ml_m_info.is_classifier)
 
         # For IV-type: fit ml_g after last fold when all ml_l/ml_m predictions are available
         is_last_fold = i_fold == self.n_folds - 1
@@ -251,8 +251,8 @@ class PLR(LinearScoreMixin):
                 self._register_learner("ml_g", self._learners["ml_l"].learner)
 
             # Compute initial theta from full cross-fitted predictions
-            l_hat = self._predictions["ml_l"][:, i_rep]
-            m_hat = self._predictions["ml_m"][:, i_rep]
+            l_hat = self.predictions["ml_l"][:, i_rep]
+            m_hat = self.predictions["ml_m"][:, i_rep]
             psi_a = -(d - m_hat) * (d - m_hat)
             psi_b = (d - m_hat) * (y - l_hat)
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
@@ -260,10 +260,10 @@ class PLR(LinearScoreMixin):
             # Second pass: fit ml_g with cross-fitting across all folds
             ml_g_info = self._learners["ml_g"]
             for j_fold in range(self.n_folds):
-                train_j, test_j = self._smpls[i_rep][j_fold]
+                train_j, test_j = self.smpls[i_rep][j_fold]
                 ml_g = clone(ml_g_info.learner)
                 ml_g.fit(x[train_j], y[train_j] - theta_initial * d[train_j])
-                self._predictions["ml_g"][test_j, i_rep] = predict_nuisance(ml_g, x[test_j], ml_g_info.is_classifier)
+                self.predictions["ml_g"][test_j, i_rep] = predict_nuisance(ml_g, x[test_j], ml_g_info.is_classifier)
 
     def _get_tuning_data(
         self,
@@ -366,16 +366,16 @@ class PLR(LinearScoreMixin):
         y = self._dml_data.y
         d = self._dml_data.d
 
-        m_hat = self._predictions["ml_m"]  # (n_obs, n_rep)
+        m_hat = self.predictions["ml_m"]  # (n_obs, n_rep)
         v_hat = d[:, np.newaxis] - m_hat  # (n_obs, n_rep)
 
         if self.score == "partialling out":
-            l_hat = self._predictions["ml_l"]
+            l_hat = self.predictions["ml_l"]
             u_hat = y[:, np.newaxis] - l_hat
             psi_a = -v_hat * v_hat
             psi_b = v_hat * u_hat
         elif self.score == "IV-type":
-            g_hat = self._predictions["ml_g"]
+            g_hat = self.predictions["ml_g"]
             psi_a = -v_hat * d[:, np.newaxis]
             psi_b = v_hat * (y[:, np.newaxis] - g_hat)
         else:
@@ -405,13 +405,13 @@ class PLR(LinearScoreMixin):
 
         y = self._dml_data.y[:, np.newaxis]
         d = self._dml_data.d[:, np.newaxis]
-        m_hat = self._predictions["ml_m"]
+        m_hat = self.predictions["ml_m"]
 
         if self.score == "partialling out":
-            Y_tilde = y - self._predictions["ml_l"]
+            Y_tilde = y - self.predictions["ml_l"]
             D_tilde = d - m_hat
         else:  # "IV-type"
-            Y_tilde = y - self._all_thetas * m_hat - self._predictions["ml_g"]
+            Y_tilde = y - self._all_thetas * m_hat - self.predictions["ml_g"]
             D_tilde = d - m_hat
         return Y_tilde, D_tilde
 
@@ -525,16 +525,16 @@ class PLR(LinearScoreMixin):
 
         y = self._dml_data.y  # (n_obs,)
         d = self._dml_data.d  # (n_obs,)
-        m_hat = self._predictions["ml_m"]  # (n_obs, n_rep)
+        m_hat = self.predictions["ml_m"]  # (n_obs, n_rep)
         theta = self._all_thetas  # (1, n_rep) — broadcasts with (n_obs, n_rep)
 
         treatment_residual = d[:, np.newaxis] - m_hat  # (n_obs, n_rep)
 
         if self.score == "partialling out":
-            l_hat = self._predictions["ml_l"]  # (n_obs, n_rep)
+            l_hat = self.predictions["ml_l"]  # (n_obs, n_rep)
             sigma2_score = (y[:, np.newaxis] - l_hat - theta * treatment_residual) ** 2
         else:  # "IV-type"
-            g_hat = self._predictions["ml_g"]  # (n_obs, n_rep)
+            g_hat = self.predictions["ml_g"]  # (n_obs, n_rep)
             sigma2_score = (y[:, np.newaxis] - g_hat - theta * d[:, np.newaxis]) ** 2
 
         # sigma2: mean across observations, reshaped to (1, 1, n_rep)
