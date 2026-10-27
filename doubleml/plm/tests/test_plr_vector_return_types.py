@@ -96,6 +96,17 @@ def test_confint_joint_shape(fitted_plr_vector):
 
 
 @pytest.mark.ci
+@pytest.mark.parametrize("method", ["romano-wolf", "bonferroni"])
+def test_p_adjust_type_and_index(fitted_plr_vector, method):
+    """p_adjust returns a single (n_treat, 2) DataFrame indexed by d_cols."""
+    p_val = fitted_plr_vector.p_adjust(method=method)
+    assert isinstance(p_val, pd.DataFrame)
+    assert p_val.shape == (N_TREAT, 2)
+    assert p_val.columns.tolist() == ["thetas", "pval"]
+    assert p_val.index.tolist() == ["d1", "d2"]
+
+
+@pytest.mark.ci
 def test_psi_shape(fitted_plr_vector):
     """psi has shape (n_obs, n_treat, n_rep)."""
     assert fitted_plr_vector.psi.shape == (N_OBS, N_TREAT, N_REP)

@@ -79,6 +79,16 @@ def test_confint_joint(fitted_dml_obj):
 
 
 @pytest.mark.ci
+@pytest.mark.parametrize("method", ["romano-wolf", "bonferroni"])
+def test_p_adjust_type_and_index(fitted_dml_obj, method):
+    """p_adjust returns a single DataFrame indexed by the treatment name."""
+    p_val = fitted_dml_obj.p_adjust(method=method)
+    assert isinstance(p_val, pd.DataFrame)
+    assert p_val.columns.tolist() == ["thetas", "pval"]
+    assert p_val.index.tolist() == obj_dml_data.d_cols
+
+
+@pytest.mark.ci
 def test_psi_shape(fitted_dml_obj):
     assert isinstance(fitted_dml_obj.psi, np.ndarray)
     assert fitted_dml_obj.psi.shape == (N_OBS, 1, N_REP)
@@ -212,7 +222,7 @@ def test_sensitivity_elements_type_and_shape(fitted_dml_obj):
 def test_sensitivity_analysis_runs(fitted_dml_obj):
     """sensitivity_analysis() completes without error and returns self."""
     result = fitted_dml_obj.sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0)
-    assert result is fitted_dml_obj.framework
+    assert result is fitted_dml_obj
 
 
 @pytest.mark.ci
