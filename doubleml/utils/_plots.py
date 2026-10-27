@@ -11,6 +11,7 @@ def _sensitivity_contour_plot(
     scenario_y,
     scenario_value,
     include_scenario,
+    rho,
     benchmarks=None,
     fill=True,
 ):
@@ -22,10 +23,21 @@ def _sensitivity_contour_plot(
         contours_coloring = "lines"
 
     # create figure
-    axis_names = ["cf_d", "cf_y ", "Bound"]
+    axis_names = ["cf_d", "cf_y", "Bound"]
     fig = go.Figure()
     # basic contour plot
-    hov_temp = axis_names[0] + ": %{x:.3f}" + "<br>" + axis_names[1] + ": %{y:.3f}" + "</b>" + "<br>" + axis_names[2]
+    hov_temp = (
+        axis_names[0]
+        + ": %{x:.3f}"
+        + "<br>"
+        + axis_names[1]
+        + ": %{y:.3f}"
+        + "<br>"
+        + f"rho: {rho:.3f}"
+        + "<br>"
+        + "<b>"
+        + axis_names[2]
+    )
     fig.add_trace(
         go.Contour(
             z=contour_values,
