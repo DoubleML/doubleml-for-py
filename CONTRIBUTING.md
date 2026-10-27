@@ -5,6 +5,8 @@ Everyone is welcome to contribute.
 All contributors should adhere to these contributing guidelines
 and our [code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/main/CODE_OF_CONDUCT.md).
 The contributing guidelines are particularly helpful to get started for your first contribution.
+By contributing, you agree that your contributions are licensed under the project's
+[BSD-3-Clause license](https://github.com/DoubleML/doubleml-for-py/blob/main/LICENSE).
 
 ## Submit a Bug Report :bug:
 To submit a **bug report**, you can use our
