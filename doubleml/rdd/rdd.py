@@ -432,7 +432,7 @@ class RDFlex:
         ZX_left = np.column_stack((Z_left, X))
         ZX_right = np.column_stack((Z_right, X))
 
-        mu_left, mu_right = np.full_like(outcome, fill_value=np.nan), np.full_like(outcome, fill_value=np.nan)
+        mu_left, mu_right = np.full(shape=outcome.shape, fill_value=np.nan), np.full(shape=outcome.shape, fill_value=np.nan)
 
         for train_index, test_index in smpls:
             estimator = clone(self._learner[estimator_name])
