@@ -533,7 +533,7 @@ class DoubleMLFramework:
         if isinstance(other, (int, float)):
             all_thetas = np.multiply(other, self.all_thetas)
             var_scaling_factors = self.var_scaling_factors
-            all_ses = np.multiply(other, self.all_ses)
+            all_ses = np.multiply(abs(other), self.all_ses)
             scaled_psi = np.multiply(other, self.scaled_psi)
 
             doubleml_dict = {
@@ -572,6 +572,9 @@ class DoubleMLFramework:
 
     def __rmul__(self, other):
         return self.__mul__(other)
+
+    def __neg__(self):
+        return self.__mul__(-1)
 
     def _calc_sensitivity_analysis(self, cf_y, cf_d, rho, level):
         if not self._sensitivity_implemented:

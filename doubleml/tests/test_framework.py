@@ -282,3 +282,57 @@ def test_dml_framework_from_doubleml_ci(dml_framework_from_doubleml_fixture):
     assert isinstance(dml_framework_from_doubleml_fixture["ci_joint_mul_obj"], pd.DataFrame)
     assert isinstance(dml_framework_from_doubleml_fixture["ci_concat"], pd.DataFrame)
     assert isinstance(dml_framework_from_doubleml_fixture["ci_joint_concat"], pd.DataFrame)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(
+    "scalar, op",
+    [(-1.0, lambda fw: -fw), (-1.0, lambda fw: -1 * fw), (-2.5, lambda fw: fw * -2.5)],
+    ids=["neg", "rmul", "mul"],
+)
+def test_dml_framework_mul_negative_scalar(n_rep, n_thetas, scalar, op):
+    """Negation or multiplication by a negative scalar flips estimates, t-stats and CIs; standard errors stay positive."""
+    n_obs = 100
+    psi_a = np.ones(shape=(n_obs, n_thetas, n_rep))
+    psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
+    dml_framework_obj = DoubleMLFramework(dml_core=DoubleMLCore(**generate_dml_dict(psi_a, psi_b)))
+    dml_framework_obj_mul = op(dml_framework_obj)
+
+    assert np.allclose(dml_framework_obj_mul.all_thetas, scalar * dml_framework_obj.all_thetas)
+    assert np.allclose(dml_framework_obj_mul.scaled_psi, scalar * dml_framework_obj.scaled_psi)
+    assert np.allclose(dml_framework_obj_mul.all_ses, abs(scalar) * dml_framework_obj.all_ses)
+    assert np.allclose(dml_framework_obj_mul.all_t_stats, -dml_framework_obj.all_t_stats)
+
+    np.random.seed(3141)
+    dml_framework_obj.bootstrap(method="normal")
+    np.random.seed(3141)
+    dml_framework_obj_mul.bootstrap(method="normal")
+    assert np.allclose(dml_framework_obj_mul.boot_t_stat, -dml_framework_obj.boot_t_stat)
+
+    # pointwise and joint confidence intervals are mirrored
+    for joint in [False, True]:
+        ci = dml_framework_obj.confint(joint=joint)
+        ci_mul = dml_framework_obj_mul.confint(joint=joint)
+        assert np.allclose(ci_mul.iloc[:, 0], scalar * ci.iloc[:, 1])
+        assert np.allclose(ci_mul.iloc[:, 1], scalar * ci.iloc[:, 0])
+
+
+@pytest.mark.ci
+def test_dml_framework_from_doubleml_neg(dml_framework_from_doubleml_fixture):
+    """Negation matches ``fw - fw - fw`` (standard errors recomputed from the scores) and mirrors sensitivity bounds."""
+    dml_framework_obj = dml_framework_from_doubleml_fixture["dml_framework_obj"]
+    dml_framework_obj_neg = -dml_framework_obj
+    dml_framework_obj_sub = dml_framework_obj - dml_framework_obj - dml_framework_obj
+
+    assert np.allclose(dml_framework_obj_neg.all_thetas, dml_framework_obj_sub.all_thetas)
+    assert np.allclose(dml_framework_obj_neg.all_ses, dml_framework_obj_sub.all_ses)
+
+    dml_framework_obj.sensitivity_analysis(null_hypothesis=0.0)
+    dml_framework_obj_neg.sensitivity_analysis(null_hypothesis=0.0)
+    params = dml_framework_obj.sensitivity_params
+    params_neg = dml_framework_obj_neg.sensitivity_params
+    for key in ["theta", "ci"]:
+        assert np.allclose(params_neg[key]["lower"], -params[key]["upper"])
+        assert np.allclose(params_neg[key]["upper"], -params[key]["lower"])
+    assert np.allclose(params_neg["rv"], params["rv"], atol=1e-6)
+    assert np.allclose(params_neg["rva"], params["rva"], atol=1e-6)
