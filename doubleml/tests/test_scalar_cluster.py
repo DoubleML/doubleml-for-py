@@ -56,6 +56,29 @@ def test_scalar_plr_cluster_set_sample_splitting():
     assert np.isclose(dml_obj.se[0], dml_obj_ext.se[0], rtol=1e-9, atol=1e-4)
 
 
+@pytest.mark.ci
+@pytest.mark.parametrize("cluster_cols", [["cluster_i"], ["cluster_i", "cluster_j"]], ids=["one-way", "two-way"])
+@pytest.mark.parametrize("drawn_folds, supplied_folds", [(2, 3), (3, 2)])
+def test_scalar_plr_cluster_set_sample_splitting_other_n_folds(cluster_cols, drawn_folds, supplied_folds):
+    """External cluster splits with a different fold count than drawn before give the same inference (GH #410)."""
+    np.random.seed(3141)
+    n_clusters = 12
+    df = make_plr_CCDDHNR2018(n_obs=n_clusters**2, dim_x=5, return_type="DataFrame")
+    df["cluster_i"] = np.repeat(np.arange(n_clusters), n_clusters)
+    df["cluster_j"] = np.tile(np.arange(n_clusters), n_clusters)
+    x_cols = [col for col in df.columns if col.startswith("X")]
+    dml_data = DoubleMLData(df, y_col="y", d_cols="d", x_cols=x_cols, cluster_cols=cluster_cols)
+
+    dml_obj = PLR(dml_data, ml_l=LinearRegression(), ml_m=LinearRegression())
+    dml_obj.draw_sample_splitting(n_folds=supplied_folds, n_rep=2).fit()
+    dml_obj_ext = PLR(dml_data, ml_l=LinearRegression(), ml_m=LinearRegression())
+    dml_obj_ext.draw_sample_splitting(n_folds=drawn_folds)
+    dml_obj_ext.set_sample_splitting(all_smpls=dml_obj.smpls, all_smpls_cluster=dml_obj.smpls_cluster).fit()
+
+    np.testing.assert_allclose(dml_obj_ext.all_thetas, dml_obj.all_thetas, rtol=1e-9)
+    np.testing.assert_allclose(dml_obj_ext.all_ses, dml_obj.all_ses, rtol=1e-9)
+
+
 @pytest.fixture(scope="module")
 def dml_plr_scalar_cluster_with_index(generate_data1, learner):
     """Fit scalar PLR with and without clustering for comparison."""

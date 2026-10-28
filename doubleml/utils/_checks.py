@@ -456,9 +456,7 @@ def _check_cluster_sample_splitting(all_smpls_cluster, dml_data, n_rep, n_folds)
                 ]
                 is_cluster_partition = _check_cluster_partitions(cluster_partition, clusters)
                 if not is_cluster_partition:
-                    raise ValueError(
-                        "Invalid cluster partition provided. At least one inner list does not form a partition."
-                    )
+                    raise ValueError("Invalid cluster partition provided. At least one inner list does not form a partition.")
 
     n_cluster_vars = dml_data.n_cluster_vars
     n_folds_per_cluster = int(round(n_folds ** (1.0 / n_cluster_vars)))

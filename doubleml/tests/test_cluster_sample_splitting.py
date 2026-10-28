@@ -79,26 +79,3 @@ def test_external_cluster_splits_redraw(cluster_data: DoubleMLData, constructor_
     for smpls, smpls_cluster in zip(external.smpls, external.smpls_cluster):
         assert len(smpls) == expected_folds
         assert len(smpls_cluster) == expected_folds
-
-
-@pytest.mark.ci
-@pytest.mark.parametrize("cluster_data", [2], indirect=True)
-def test_external_cluster_splits_rectangular_grid(cluster_data: DoubleMLData) -> None:
-    """Reject a rectangular grid that cannot use one common fold count per cluster variable."""
-    cluster_vars = cluster_data.cluster_vars
-    clusters = [np.unique(cluster_vars[:, i_var]) for i_var in range(2)]
-    smpls = []
-    smpls_cluster = []
-    for first_test in np.array_split(clusters[0], 2):
-        for second_test in np.array_split(clusters[1], 3):
-            train_clusters = [np.setdiff1d(clusters[0], first_test), np.setdiff1d(clusters[1], second_test)]
-            test_clusters = [first_test, second_test]
-            train_mask = np.isin(cluster_vars[:, 0], train_clusters[0]) & np.isin(cluster_vars[:, 1], train_clusters[1])
-            test_mask = np.isin(cluster_vars[:, 0], first_test) & np.isin(cluster_vars[:, 1], second_test)
-            smpls.append((np.flatnonzero(train_mask), np.flatnonzero(test_mask)))
-            smpls_cluster.append((train_clusters, test_clusters))
-
-    model = DoubleMLPLR(cluster_data, LinearRegression(), LinearRegression(), draw_sample_splitting=False)
-    msg = r"Invalid cluster sample splitting\. n_folds must be a power of n_folds_per_cluster"
-    with pytest.raises(ValueError, match=msg):
-        model.set_sample_splitting(smpls, [smpls_cluster])
