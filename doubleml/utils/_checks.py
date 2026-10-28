@@ -446,16 +446,30 @@ def _check_cluster_sample_splitting(all_smpls_cluster, dml_data, n_rep, n_folds)
         n_folds_cluster = len(all_smpls_cluster[i_rep])
         if n_folds_cluster != n_folds:
             raise ValueError("Invalid samples provided. Number of folds for all_smpls and all_smpls_cluster must be the same.")
-        for i_cluster in range(dml_data.n_cluster_vars):
-            this_cluster_var = dml_data.cluster_vars[:, i_cluster]
-            clusters = np.unique(this_cluster_var)
-            cluster_partition = [all_smpls_cluster[0][0][0][i_cluster], all_smpls_cluster[0][0][1][i_cluster]]
-            is_cluster_partition = _check_cluster_partitions(cluster_partition, clusters)
-            if not is_cluster_partition:
-                raise ValueError("Invalid cluster partition provided. At least one inner list does not form a partition.")
+        for i_fold in range(n_folds):
+            for i_cluster in range(dml_data.n_cluster_vars):
+                this_cluster_var = dml_data.cluster_vars[:, i_cluster]
+                clusters = np.unique(this_cluster_var)
+                cluster_partition = [
+                    all_smpls_cluster[i_rep][i_fold][0][i_cluster],
+                    all_smpls_cluster[i_rep][i_fold][1][i_cluster],
+                ]
+                is_cluster_partition = _check_cluster_partitions(cluster_partition, clusters)
+                if not is_cluster_partition:
+                    raise ValueError(
+                        "Invalid cluster partition provided. At least one inner list does not form a partition."
+                    )
+
+    n_cluster_vars = dml_data.n_cluster_vars
+    n_folds_per_cluster = int(round(n_folds ** (1.0 / n_cluster_vars)))
+    if n_folds_per_cluster**n_cluster_vars != n_folds:
+        raise ValueError(
+            "Invalid cluster sample splitting. The number of folds must equal n_folds_per_cluster ** n_cluster_vars "
+            f"(one common fold count per cluster variable). Got {n_folds} folds for {n_cluster_vars} cluster variables."
+        )
 
     smpls_cluster = all_smpls_cluster
-    return smpls_cluster
+    return smpls_cluster, n_folds_per_cluster
 
 
 def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_data, n_obs=None):
@@ -526,11 +540,12 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
                 raise ValueError("Invalid partition provided. At least one inner list does not form a partition.")
 
     if is_cluster_data:
-        smpls_cluster = _check_cluster_sample_splitting(all_smpls_cluster, dml_data, n_rep, n_folds)
+        smpls_cluster, n_folds_per_cluster = _check_cluster_sample_splitting(all_smpls_cluster, dml_data, n_rep, n_folds)
     else:
         smpls_cluster = None
+        n_folds_per_cluster = None
 
-    return smpls, smpls_cluster, n_rep, n_folds
+    return smpls, smpls_cluster, n_rep, n_folds, n_folds_per_cluster
 
 
 def _check_learner(learner, learner_name, regressor=True, classifier=True):
