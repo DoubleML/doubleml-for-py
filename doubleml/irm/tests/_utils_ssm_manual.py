@@ -244,8 +244,8 @@ def selection_score_elements(dtreat, dcontrol, g_d1, g_d0, pi, m, s, y, normaliz
 
     # psi_b
     if normalize_ipw:
-        weight_treat = sum(dtreat) / sum((dtreat * s) / (m * pi))
-        weight_control = sum(dcontrol) / sum((dcontrol * s) / ((1 - m) * pi))
+        weight_treat = len(y) / sum((dtreat * s) / (m * pi))
+        weight_control = len(y) / sum((dcontrol * s) / ((1 - m) * pi))
 
         psi_b1 = weight_treat * ((dtreat * s * (y - g_d1)) / (m * pi)) + g_d1
         psi_b0 = weight_control * ((dcontrol * s * (y - g_d0)) / ((1 - m) * pi)) + g_d0

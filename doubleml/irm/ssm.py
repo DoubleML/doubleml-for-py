@@ -445,8 +445,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
         # psi_b
         if self._normalize_ipw:
-            weight_treat = sum(dtreat) / sum((dtreat * s) / (pi * m))
-            weight_control = sum(dcontrol) / sum((dcontrol * s) / (pi * (1 - m)))
+            weight_treat = len(y) / sum((dtreat * s) / (pi * m))
+            weight_control = len(y) / sum((dcontrol * s) / (pi * (1 - m)))
 
             psi_b1 = weight_treat * ((dtreat * s * (y - g_d1)) / (m * pi)) + g_d1
             psi_b0 = weight_control * ((dcontrol * s * (y - g_d0)) / ((1 - m) * pi)) + g_d0
