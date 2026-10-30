@@ -717,7 +717,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         if not isinstance(all_smpls, list):
             raise TypeError(f"all_smpls must be of list type. {str(all_smpls)} of type {str(type(all_smpls))} was passed.")
 
-        smpls, smpls_cluster, n_rep, n_folds = _check_sample_splitting(
+        smpls, smpls_cluster, n_rep, n_folds, n_folds_per_cluster = _check_sample_splitting(
             all_smpls,
             all_smpls_cluster,
             self._dml_data,
@@ -729,17 +729,7 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         self._smpls_cluster = smpls_cluster
         self._n_rep = n_rep
         self._n_folds = n_folds
-        if self._dml_data.is_cluster_data:
-            n_cluster_vars = self._dml_data.n_cluster_vars
-            n_folds_per_cluster = int(round(n_folds ** (1.0 / n_cluster_vars)))
-            if n_folds_per_cluster**n_cluster_vars != n_folds:
-                raise ValueError(
-                    "Invalid cluster sample splitting. n_folds must be a power of n_folds_per_cluster "
-                    "for the number of cluster variables."
-                )
-            self._n_folds_per_cluster = n_folds_per_cluster
-        else:
-            self._n_folds_per_cluster = None
+        self._n_folds_per_cluster = n_folds_per_cluster
 
         self._reset_fit_state()
         self._check_smpls_dependent_inputs()

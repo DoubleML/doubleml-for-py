@@ -72,6 +72,8 @@ class DoubleMLVector(DoubleMLBase, ABC):
     ) -> None:
         """Initialize DoubleMLVector. See class docstring for parameter details."""
         super().__init__(obj_dml_data)
+        if obj_dml_data.is_cluster_data:
+            raise NotImplementedError("Cluster data is not yet supported for DoubleMLVector.")
         self._dml_data: DoubleMLData = obj_dml_data  # narrow for attribute access
         self._score = score
 
@@ -447,7 +449,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         if not isinstance(all_smpls, list):
             raise TypeError(f"all_smpls must be of list type. " f"{str(all_smpls)} of type {str(type(all_smpls))} was passed.")
 
-        smpls, smpls_cluster, n_rep, n_folds = _check_sample_splitting(
+        smpls, smpls_cluster, n_rep, n_folds, n_folds_per_cluster = _check_sample_splitting(
             all_smpls,
             all_smpls_cluster,
             self._dml_data,
@@ -459,7 +461,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         self._smpls_cluster = smpls_cluster
         self._n_rep = n_rep
         self._n_folds = n_folds
-        self._n_folds_per_cluster = None
+        self._n_folds_per_cluster = n_folds_per_cluster
 
         self._reset_fit_state()
         return self

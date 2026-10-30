@@ -69,6 +69,17 @@ def test_exception_instrument():
 
 
 @pytest.mark.ci
+def test_exception_cluster_data():
+    """Cluster data is rejected until DoubleMLVector supports clustering."""
+    dml_data = _make_bivariate_data()
+    df = dml_data.data.assign(cluster=np.arange(dml_data.n_obs) // 10)
+    cluster_data = dml.DoubleMLData(df, y_col="y", d_cols=["d1", "d2"], x_cols=dml_data.x_cols, cluster_cols="cluster")
+    msg = r"Cluster data is not yet supported for DoubleMLVector\."
+    with pytest.raises(NotImplementedError, match=msg):
+        PLRVector(cluster_data)
+
+
+@pytest.mark.ci
 def test_exception_invalid_score():
     """Unknown score string is rejected at construction."""
     msg = r"Invalid score 'invalid'\."
