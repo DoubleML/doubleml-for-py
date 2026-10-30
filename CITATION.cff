@@ -10,8 +10,8 @@ type: software
 authors:
   - given-names: Philipp
     family-names: Bach
-    email: philipp.bach@uni-hamburg.de
-    affiliation: University of Hamburg
+    email: philipp.bach@fu-berlin.de
+    affiliation: FU Berlin
     orcid: 'https://orcid.org/0000-0002-7183-9239'
   - given-names: Victor
     family-names: Chernozhukov
@@ -20,8 +20,8 @@ authors:
     email: vchern@mit.edu
   - given-names: Sven
     family-names: Klaassen
-    email: sven.klaassen@uni-hamburg.de
-    affiliation: University of Hamburg
+    email: s.klaassen@stat-econ.uni-kiel.de
+    affiliation: CAU Kiel
     orcid: 'https://orcid.org/0009-0004-9080-0809'
   - given-names: Malte S.
     family-names: Kurz
@@ -29,7 +29,7 @@ authors:
     family-names: Spindler
     email: martin.spindler@uni-hamburg.de
     orcid: 'https://orcid.org/0000-0002-1294-7782'
-    affiliation: University of Hamburg
+    affiliation: UHH
 repository-code: 'https://github.com/DoubleML/doubleml-for-py'
 url: 'https://docs.doubleml.org/stable/index.html'
 license: BSD-3-Clause
