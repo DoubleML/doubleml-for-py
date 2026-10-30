@@ -309,9 +309,10 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Return a single-treatment :class:`~doubleml.data.DoubleMLData` for ``d_col``.
 
         Creates a new :class:`~doubleml.data.DoubleMLData` that **shares the
-        underlying DataFrame** (zero additional memory for array data). Other
-        treatment columns are appended to ``x_cols`` so that the
-        :class:`DoubleMLScalar` single-treatment check passes.
+        underlying DataFrame** (zero additional memory for array data). If
+        ``use_other_treat_as_covariate`` is ``True`` (the default), the other
+        treatment columns are appended to ``x_cols``, as in
+        :meth:`~doubleml.data.DoubleMLData.set_x_d`.
 
         Override in subclasses for non-d_col scenarios. For example, an APOS-like
         class would override this to return ``self._dml_data`` unchanged (each APO
@@ -325,12 +326,14 @@ class DoubleMLVector(DoubleMLBase, ABC):
         Returns
         -------
         DoubleMLData
-            A :class:`~doubleml.data.DoubleMLData` with ``d_cols=[d_col]``
-            and all other treatment columns added to ``x_cols``.
+            A :class:`~doubleml.data.DoubleMLData` with ``d_cols=[d_col]``. The other
+            treatment columns are added to ``x_cols`` if ``use_other_treat_as_covariate``
+            is ``True``.
 
         """
-        other_d_cols = [c for c in self._dml_data.d_cols if c != d_col]
-        x_cols = list(self._dml_data.x_cols) + other_d_cols
+        x_cols = list(self._dml_data.x_cols)
+        if self._dml_data.use_other_treat_as_covariate:
+            x_cols += [c for c in self._dml_data.d_cols if c != d_col]
 
         return DoubleMLData(
             data=self._dml_data.data,  # Shared DataFrame — zero copy overhead
