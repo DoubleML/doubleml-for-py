@@ -443,18 +443,17 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         # psi_a
         psi_a = -1
 
-        # psi_b
+        # inverse probability weights
+        ipw_treat = (dtreat * s) / (m * pi)
+        ipw_control = (dcontrol * s) / ((1 - m) * pi)
         if self._normalize_ipw:
-            weight_treat = len(y) / sum((dtreat * s) / (pi * m))
-            weight_control = len(y) / sum((dcontrol * s) / (pi * (1 - m)))
+            # normalize the weights to mean one in each treatment arm
+            ipw_treat = ipw_treat / np.mean(ipw_treat)
+            ipw_control = ipw_control / np.mean(ipw_control)
 
-            psi_b1 = weight_treat * ((dtreat * s * (y - g_d1)) / (m * pi)) + g_d1
-            psi_b0 = weight_control * ((dcontrol * s * (y - g_d0)) / ((1 - m) * pi)) + g_d0
-
-        else:
-            psi_b1 = (dtreat * s * (y - g_d1)) / (m * pi) + g_d1
-            psi_b0 = (dcontrol * s * (y - g_d0)) / ((1 - m) * pi) + g_d0
-
+        # psi_b
+        psi_b1 = ipw_treat * (y - g_d1) + g_d1
+        psi_b0 = ipw_control * (y - g_d0) + g_d0
         psi_b = psi_b1 - psi_b0
 
         return psi_a, psi_b
