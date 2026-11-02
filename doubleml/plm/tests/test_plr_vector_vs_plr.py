@@ -1,6 +1,7 @@
 """Compare PLRVector against the legacy DoubleMLPLR implementation for multi-treatment data."""
 
 import numpy as np
+import pandas as pd
 import pytest
 from sklearn.base import clone
 from sklearn.linear_model import Lasso, LinearRegression
@@ -118,5 +119,18 @@ def test_sensitivity_max_bias_equal(comparison_fixture):
     np.testing.assert_allclose(
         new.framework.sensitivity_elements["max_bias"],
         old.framework.sensitivity_elements["max_bias"],
+        rtol=1e-9,
+    )
+
+
+@pytest.mark.ci
+def test_sensitivity_benchmark_equal(comparison_fixture):
+    """PLRVector.sensitivity_benchmark matches legacy DoubleMLPLR.sensitivity_benchmark."""
+    old = comparison_fixture["old"]
+    new = comparison_fixture["new"]
+    benchmarking_set = ["X1"]
+    pd.testing.assert_frame_equal(
+        new.sensitivity_benchmark(benchmarking_set=benchmarking_set),
+        old.sensitivity_benchmark(benchmarking_set=benchmarking_set),
         rtol=1e-9,
     )

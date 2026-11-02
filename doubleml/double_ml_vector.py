@@ -742,9 +742,15 @@ class DoubleMLVector(DoubleMLBase, ABC):
         x_list_short = [x for x in x_list_long if x not in benchmarking_set]
         dml_short = copy.deepcopy(self)
         dml_short._dml_data.x_cols = x_list_short
+        long_models = dml_short._modellist
+        if long_models is None:
+            raise ValueError("Sub-models are not initialized.")
         # Sub-models each hold their own DoubleMLData — rebuild them from the updated _dml_data
         # so that the short-form model actually uses the reduced feature set.
         dml_short._modellist = dml_short._initialize_models()
+        # Learners are only stored on the sub-models, so carry them over to the rebuilt ones.
+        for model_short, model_long in zip(dml_short._modellist, long_models):
+            model_short._learners = model_long._learners
         dml_short._framework = None
 
         if fit_args is not None:
