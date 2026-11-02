@@ -100,4 +100,4 @@ scikit-learn 1.9.1, and DoubleML based on upstream revision
 ``469daf260d4ea3520b8265acf17a9d29e800c5e0``. Three worker processes were used.
 
 This pull request includes code written with the assistance of AI.
-The code has not yet been reviewed by a human.
+`Human review status <https://github.com/DoubleML/doubleml-for-py/pull/429>`_ is tracked in the pull request.

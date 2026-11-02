@@ -11,7 +11,7 @@ from time import perf_counter
 
 import numpy as np
 from joblib import Parallel, delayed
-from scipy.stats import norm
+from scipy.stats import binomtest
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import KFold
 from threadpoolctl import threadpool_limits
@@ -23,8 +23,8 @@ from doubleml.utils import fit_until_reproducible, reproducibility_check
 def make_model():
     rng = np.random.RandomState(412)
     x = rng.normal(size=(81, 4))
-    d = x[:, 0] + rng.normal(size=81)
-    y = 0.5 * d + x[:, 1] + rng.normal(size=81)
+    d = x[:, 0] + rng.normal(size=len(x))
+    y = 0.5 * d + x[:, 1] + rng.normal(size=len(x))
     data = DoubleMLData.from_arrays(x, y, d)
     return DoubleMLPLR(data, LinearRegression(), LinearRegression(), n_folds=3, draw_sample_splitting=False)
 
@@ -44,9 +44,9 @@ def run_pair(model, pair, tolerance, max_reps):
 def fixed_run(model, seed, repetitions, tolerance):
     with threadpool_limits(limits=1):
         worker = deepcopy(model)
-        splitter = KFold(3, shuffle=True, random_state=np.random.RandomState(seed))
+        splitter = KFold(model.n_folds, shuffle=True, random_state=np.random.RandomState(seed))
         start = perf_counter()
-        worker.set_sample_splitting([list(splitter.split(np.empty(81))) for _ in range(repetitions)])
+        worker.set_sample_splitting([list(splitter.split(np.empty(model.n_obs))) for _ in range(repetitions)])
         worker.fit(store_predictions=False)
         report = reproducibility_check(worker.all_coef[0], tolerance)
         return {"mean": report["mean"], "mcse": report["mcse"], "seconds": perf_counter() - start}
@@ -56,10 +56,9 @@ def benchmark(pairs, fixed_runs, tolerance, max_reps, n_jobs):
     model = make_model()
     start = perf_counter()
     rows = Parallel(n_jobs=n_jobs)(delayed(run_pair)(model, i, tolerance, max_reps) for i in range(pairs))
-    p = float(np.mean([r["exceeded"] for r in rows]))
-    z = norm.isf(0.025)
-    center = (p + z**2 / (2 * pairs)) / (1 + z**2 / pairs)
-    half = z * np.sqrt(p * (1 - p) / pairs + z**2 / (4 * pairs**2)) / (1 + z**2 / pairs)
+    exceedances = binomtest(sum(r["exceeded"] for r in rows), pairs)
+    interval = exceedances.proportion_ci(method="wilson")
+    nuisance_fits_per_rep = model.n_folds * len(model.learner)
     result = {
         "pairs": pairs,
         "data_seed": 412,
@@ -67,11 +66,11 @@ def benchmark(pairs, fixed_runs, tolerance, max_reps, n_jobs):
         "error_rate": 0.05,
         "min_reps": 20,
         "max_reps": max_reps,
-        "exceedance_rate": p,
-        "exceedance_interval_95": [center - half, center + half],
+        "exceedance_rate": exceedances.statistic,
+        "exceedance_interval_95": [float(interval.low), float(interval.high)],
         "mean_repetitions": float(np.mean([r["reps"] for r in rows])),
         "budget_exhaustion_rate": float(np.mean([r["exhausted"] for r in rows])),
-        "total_nuisance_fits": int(6 * np.sum([r["reps"] for r in rows])),
+        "total_nuisance_fits": int(nuisance_fits_per_rep * np.sum([r["reps"] for r in rows])),
         "elapsed_seconds": perf_counter() - start,
         "mean_run_seconds": float(np.mean([r["seconds"] for r in rows]) / 2),
         "fixed": {},
@@ -82,7 +81,7 @@ def benchmark(pairs, fixed_runs, tolerance, max_reps, n_jobs):
             "runs": fixed_runs,
             "mean_mcse": float(np.mean([r["mcse"] for r in fixed])),
             "mean_run_seconds": float(np.mean([r["seconds"] for r in fixed])),
-            "nuisance_fits_per_run": 6 * count,
+            "nuisance_fits_per_run": nuisance_fits_per_rep * count,
         }
     return result
 
