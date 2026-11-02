@@ -313,16 +313,15 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     if anticipation_periods > 0:
         # filter time periods
         df = df[df["t"] >= time_periods[anticipation_periods]]
-        # filter treatment after anticipation periods
-        df = df[(df["d"] <= time_periods[-(anticipation_periods + 1)]) | pd.isna(df["d"])]
+        # filter treatment after anticipation periods (never treated: NaT for datetime, inf for float)
+        never_treated = pd.isna(df["d"]) if time_type == "datetime" else np.isinf(df["d"])
+        df = df[(df["d"] <= time_periods[-(anticipation_periods + 1)]) | never_treated]
 
         # update time periods by subtracting time delta
         if time_type == "datetime":
-            df = df[(df["d"] <= time_periods[-(anticipation_periods + 1)]) | pd.isna(df["d"])]
             df["t"] = df["t"].apply(lambda x: x - pd.DateOffset(months=anticipation_periods))
         else:
             assert time_type == "float"
-            df = df[(df["d"] <= time_periods[-(anticipation_periods + 1)]) | np.isinf(df["d"])]
             df["t"] = df["t"] - anticipation_periods
 
     return df
