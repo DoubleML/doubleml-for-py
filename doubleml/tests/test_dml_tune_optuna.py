@@ -1,8 +1,11 @@
 import numpy as np
 import optuna
 import pytest
+from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import KFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 import doubleml as dml
@@ -224,6 +227,55 @@ def test_doubleml_optuna_partial_tuning_single_learner():
 
     assert isinstance(tune_res[0], dict)
     assert set(tune_res[0].keys()) == {"ml_l", "ml_m"}
+
+
+@pytest.mark.ci
+def test_doubleml_optuna_partial_tuning_untuned_pipeline():
+    """An untuned Pipeline learner is left unchanged, so the fit equals one with the tuned params set directly."""
+    np.random.seed(3155)
+    dml_data = make_plr_CCDDHNR2018(n_obs=200, dim_x=5)
+
+    ml_l = make_pipeline(StandardScaler(), DecisionTreeRegressor(random_state=505, min_samples_leaf=5))
+    ml_m = DecisionTreeRegressor(random_state=606)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=3)
+    tune_res = dml_plr.tune_ml_models(
+        ml_param_space={"ml_m": _small_tree_params},
+        optuna_settings=_basic_optuna_settings(),
+        return_tune_res=True,
+    )
+    assert dml_plr.get_params("ml_l") == {"d": [None]}
+    dml_plr.fit()
+
+    ml_m_tuned = clone(ml_m).set_params(**tune_res[0]["ml_m"].best_params)
+    dml_ref = dml.DoubleMLPLR(dml_data, ml_l, ml_m_tuned, n_folds=3)
+    dml_ref.set_sample_splitting(dml_plr.smpls)
+    dml_ref.fit()
+
+    np.testing.assert_allclose(dml_plr.predictions["ml_l"], dml_ref.predictions["ml_l"], rtol=1e-9)
+    np.testing.assert_allclose(dml_plr.predictions["ml_m"], dml_ref.predictions["ml_m"], rtol=1e-9)
+    np.testing.assert_allclose(dml_plr.coef, dml_ref.coef, rtol=1e-9)
+    np.testing.assert_allclose(dml_plr.se, dml_ref.se, rtol=1e-9)
+
+
+@pytest.mark.ci
+def test_doubleml_optuna_partial_tuning_keeps_untuned_params():
+    """Parameters set before tuning are kept for learners without a parameter space."""
+    np.random.seed(3156)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
+
+    ml_l = DecisionTreeRegressor(random_state=707)
+    ml_m = DecisionTreeRegressor(random_state=808)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, n_rep=2)
+    dml_plr.set_ml_nuisance_params("ml_l", "d", {"max_depth": 2})
+
+    dml_plr.tune_ml_models(ml_param_space={"ml_m": _small_tree_params}, optuna_settings=_basic_optuna_settings())
+
+    assert dml_plr.get_params("ml_l") == {"d": [[{"max_depth": 2}] * 2] * 2}
+    for rep_params in dml_plr.get_params("ml_m")["d"]:
+        for fold_params in rep_params:
+            _assert_tree_params(fold_params)
 
 
 @pytest.mark.ci

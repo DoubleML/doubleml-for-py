@@ -991,12 +991,10 @@ class DoubleML(SampleSplittingMixin, ABC):
             tuning_res[i_d] = res
             if set_as_params:
                 for nuisance_model, tuned_result in res.items():
-                    if tuned_result is None:
-                        params_to_set = None
-                    else:
-                        params_to_set = tuned_result.best_params
-
-                    self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
+                    # Learners without a parameter space are not tuned; keep their current parameters.
+                    if tuned_result is None or not tuned_result.tuned:
+                        continue
+                    self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], tuned_result.best_params)
 
         return tuning_res if return_tune_res else self
 
