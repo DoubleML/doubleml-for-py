@@ -1,5 +1,7 @@
 """Test MakeTables integration against fitted DoubleML estimates and rendered tables."""
 
+from copy import deepcopy
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -111,3 +113,18 @@ def test_maketables_before_fit():
     assert "20" in output
     assert "nan" not in output.lower()
     assert model.framework is None
+
+
+@pytest.mark.ci
+def test_maketables_reset_and_refit(fitted_model):
+    """Resetting sample splits must hide old intervals until the model is refitted."""
+    model = deepcopy(fitted_model)
+    before = model.__maketables_coef_table__
+    model.set_sample_splitting(model.smpls, model.smpls_cluster)
+    assert model.summary.empty
+    assert model.__maketables_coef_table__.empty
+    output = ETable(model, coef_fmt="b:.6f [ci95l:.6f, ci95u:.6f]").make("tex")
+    for value in before["ci95l"]:
+        assert f"{value:.6f}" not in output
+    model.fit()
+    pd.testing.assert_frame_equal(model.__maketables_coef_table__, before)

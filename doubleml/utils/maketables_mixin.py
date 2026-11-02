@@ -1,5 +1,6 @@
 """MakeTables plug-in support for models inheriting from DoubleML."""
 
+import numpy as np
 import pandas as pd
 
 
@@ -24,10 +25,10 @@ class MakeTablesMixin:
 
         Notes
         -----
-        Before fitting, returns an empty table with the same columns, consistent
-        with ``DoubleML.summary``. No coefficient estimates are displayed.
+        Before fitting or after resetting sample splits, returns an empty table
+        with the same columns, consistent with ``DoubleML.summary``.
         """
-        if self.framework is None:
+        if self.framework is None or np.isnan(self.coef).all():
             return pd.DataFrame(columns=["b", "se", "t", "p", "ci95l", "ci95u"])
 
         ci = self.confint(joint=False, level=0.95)
