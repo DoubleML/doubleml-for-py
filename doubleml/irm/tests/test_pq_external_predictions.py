@@ -101,7 +101,7 @@ def test_doubleml_pq_coef(doubleml_pq_fixture):
 
 
 class _FixedPropensity(ClassifierMixin, BaseEstimator):
-    """A propensity model that ignores the training data: P(D = 1 | X) = logistic(X[:, 0])."""
+    """Propensity model that ignores the training data: P(D = 1 | X) = logistic(X[:, 0])."""
 
     def fit(self, X, y):
         self.classes_ = np.array([0, 1])
@@ -117,22 +117,29 @@ class _FixedPropensity(ClassifierMixin, BaseEstimator):
 
 @pytest.mark.ci
 @pytest.mark.parametrize("treatment", [0, 1])
-def test_doubleml_pq_external_ml_m_matches_internal(treatment):
-    # With a propensity model that does not depend on the training data, external predictions of it
-    # must give the same estimate as the model itself, also in the preliminary IPW step.
+@pytest.mark.parametrize("normalize_ipw", [True, False])
+def test_doubleml_pq_external_ml_m_matches_internal(treatment, normalize_ipw):
+    """External predictions of a data-independent ml_m reproduce the internal fit, including the preliminary IPW step."""
     np.random.seed(3141)
-    data = make_irm_data(theta=1, n_obs=500, dim_x=5, return_type="DataFrame")
-    dml_data = DoubleMLData(data, "y", "d")
-    all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=1, groups=None)
-    kwargs = {"obj_dml_data": dml_data, "treatment": treatment, "draw_sample_splitting": False}
+    dml_data = DoubleMLData(make_irm_data(theta=1, n_obs=500, dim_x=5, return_type="DataFrame"), "y", "d")
+    all_smpls = draw_smpls(dml_data.n_obs, 5, n_rep=1, groups=None)
 
-    dml_pq = DoubleMLPQ(ml_g=LogisticRegression(random_state=42), ml_m=_FixedPropensity(), **kwargs)
-    dml_pq.set_sample_splitting(all_smpls)
-    dml_pq.fit()
+    def fit_pq(ml_m, external_predictions=None):
+        dml_pq = DoubleMLPQ(
+            dml_data,
+            ml_g=LogisticRegression(random_state=42),
+            ml_m=ml_m,
+            treatment=treatment,
+            normalize_ipw=normalize_ipw,
+            draw_sample_splitting=False,
+        )
+        dml_pq.set_sample_splitting(all_smpls)
+        return dml_pq.fit(external_predictions=external_predictions)
 
-    ext_predictions = {"d": {"ml_m": _FixedPropensity().fit(None, None).predict_proba(dml_data.x)[:, [1]]}}
-    dml_pq_ext = DoubleMLPQ(ml_g=LogisticRegression(random_state=42), ml_m=DMLDummyClassifier(), **kwargs)
-    dml_pq_ext.set_sample_splitting(all_smpls)
-    dml_pq_ext.fit(external_predictions=ext_predictions)
+    m_hat = _FixedPropensity().fit(None, None).predict_proba(dml_data.x)[:, [1]]
+    dml_pq = fit_pq(_FixedPropensity())
+    dml_pq_ext = fit_pq(DMLDummyClassifier(), {"d": {"ml_m": m_hat}})
 
+    # compare the preliminary IPW estimate (start value) directly: a wrong one can still yield the same coef
+    assert math.isclose(dml_pq._coef_start_val, dml_pq_ext._coef_start_val, rel_tol=1e-9, abs_tol=1e-9)
     assert math.isclose(dml_pq.coef.item(), dml_pq_ext.coef.item(), rel_tol=1e-9, abs_tol=1e-9)
