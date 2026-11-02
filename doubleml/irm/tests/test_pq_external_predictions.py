@@ -2,6 +2,7 @@ import math
 
 import numpy as np
 import pytest
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.linear_model import LogisticRegression
 
 from doubleml import DoubleMLData, DoubleMLPQ
@@ -97,3 +98,41 @@ def test_doubleml_pq_coef(doubleml_pq_fixture):
         rel_tol=doubleml_pq_fixture["tol_rel"],
         abs_tol=doubleml_pq_fixture["tol_abs"],
     )
+
+
+class _FixedPropensity(ClassifierMixin, BaseEstimator):
+    """A propensity model that ignores the training data: P(D = 1 | X) = logistic(X[:, 0])."""
+
+    def fit(self, X, y):
+        self.classes_ = np.array([0, 1])
+        return self
+
+    def predict_proba(self, X):
+        p = 1 / (1 + np.exp(-np.asarray(X)[:, 0]))
+        return np.column_stack([1 - p, p])
+
+    def predict(self, X):
+        return (self.predict_proba(X)[:, 1] > 0.5).astype(int)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("treatment", [0, 1])
+def test_doubleml_pq_external_ml_m_matches_internal(treatment):
+    # With a propensity model that does not depend on the training data, external predictions of it
+    # must give the same estimate as the model itself, also in the preliminary IPW step.
+    np.random.seed(3141)
+    data = make_irm_data(theta=1, n_obs=500, dim_x=5, return_type="DataFrame")
+    dml_data = DoubleMLData(data, "y", "d")
+    all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=1, groups=None)
+    kwargs = {"obj_dml_data": dml_data, "treatment": treatment, "draw_sample_splitting": False}
+
+    dml_pq = DoubleMLPQ(ml_g=LogisticRegression(random_state=42), ml_m=_FixedPropensity(), **kwargs)
+    dml_pq.set_sample_splitting(all_smpls)
+    dml_pq.fit()
+
+    ext_predictions = {"d": {"ml_m": _FixedPropensity().fit(None, None).predict_proba(dml_data.x)[:, [1]]}}
+    dml_pq_ext = DoubleMLPQ(ml_g=LogisticRegression(random_state=42), ml_m=DMLDummyClassifier(), **kwargs)
+    dml_pq_ext.set_sample_splitting(all_smpls)
+    dml_pq_ext.fit(external_predictions=ext_predictions)
+
+    assert math.isclose(dml_pq.coef.item(), dml_pq_ext.coef.item(), rel_tol=1e-9, abs_tol=1e-9)

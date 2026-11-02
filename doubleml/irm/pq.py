@@ -361,7 +361,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                         ml_m_prelim, x_train_1, d_train_1, method="predict_proba", smpls=smpls_prelim
                     )["preds"]
                 else:
-                    m_hat_prelim = m_hat["preds"][np.concatenate([test for _, test in smpls_prelim])]
+                    m_hat_prelim = m_hat["preds"][train_inds_1]
                 m_hat_prelim = self._ps_processor.adjust_ps(m_hat_prelim, d_train_1, cv=smpls_prelim)
 
                 if self._normalize_ipw:
