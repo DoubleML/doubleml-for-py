@@ -73,6 +73,21 @@ def test_make_did_CS2021_return_types(dgp_type, include_never_treated, time_type
 
 
 @pytest.mark.ci
+@pytest.mark.parametrize("anticipation_periods", [0, 1, 2])
+def test_make_did_CS2021_time_types_equivalent(anticipation_periods):
+    """Datetime and float time types simulate the same panel, including all never-treated units."""
+    np.random.seed(3141)
+    df_dt = make_did_CS2021(n_obs=200, time_type="datetime", anticipation_periods=anticipation_periods)
+    np.random.seed(3141)
+    df_fl = make_did_CS2021(n_obs=200, time_type="float", anticipation_periods=anticipation_periods)
+
+    pd.testing.assert_frame_equal(df_dt.drop(columns=["d", "t"]), df_fl.drop(columns=["d", "t"]))
+    never_treated = np.isinf(df_fl["d"])
+    np.testing.assert_array_equal(pd.isna(df_dt["d"]), never_treated)
+    assert never_treated.any()
+
+
+@pytest.mark.ci
 def test_make_did_CS2021_exceptions():
     msg = r"time_type must be one of \('datetime', 'float'\). Got 2."
     with pytest.raises(ValueError, match=msg):
