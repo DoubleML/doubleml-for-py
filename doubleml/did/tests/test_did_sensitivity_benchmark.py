@@ -15,19 +15,21 @@ def _panel_data(panel, x_cols):
     return dml.data.DoubleMLPanelData(df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=x_cols)
 
 
-def _fit(model_class, dml_data, **kwargs):
+def _fit(model_class, dml_data, fit_args=None, **kwargs):
     np.random.seed(42)
     model = model_class(dml_data, ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
-    return model.fit()
+    return model.fit(**(fit_args or {}))
 
 
 @pytest.mark.ci
 @pytest.mark.parametrize("panel", [True, False])
-def test_did_multi_sensitivity_benchmark_drops_covariates(panel):
+@pytest.mark.parametrize("n_jobs_models", [None, 2])
+def test_did_multi_sensitivity_benchmark_drops_covariates(panel, n_jobs_models):
     x_long = ["Z1", "Z2", "Z3", "Z4"]
     x_short = ["Z2", "Z3", "Z4"]
     kwargs = {"gt_combinations": "standard", "panel": panel}
-    dml_long = _fit(dml.did.DoubleMLDIDMulti, _panel_data(panel, x_long), **kwargs)
+    fit_args = {"n_jobs_models": n_jobs_models}
+    dml_long = _fit(dml.did.DoubleMLDIDMulti, _panel_data(panel, x_long), fit_args=fit_args, **kwargs)
     dml_short = _fit(dml.did.DoubleMLDIDMulti, _panel_data(panel, x_short), **kwargs)
 
     benchmark = dml_long.sensitivity_benchmark(benchmarking_set=["Z1"])
