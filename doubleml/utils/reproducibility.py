@@ -152,8 +152,8 @@ def fit_until_reproducible(model, tolerance, error_rate=0.05, min_reps=20, max_r
             raise TypeError(f"{name} must be an integer.")
     if min_reps < 2 or max_reps < min_reps:
         raise ValueError("Require 2 <= min_reps <= max_reps.")
-    if type(model) is not DoubleMLPLR:
-        raise TypeError("model must be a DoubleMLPLR instance (subclasses are not supported).")
+    if not isinstance(model, DoubleMLPLR):
+        raise TypeError("model must be a DoubleMLPLR instance.")
     if model._is_cluster_data or model._dml_data.n_treat != 1 or model.n_rep != 1 or model.n_folds < 2:
         raise ValueError("Require independent observations, one treatment, n_rep=1, and n_folds >= 2.")
     if not isinstance(model.score, str):

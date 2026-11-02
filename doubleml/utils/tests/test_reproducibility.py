@@ -112,6 +112,16 @@ def test_invalid_budget(model, kwargs):
         fit_until_reproducible(model, 0.1, **kwargs)
 
 
+def test_plr_subclass(model):
+    class PLRSubclass(DoubleMLPLR):
+        pass
+
+    subclass = PLRSubclass(model._dml_data, LinearRegression(), LinearRegression(), n_folds=3, draw_sample_splitting=False)
+    expected = fit_until_reproducible(model, 0.1, min_reps=3, max_reps=3, random_state=12)
+    actual = fit_until_reproducible(subclass, 0.1, min_reps=3, max_reps=3, random_state=12)
+    assert_array_equal(actual["values"], expected["values"])
+
+
 def test_unsupported_models(model):
     with pytest.raises(TypeError, match="DoubleMLPLR"):
         fit_until_reproducible(object(), 0.1)
