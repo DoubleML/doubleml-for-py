@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
+from pandas.testing import assert_frame_equal
 from scipy.stats import norm
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
@@ -73,6 +74,7 @@ def test_matches_fixed_repetitions_without_mutation(model):
     assert_array_equal(model.all_coef, before.all_coef)
     assert_array_equal(model.se, before.se)
     assert_array_equal(model.pval, before.pval)
+    assert_frame_equal(model.summary, before.summary)
     assert_array_equal(model.predictions["ml_l"], before.predictions["ml_l"])
     for actual, expected in zip(model.smpls[0], before.smpls[0]):
         assert_array_equal(actual[0], expected[0])
@@ -169,3 +171,26 @@ def test_iv_type_score(model):
     report = fit_until_reproducible(template, 1, min_reps=3, max_reps=3, random_state=7)
     assert report["status"] == "target_reached"
     assert np.isfinite(report["values"]).all()
+
+
+def test_report_contract(model):
+    report = fit_until_reproducible(model, 1, min_reps=3, max_reps=3, random_state=7)
+    assert isinstance(report, dict)
+    assert set(report) == {
+        "mean",
+        "mcse",
+        "threshold",
+        "criterion_met",
+        "repetitions",
+        "tolerance",
+        "error_rate",
+        "status",
+        "values",
+    }
+    for name in ("mean", "mcse", "threshold", "tolerance", "error_rate"):
+        assert isinstance(report[name], float)
+    assert isinstance(report["criterion_met"], bool)
+    assert isinstance(report["repetitions"], int)
+    assert isinstance(report["values"], np.ndarray)
+    assert report["values"].shape == (report["repetitions"],)
+    assert report["values"].dtype.kind == "f"
