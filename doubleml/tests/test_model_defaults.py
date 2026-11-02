@@ -1,3 +1,5 @@
+"""Test model defaults independently of the execution order."""
+
 import numpy as np
 import pytest
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -224,6 +226,7 @@ def test_apos_defaults():
 
 @pytest.mark.ci
 def test_sensitivity_defaults():
+    dml_plr = dml.DoubleMLPLR(dml_data_plr, Lasso(), Lasso()).fit()
     input_dict = {"cf_y": 0.03, "cf_d": 0.03, "rho": 1.0, "level": 0.95, "null_hypothesis": np.array([0.0])}
 
     dml_plr.sensitivity_analysis()
