@@ -2,6 +2,7 @@ import math
 
 import numpy as np
 import pytest
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.linear_model import LogisticRegression
 
 from doubleml import DoubleMLData, DoubleMLPQ
@@ -97,3 +98,48 @@ def test_doubleml_pq_coef(doubleml_pq_fixture):
         rel_tol=doubleml_pq_fixture["tol_rel"],
         abs_tol=doubleml_pq_fixture["tol_abs"],
     )
+
+
+class _FixedPropensity(ClassifierMixin, BaseEstimator):
+    """Propensity model that ignores the training data: P(D = 1 | X) = logistic(X[:, 0])."""
+
+    def fit(self, X, y):
+        self.classes_ = np.array([0, 1])
+        return self
+
+    def predict_proba(self, X):
+        p = 1 / (1 + np.exp(-np.asarray(X)[:, 0]))
+        return np.column_stack([1 - p, p])
+
+    def predict(self, X):
+        return (self.predict_proba(X)[:, 1] > 0.5).astype(int)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("treatment", [0, 1])
+@pytest.mark.parametrize("normalize_ipw", [True, False])
+def test_doubleml_pq_external_ml_m_matches_internal(treatment, normalize_ipw):
+    """External predictions of a data-independent ml_m reproduce the internal fit, including the preliminary IPW step."""
+    np.random.seed(3141)
+    dml_data = DoubleMLData(make_irm_data(theta=1, n_obs=500, dim_x=5, return_type="DataFrame"), "y", "d")
+    all_smpls = draw_smpls(dml_data.n_obs, 5, n_rep=1, groups=None)
+
+    def fit_pq(ml_m, external_predictions=None):
+        dml_pq = DoubleMLPQ(
+            dml_data,
+            ml_g=LogisticRegression(random_state=42),
+            ml_m=ml_m,
+            treatment=treatment,
+            normalize_ipw=normalize_ipw,
+            draw_sample_splitting=False,
+        )
+        dml_pq.set_sample_splitting(all_smpls)
+        return dml_pq.fit(external_predictions=external_predictions)
+
+    m_hat = _FixedPropensity().fit(None, None).predict_proba(dml_data.x)[:, [1]]
+    dml_pq = fit_pq(_FixedPropensity())
+    dml_pq_ext = fit_pq(DMLDummyClassifier(), {"d": {"ml_m": m_hat}})
+
+    # compare the preliminary IPW estimate (start value) directly: a wrong one can still yield the same coef
+    assert math.isclose(dml_pq._coef_start_val, dml_pq_ext._coef_start_val, rel_tol=1e-9, abs_tol=1e-9)
+    assert math.isclose(dml_pq.coef.item(), dml_pq_ext.coef.item(), rel_tol=1e-9, abs_tol=1e-9)
