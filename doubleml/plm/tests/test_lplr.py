@@ -79,3 +79,24 @@ def test_dml_lplr_coef(dml_lplr_fixture):
     se = dml_lplr_fixture["se"]
     true_coef = dml_lplr_fixture["true_coef"]
     assert abs(coef - true_coef) <= 3.0 * np.sqrt(se)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("learner_name", ["ml_M", "ml_a"])
+def test_dml_lplr_set_params_unequal_inner_folds(learner_name):
+    """Parameters for double cross-fitted learners can be set when n_folds differs from n_folds_inner."""
+    np.random.seed(42)
+    obj_dml_data = make_lplr_LZZ2020(n_obs=300, alpha=0.5)
+    dml_lplr_obj = dml.DoubleMLLPLR(
+        obj_dml_data,
+        RandomForestClassifier(random_state=42, max_depth=2, n_estimators=10),
+        RandomForestRegressor(random_state=42, max_depth=2, n_estimators=10),
+        RandomForestRegressor(random_state=42, max_depth=2, n_estimators=10),
+        n_folds=3,
+        n_folds_inner=2,
+    )
+    dml_lplr_obj.set_ml_nuisance_params(learner_name, "d", {"n_estimators": 5})
+    dml_lplr_obj.fit()
+
+    assert np.isfinite(dml_lplr_obj.coef).all()
+    assert np.isfinite(dml_lplr_obj.se).all()

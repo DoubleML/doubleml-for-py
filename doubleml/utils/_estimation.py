@@ -204,14 +204,19 @@ def _double_dml_cv_predict(
     res["preds_inner"] = []
     res["targets_inner"] = []
     res["models"] = []
-    for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
+    # est_params are stored per outer fold; all inner models of an outer fold share its parameter setting
+    fold_specific_params = (est_params is not None) and (not isinstance(est_params, dict))
+    if fold_specific_params:
+        assert len(est_params) == len(smpls), "provide one parameter setting per fold"
+    for i_fold, (smpls_single_split, smpls_double_split) in enumerate(zip(smpls, smpls_inner)):
+        fold_est_params = est_params[i_fold] if fold_specific_params else est_params
         res_inner = _dml_cv_predict(
             estimator,
             x,
             y,
             smpls=smpls_double_split,
             n_jobs=n_jobs,
-            est_params=est_params,
+            est_params=fold_est_params,
             method=method,
             return_models=True,
             sample_weights=sample_weights,
