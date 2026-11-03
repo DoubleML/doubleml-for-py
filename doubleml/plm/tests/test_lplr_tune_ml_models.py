@@ -1,7 +1,6 @@
 """Validate LPLR tuning against its cross-validation objective and applied parameters."""
 
 import numpy as np
-import optuna
 import pytest
 from sklearn.base import clone
 from sklearn.model_selection import KFold, cross_val_score
@@ -9,7 +8,12 @@ from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 import doubleml as dml
 from doubleml.plm.datasets import make_lplr_LZZ2020
-from doubleml.tests._utils_tune_optuna import _assert_tree_params, _basic_optuna_settings, _small_tree_params
+from doubleml.tests._utils_tune_optuna import (
+    _SAMPLER_CASES,
+    _assert_tree_params,
+    _basic_optuna_settings,
+    _small_tree_params,
+)
 
 
 @pytest.fixture(scope="module", params=["nuisance_space", "instrument"])
@@ -23,8 +27,8 @@ def ml_a(request):
 
 
 @pytest.mark.ci
-@pytest.mark.parametrize("sampler_class", [optuna.samplers.RandomSampler, optuna.samplers.TPESampler], ids=["random", "tpe"])
-def test_doubleml_lplr_optuna_tune(sampler_class, score, ml_a):
+@pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
+def test_doubleml_lplr_optuna_tune(sampler_name, optuna_sampler, score, ml_a):
     """Tuning improves its own CV objective and applies the selected parameters."""
     np.random.seed(3141)
     dml_data = make_lplr_LZZ2020(n_obs=500, dim_x=15, alpha=0.5)
@@ -34,7 +38,7 @@ def test_doubleml_lplr_optuna_tune(sampler_class, score, ml_a):
         ml_t=DecisionTreeRegressor(random_state=234),
         ml_m=DecisionTreeRegressor(random_state=456),
         ml_a=ml_a,
-        n_folds=2,
+        n_folds=3,
         n_folds_inner=2,
         score=score,
     )
@@ -54,7 +58,7 @@ def test_doubleml_lplr_optuna_tune(sampler_class, score, ml_a):
     tune_res = dml_lplr.tune_ml_models(
         ml_param_space=optuna_params,
         cv=cv,
-        optuna_settings=_basic_optuna_settings({"sampler": sampler_class(seed=3141), "n_trials": 5}),
+        optuna_settings=_basic_optuna_settings({"sampler": optuna_sampler, "n_trials": 5}),
         return_tune_res=True,
     )
 
