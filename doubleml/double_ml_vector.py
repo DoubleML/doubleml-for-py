@@ -351,6 +351,29 @@ class DoubleMLVector(DoubleMLBase, ABC):
             for model in self._modellist:
                 model._reset_fit_state()
 
+    def _rebuild_models(self) -> None:
+        """
+        Re-create the sub-models from the current ``_dml_data``, keeping their learners.
+
+        Each sub-model holds its own data view, so changes to ``_dml_data`` (e.g. ``x_cols``)
+        only take effect after the sub-models are rebuilt. Learners are only stored on the
+        sub-models and are carried over by position. Fit state is cleared.
+
+        Raises
+        ------
+        ValueError
+            If the sub-models are not initialized or the rebuilt sub-models do not match
+            the existing ones in number.
+
+        """
+        if self._modellist is None:
+            raise ValueError("Sub-models are not initialized. Call _initialize_models() in the subclass __init__.")
+        new_models = self._initialize_models()
+        for new_model, old_model in zip(new_models, self._modellist, strict=True):
+            new_model._learners = old_model._learners
+        self._modellist = new_models
+        self._framework = None
+
     def _propagate_splits_to_models(self) -> None:
         """Push the vector's sample splits into each sub-model."""
         if self._modellist is None:
@@ -742,10 +765,7 @@ class DoubleMLVector(DoubleMLBase, ABC):
         x_list_short = [x for x in x_list_long if x not in benchmarking_set]
         dml_short = copy.deepcopy(self)
         dml_short._dml_data.x_cols = x_list_short
-        # Sub-models each hold their own DoubleMLData — rebuild them from the updated _dml_data
-        # so that the short-form model actually uses the reduced feature set.
-        dml_short._modellist = dml_short._initialize_models()
-        dml_short._framework = None
+        dml_short._rebuild_models()
 
         if fit_args is not None:
             dml_short.fit(**fit_args)
