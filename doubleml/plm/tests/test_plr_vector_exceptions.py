@@ -152,6 +152,26 @@ def test_warning_ml_g_partialling_out():
 
 
 @pytest.mark.ci
+@pytest.mark.parametrize(
+    "kwargs, error, msg",
+    [
+        ({"benchmarking_set": "X1"}, TypeError, r"benchmarking_set must be a list\."),
+        ({"benchmarking_set": []}, ValueError, r"benchmarking_set must not be empty\."),
+        ({"benchmarking_set": ["d2"]}, ValueError, r"benchmarking_set must be a subset of features"),
+        ({"benchmarking_set": ["X1"], "fit_args": 1}, TypeError, r"fit_args must be a dict\."),
+    ],
+)
+def test_exception_sensitivity_benchmark(kwargs, error, msg):
+    """sensitivity_benchmark rejects calls before fit() and invalid inputs."""
+    dml_obj = PLRVector(_make_bivariate_data(), ml_l=Lasso(alpha=0.1), ml_m=Lasso(alpha=0.1))
+    with pytest.raises(ValueError, match=r"Apply fit\(\) before sensitivity_benchmark\(\)\."):
+        dml_obj.sensitivity_benchmark(benchmarking_set=["X1"])
+    dml_obj.fit(n_folds=3)
+    with pytest.raises(error, match=msg):
+        dml_obj.sensitivity_benchmark(**kwargs)
+
+
+@pytest.mark.ci
 def test_cate_not_implemented():
     """cate() raises NotImplementedError on multi-treatment PLR."""
     dml_obj = PLRVector(_make_bivariate_data())

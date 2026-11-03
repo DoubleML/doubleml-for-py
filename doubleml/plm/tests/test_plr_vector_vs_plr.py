@@ -129,8 +129,37 @@ def test_sensitivity_benchmark_equal(comparison_fixture):
     old = comparison_fixture["old"]
     new = comparison_fixture["new"]
     benchmarking_set = ["X1"]
+    coef, x_cols = new.coef.copy(), list(new._dml_data.x_cols)
     pd.testing.assert_frame_equal(
         new.sensitivity_benchmark(benchmarking_set=benchmarking_set),
         old.sensitivity_benchmark(benchmarking_set=benchmarking_set),
+        rtol=1e-9,
+    )
+    # The short-form refit must not modify the long-form model
+    np.testing.assert_array_equal(new.coef, coef)
+    assert list(new._dml_data.x_cols) == x_cols
+
+
+@pytest.mark.ci
+def test_sensitivity_benchmark_per_treatment_params(generate_data_bivariate):
+    """Treatment-specific learner params survive the short-form rebuild (matches legacy)."""
+    data = generate_data_bivariate
+    x_cols = data.columns[data.columns.str.startswith("X")].tolist()
+    obj_dml_data = dml.DoubleMLData(data, y_col="y", d_cols=["d1", "d2"], x_cols=x_cols)
+
+    np.random.seed(3141)
+    old = dml.DoubleMLPLR(obj_dml_data, Lasso(alpha=0.1), Lasso(alpha=0.1), n_folds=3)
+    old.set_ml_nuisance_params("ml_l", "d2", {"alpha": 0.5})
+    old.fit()
+
+    np.random.seed(3141)
+    new = PLRVector(obj_dml_data, ml_l=Lasso(alpha=0.1), ml_m=Lasso(alpha=0.1))
+    new.draw_sample_splitting(n_folds=3)
+    new.modellist[1].set_params("ml_l", alpha=0.5)
+    new.fit()
+
+    pd.testing.assert_frame_equal(
+        new.sensitivity_benchmark(benchmarking_set=["X1"]),
+        old.sensitivity_benchmark(benchmarking_set=["X1"]),
         rtol=1e-9,
     )
