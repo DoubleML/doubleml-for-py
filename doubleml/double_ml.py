@@ -895,7 +895,7 @@ class DoubleML(SampleSplittingMixin, ABC):
             raise TypeError(f"return_tune_res must be True or False. Got {str(return_tune_res)}.")
 
         if tune_on_folds:
-            tuning_res = [[None] * self.n_rep] * self._dml_data.n_treat
+            tuning_res = [[None] * self.n_rep for _ in range(self._dml_data.n_treat)]
         else:
             tuning_res = [None] * self._dml_data.n_treat
 
@@ -921,7 +921,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                         n_iter_randomized_search,
                     )
 
-                    tuning_res[i_rep][i_d] = res
+                    tuning_res[i_d][i_rep] = res
                     nuisance_params.append(res["params"])
 
                 if set_as_params:
