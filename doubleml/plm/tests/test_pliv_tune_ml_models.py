@@ -46,3 +46,29 @@ def test_doubleml_pliv_optuna_tune(sampler_name, optuna_sampler):
 
         # ensure tuning improved RMSE
         assert tuned_score[learner_name] < untuned_score[learner_name]
+
+
+@pytest.mark.ci
+def test_doubleml_pliv_iv_type_optuna_tune():
+    """Test PLIV with the IV-type score (one instrument), which also tunes ml_g."""
+
+    np.random.seed(3144)
+    dml_data = make_pliv_CHS2015(n_obs=500, dim_x=15, dim_z=1)
+
+    ml_l = DecisionTreeRegressor(random_state=123)
+    ml_m = DecisionTreeRegressor(random_state=456)
+    ml_r = DecisionTreeRegressor(random_state=789)
+    ml_g = DecisionTreeRegressor(random_state=101)
+
+    dml_pliv = dml.DoubleMLPLIV(dml_data, ml_l, ml_m, ml_r, ml_g=ml_g, score="IV-type", n_folds=2)
+
+    optuna_params = _build_param_space(dml_pliv, _small_tree_params)
+    optuna_settings = _basic_optuna_settings()
+    optuna_settings["n_trials"] = 5
+    tune_res = dml_pliv.tune_ml_models(
+        ml_param_space=optuna_params, set_as_params=True, optuna_settings=optuna_settings, return_tune_res=True
+    )
+
+    for learner_name in dml_pliv.params_names:
+        _assert_tree_params(tune_res[0][learner_name].best_params)
+    dml_pliv.fit()

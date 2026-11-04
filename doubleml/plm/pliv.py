@@ -872,7 +872,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 m_hat = cross_val_predict(
                     m_tune_res.best_estimator, x_m_features, z_vector, cv=cv, method=self._predict_method["ml_m"]
                 )
-                r_hat = cross_val_predict(r_tune_res.best_estimator, x, cv=cv, method=self._predict_method["ml_r"])
+                r_hat = cross_val_predict(r_tune_res.best_estimator, x, d, cv=cv, method=self._predict_method["ml_r"])
                 psi_a = -np.multiply(d - r_hat, z_vector - m_hat)
                 psi_b = np.multiply(z_vector - m_hat, y - l_hat)
                 theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
