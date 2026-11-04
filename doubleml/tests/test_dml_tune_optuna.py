@@ -221,6 +221,7 @@ def test_doubleml_optuna_partial_tuning_single_learner():
     res_ml_l = tune_res[0]["ml_l"]
 
     assert res_ml_m.tuned is False
+    assert res_ml_m.best_params == {}
     assert res_ml_m.best_estimator.get_params() == ml_m.get_params()  # assert default params kept
     assert res_ml_l.tuned is True
     _assert_tree_params(res_ml_l.best_params)  # assert tuned params valid
@@ -244,6 +245,8 @@ def test_doubleml_optuna_partial_tuning_untuned_pipeline():
         optuna_settings=_basic_optuna_settings(),
         return_tune_res=True,
     )
+    assert tune_res[0]["ml_l"].tuned is False
+    assert tune_res[0]["ml_l"].best_params == {}
     assert dml_plr.get_params("ml_l") == {"d": [None]}
     dml_plr.fit()
 
