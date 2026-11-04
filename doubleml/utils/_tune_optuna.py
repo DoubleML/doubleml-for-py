@@ -73,7 +73,7 @@ class DMLOptunaResult:
         full dataset used during tuning.
 
     best_params : dict
-        The best hyperparameters found during tuning.
+        The best hyperparameters found during tuning. Empty if the learner was not tuned (``tuned=False``).
 
     best_score : float
         The best average cross-validation score achieved during tuning.
@@ -185,6 +185,7 @@ TUNE_ML_MODELS_DOC = """
 
         set_as_params : bool
             Indicates whether the hyperparameters should be set in order to be used when :meth:`fit` is called.
+            Learners without a parameter space in ``ml_param_space`` are left unchanged.
             Default is ``True``.
 
         return_tune_res : bool
@@ -656,12 +657,12 @@ def _dml_tune_optuna(
     if param_grid_func is None:
         estimator = clone(learner)
         estimator.fit(x, y)
-        best_params = estimator.get_params(deep=True)
+        # No parameters are reported for untuned learners, so fitted sub-estimators (e.g. Pipeline steps) cannot be reused.
         return DMLOptunaResult(
             learner_name=learner_name,
             params_name=params_name,
             best_estimator=estimator,
-            best_params=best_params,
+            best_params={},
             best_score=np.nan,
             scoring_method=scoring_method,
             study=None,
