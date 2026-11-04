@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 import doubleml as dml
 
@@ -94,3 +95,28 @@ def test_dml_selection_coef(dml_lplr_fixture):
     se = dml_lplr_fixture["se"]
     true_coef = dml_lplr_fixture["true_coef"]
     assert abs(coef - true_coef) <= 3.0 * np.sqrt(se)
+
+
+@pytest.mark.ci
+def test_dml_lplr_tune_on_folds_unequal_inner_folds(score):
+    """Fold-specific tuning works when n_folds differs from n_folds_inner."""
+    n_folds = 3
+    np.random.seed(3141)
+    obj_dml_data = make_lplr_LZZ2020(n_obs=300, alpha=0.5)
+    dml_lplr_obj = dml.DoubleMLLPLR(
+        obj_dml_data,
+        DecisionTreeClassifier(random_state=42),
+        DecisionTreeRegressor(random_state=42),
+        DecisionTreeRegressor(random_state=42),
+        ml_a=DecisionTreeRegressor(random_state=42),
+        n_folds=n_folds,
+        n_folds_inner=2,
+        score=score,
+    )
+    par_grid = {name: {"max_depth": [1, 3]} for name in ["ml_M", "ml_t", "ml_m", "ml_a"]}
+    dml_lplr_obj.tune(par_grid, tune_on_folds=True, n_folds_tune=2)
+    dml_lplr_obj.fit()
+
+    assert len(dml_lplr_obj.get_params("ml_a")["d"][0]) == n_folds
+    assert np.isfinite(dml_lplr_obj.coef).all()
+    assert np.isfinite(dml_lplr_obj.se).all()

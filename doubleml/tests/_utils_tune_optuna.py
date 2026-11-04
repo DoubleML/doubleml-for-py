@@ -1,3 +1,5 @@
+import functools
+
 import numpy as np
 import optuna
 
@@ -11,12 +13,18 @@ def _basic_optuna_settings(additional=None):
     }
     if additional is not None:
         base_settings.update(additional)
+    # Sampler factories (see _SAMPLER_CASES) are instantiated per call, so every test starts from a freshly seeded
+    # sampler instead of sharing RNG state with previously run tests.
+    sampler = base_settings.get("sampler")
+    if callable(sampler) and not isinstance(sampler, optuna.samplers.BaseSampler):
+        base_settings["sampler"] = sampler()
     return base_settings
 
 
+# Seeded sampler factories; n_startup_trials=3 so that TPE deviates from random sampling within the few trials used in tests
 _SAMPLER_CASES = [
-    ("random", optuna.samplers.RandomSampler(seed=3141)),
-    ("tpe", optuna.samplers.TPESampler(seed=3141)),
+    ("random", functools.partial(optuna.samplers.RandomSampler, seed=3141)),
+    ("tpe", functools.partial(optuna.samplers.TPESampler, seed=3141, n_startup_trials=3)),
 ]
 
 
