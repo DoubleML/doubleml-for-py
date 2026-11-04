@@ -1,4 +1,4 @@
-"""Test model defaults independently of the execution order."""
+"""Test default settings of DoubleML models."""
 
 import numpy as np
 import pytest
@@ -18,23 +18,6 @@ dml_data_iivm = make_iivm_data(n_obs=1000)
 dml_data_did = make_did_SZ2020(n_obs=100)
 dml_data_did_cs = make_did_SZ2020(n_obs=100, cross_sectional_data=True)
 dml_data_ssm = make_ssm_data(n_obs=2000, mar=True)
-
-# linear models
-dml_plr = dml.DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
-dml_pliv = dml.DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
-dml_irm = dml.DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
-dml_iivm = dml.DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression())
-dml_cvar = dml.DoubleMLCVAR(dml_data_irm, ml_g=RandomForestRegressor(), ml_m=RandomForestClassifier())
-dml_did = dml.DoubleMLDID(dml_data_did, Lasso(), LogisticRegression())
-dml_did_cs = dml.DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression())
-dml_ssm = dml.DoubleMLSSM(dml_data_ssm, Lasso(), LogisticRegression(), LogisticRegression())
-dml_apo = dml.DoubleMLAPO(dml_data_irm, Lasso(), LogisticRegression(), treatment_level=0)
-dml_apos = dml.DoubleMLAPOS(dml_data_irm, Lasso(), LogisticRegression(), treatment_levels=[0, 1])
-
-# nonlinear models
-dml_pq = dml.DoubleMLPQ(dml_data_irm, ml_g=LogisticRegression(), ml_m=LogisticRegression())
-dml_lpq = dml.DoubleMLLPQ(dml_data_iivm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier())
-dml_qte = dml.DoubleMLQTE(dml_data_irm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier())
 
 
 def _assert_is_none(dml_obj):
@@ -72,6 +55,7 @@ def _assert_resampling_default_settings(dml_obj):
 
 @pytest.mark.ci
 def test_plr_defaults():
+    dml_plr = dml.DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
     _assert_is_none(dml_plr)
     _fit_bootstrap(dml_plr)
     _assert_resampling_default_settings(dml_plr)
@@ -80,6 +64,7 @@ def test_plr_defaults():
 
 @pytest.mark.ci
 def test_pliv_defaults():
+    dml_pliv = dml.DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
     _assert_is_none(dml_pliv)
     _fit_bootstrap(dml_pliv)
     _assert_resampling_default_settings(dml_pliv)
@@ -90,6 +75,7 @@ def test_pliv_defaults():
 
 @pytest.mark.ci
 def test_irm_defaults():
+    dml_irm = dml.DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
     _assert_is_none(dml_irm)
     _fit_bootstrap(dml_irm)
     _assert_resampling_default_settings(dml_irm)
@@ -103,6 +89,7 @@ def test_irm_defaults():
 
 @pytest.mark.ci
 def test_iivm_defaults():
+    dml_iivm = dml.DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression())
     _assert_is_none(dml_iivm)
     _fit_bootstrap(dml_iivm)
     _assert_resampling_default_settings(dml_iivm)
@@ -115,6 +102,7 @@ def test_iivm_defaults():
 
 @pytest.mark.ci
 def test_cvar_defaults():
+    dml_cvar = dml.DoubleMLCVAR(dml_data_irm, ml_g=RandomForestRegressor(), ml_m=RandomForestClassifier())
     _assert_is_none(dml_cvar)
     _fit_bootstrap(dml_cvar)
     _assert_resampling_default_settings(dml_cvar)
@@ -127,6 +115,7 @@ def test_cvar_defaults():
 
 @pytest.mark.ci
 def test_pq_defaults():
+    dml_pq = dml.DoubleMLPQ(dml_data_irm, ml_g=LogisticRegression(), ml_m=LogisticRegression())
     _assert_is_none(dml_pq)
     _fit_bootstrap(dml_pq)
     _assert_resampling_default_settings(dml_pq)
@@ -140,6 +129,7 @@ def test_pq_defaults():
 
 @pytest.mark.ci
 def test_lpq_defaults():
+    dml_lpq = dml.DoubleMLLPQ(dml_data_iivm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier())
     _assert_is_none(dml_lpq)
     _fit_bootstrap(dml_lpq)
     _assert_resampling_default_settings(dml_lpq)
@@ -153,6 +143,7 @@ def test_lpq_defaults():
 
 @pytest.mark.ci
 def test_qte_defaults():
+    dml_qte = dml.DoubleMLQTE(dml_data_irm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier())
     assert dml_qte.n_rep_boot is None
     assert dml_qte.boot_method is None
     assert dml_qte.framework is None
@@ -168,6 +159,7 @@ def test_qte_defaults():
 
 @pytest.mark.ci
 def test_did_defaults():
+    dml_did = dml.DoubleMLDID(dml_data_did, Lasso(), LogisticRegression())
     _assert_is_none(dml_did)
     _fit_bootstrap(dml_did)
     _assert_resampling_default_settings(dml_did)
@@ -178,16 +170,18 @@ def test_did_defaults():
 
 @pytest.mark.ci
 def test_did_cs_defaults():
+    dml_did_cs = dml.DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression())
     _assert_is_none(dml_did_cs)
     _fit_bootstrap(dml_did_cs)
     _assert_resampling_default_settings(dml_did_cs)
-    assert dml_did.score == "observational"
+    assert dml_did_cs.score == "observational"
     assert dml_did_cs.in_sample_normalization
     assert dml_did_cs.clipping_threshold == 1e-2
 
 
 @pytest.mark.ci
 def test_ssm_defaults():
+    dml_ssm = dml.DoubleMLSSM(dml_data_ssm, Lasso(), LogisticRegression(), LogisticRegression())
     _assert_is_none(dml_ssm)
     _fit_bootstrap(dml_ssm)
     _assert_resampling_default_settings(dml_ssm)
@@ -199,6 +193,7 @@ def test_ssm_defaults():
 
 @pytest.mark.ci
 def test_apo_defaults():
+    dml_apo = dml.DoubleMLAPO(dml_data_irm, Lasso(), LogisticRegression(), treatment_level=0)
     _assert_is_none(dml_apo)
     _fit_bootstrap(dml_apo)
     _assert_resampling_default_settings(dml_apo)
@@ -212,6 +207,7 @@ def test_apo_defaults():
 
 @pytest.mark.ci
 def test_apos_defaults():
+    dml_apos = dml.DoubleMLAPOS(dml_data_irm, Lasso(), LogisticRegression(), treatment_levels=[0, 1])
     assert dml_apos.n_rep_boot is None
     assert dml_apos.boot_method is None
     assert dml_apos.framework is None
