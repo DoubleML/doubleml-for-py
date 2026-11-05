@@ -1285,9 +1285,15 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         if store_predictions:
             self._initialize_predictions_and_targets()
+        else:
+            # predictions and targets of a previous fit don't belong to this fit
+            self._predictions = None
+            self._nuisance_targets = None
 
         if store_models:
             self._initialize_models()
+        else:
+            self._models = None
 
         if self._sensitivity_implemented:
             self._sensitivity_elements = self._initialize_sensitivity_elements(self._score_dim)
