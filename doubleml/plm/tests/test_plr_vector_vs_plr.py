@@ -25,15 +25,22 @@ def n_rep(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=[True, False])
+def use_other_treat_as_covariate(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def comparison_fixture(generate_data_bivariate, learner, score, n_rep):
+def comparison_fixture(generate_data_bivariate, learner, score, n_rep, use_other_treat_as_covariate):
     n_folds = 3
     seed = 3141
     data = generate_data_bivariate
     x_cols = data.columns[data.columns.str.startswith("X")].tolist()
     d_cols = data.columns[data.columns.str.startswith("d")].tolist()
 
-    obj_dml_data = dml.DoubleMLData(data, y_col="y", d_cols=d_cols, x_cols=x_cols)
+    obj_dml_data = dml.DoubleMLData(
+        data, y_col="y", d_cols=d_cols, x_cols=x_cols, use_other_treat_as_covariate=use_other_treat_as_covariate
+    )
 
     ml_g_arg = clone(learner) if score == "IV-type" else None
 
@@ -57,7 +64,17 @@ def comparison_fixture(generate_data_bivariate, learner, score, n_rep):
     dml_new.draw_sample_splitting(n_folds=n_folds, n_rep=n_rep)
     dml_new.fit()
 
-    return {"old": dml_old, "new": dml_new}
+    return {"old": dml_old, "new": dml_new, "dml_data": obj_dml_data}
+
+
+@pytest.mark.ci
+def test_submodel_covariates(comparison_fixture):
+    """Other treatments are covariates of each sub-model only if use_other_treat_as_covariate is True."""
+    dml_data = comparison_fixture["dml_data"]
+    for d_col, model in zip(dml_data.d_cols, comparison_fixture["new"].modellist):
+        other_d_cols = [c for c in dml_data.d_cols if c != d_col]
+        expected_x_cols = dml_data.x_cols + other_d_cols if dml_data.use_other_treat_as_covariate else dml_data.x_cols
+        assert model._dml_data.x_cols == expected_x_cols
 
 
 @pytest.mark.ci
