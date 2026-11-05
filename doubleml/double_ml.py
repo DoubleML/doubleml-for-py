@@ -1632,8 +1632,10 @@ class DoubleML(SampleSplittingMixin, ABC):
                         "Re-estimation based on riesz representer (non-orthogonal)."
                     )
                     warnings.warn(msg, UserWarning)
-                    psi_nu2 = np.power(riesz_rep, 2)
-                    nu2 = np.mean(psi_nu2, axis=0, keepdims=True)
+                    nu2_score_element = np.power(riesz_rep, 2)
+                    nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
+                    # center psi_nu2 as on the regular path
+                    psi_nu2 = nu2_score_element - nu2
 
                     self.sensitivity_elements["nu2"][:, :, i_treat] = nu2
                     self.sensitivity_elements["psi_nu2"][:, :, i_treat] = psi_nu2
