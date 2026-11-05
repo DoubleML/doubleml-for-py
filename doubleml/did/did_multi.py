@@ -670,6 +670,9 @@ class DoubleMLDIDMulti:
         framework_list = [None] * self.n_gt_atts
 
         for i_gt in range(self.n_gt_atts):
+            # parallel workers return copies with their own data object; share the data again as in serial fitting,
+            # so that changes of the covariates (e.g. in sensitivity_benchmark()) reach all group-time models
+            fitted_models[i_gt]._dml_data = self._dml_data
             self._modellist[i_gt] = fitted_models[i_gt]
             framework_list[i_gt] = self._modellist[i_gt].framework
 

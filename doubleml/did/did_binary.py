@@ -186,7 +186,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         self._n_treated_subset = self._data_subset["G_indicator"].sum()
 
         # Save x and y for later ML estimation
-        self._x_data_subset = self._data_subset.loc[:, self._dml_data.x_cols].values
         self._y_data_subset = self._data_subset.loc[:, "y_diff"].values
         self._g_data_subset = self._data_subset.loc[:, "G_indicator"].values
 
@@ -307,6 +306,11 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         The number of anticipation periods.
         """
         return self._anticipation_periods
+
+    @property
+    def _x_data_subset(self):
+        # Read with the current covariates, so that sensitivity_benchmark() can drop some of them.
+        return self._data_subset.loc[:, self._dml_data.x_cols].values
 
     @property
     def data_subset(self):
