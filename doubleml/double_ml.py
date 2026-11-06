@@ -1465,7 +1465,11 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         if all(learner in self.params_names for learner in learners):
             if self.nuisance_targets is None:
-                raise ValueError("Apply fit() before evaluate_learners().")
+                if self._framework is None:
+                    raise ValueError("Apply fit() before evaluate_learners().")
+                raise ValueError(
+                    "Nuisance predictions were not stored. Call fit(store_predictions=True) before evaluate_learners()."
+                )
             else:
                 dist = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in learners}
             for learner in learners:

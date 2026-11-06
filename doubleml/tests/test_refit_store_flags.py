@@ -29,6 +29,25 @@ def test_refit_without_storing_drops_previous_results():
     msg = r"predictions are None. Call .fit\(store_predictions=True\) to store the predictions."
     with pytest.raises(ValueError, match=msg):
         dml_plr.cate(basis=pd.DataFrame(np.ones((dml_data.n_obs, 1))))
-    msg = r"Apply fit\(\) before evaluate_learners\(\)."
+    msg = r"Nuisance predictions were not stored. Call fit\(store_predictions=True\) before evaluate_learners\(\)."
     with pytest.raises(ValueError, match=msg):
         dml_plr.evaluate_learners()
+
+
+@pytest.mark.ci
+def test_refit_store_flags_independent():
+    """A refit with store_predictions=True and store_models=False keeps fresh predictions and drops the models."""
+    np.random.seed(3141)
+    dml_data = make_plr_CCDDHNR2018(n_obs=200, dim_x=5)
+    dml_plr = dml.DoubleMLPLR(dml_data, LinearRegression(), LinearRegression(), n_folds=2)
+    dml_plr.fit(store_predictions=True, store_models=True)
+    assert dml_plr.models is not None
+
+    dml_plr.draw_sample_splitting()
+    dml_plr.fit(store_predictions=True, store_models=False)
+    assert dml_plr.predictions is not None
+    assert dml_plr.models is None
+
+    eval_loss = dml_plr.evaluate_learners()
+    for learner, loss in dml_plr.nuisance_loss.items():
+        np.testing.assert_allclose(eval_loss[learner], loss, rtol=1e-9)
