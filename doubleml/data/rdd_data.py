@@ -69,7 +69,7 @@ class DoubleMLRDDData(DoubleMLData):
     >>> data = make_simple_rdd_data(return_type='DataFrame')
     >>> columns = ["y", "d", "score"] + ["x" + str(i) for i in range(data["X"].shape[1])]
     >>> df = pd.DataFrame(np.column_stack((data["Y"], data["D"], data["score"], data["X"])), columns=columns)
-    >>> obj_dml_data_from_df = DoubleMLRDDData(df, 'y', 'd', score_col='s')
+    >>> obj_dml_data_from_df = DoubleMLRDDData(df, 'y', 'd', score_col='score')
     >>> # initialization from np.ndarray
     >>> obj_dml_data_from_array = DoubleMLRDDData.from_arrays(data["X"], data["Y"], data["D"], score=data["score"])
     """
@@ -102,6 +102,10 @@ class DoubleMLRDDData(DoubleMLData):
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=force_all_d_finite,
         )
+
+        # The score column could not be validated before the data was loaded
+        if self.score_col not in self.all_variables:
+            raise ValueError(f"Invalid score variable score_col. {self.score_col} is no data column.")
 
         # Set score variable array after data is loaded
         self._set_score_var()

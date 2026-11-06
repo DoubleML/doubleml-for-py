@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLDIDData, DoubleMLPLR, DoubleMLSSM, DoubleMLSSMData
+from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLDIDData, DoubleMLPLR, DoubleMLRDDData, DoubleMLSSM, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.did.datasets import make_did_SZ2020
 from doubleml.irm.datasets import make_ssm_data
@@ -14,6 +14,7 @@ from doubleml.plm.datasets import (
     make_pliv_CHS2015,
     make_plr_CCDDHNR2018,
 )
+from doubleml.rdd.datasets import make_simple_rdd_data
 
 
 class DummyDataClass(DoubleMLBaseData):
@@ -356,6 +357,23 @@ def test_s_col_setter():
     # check None
     dml_data.s_col = None
     assert dml_data.s is None
+
+
+@pytest.mark.ci
+def test_rdd_data_score_col():
+    """An invalid score_col raises at construction; a valid one is used as score and not as a covariate."""
+    np.random.seed(3141)
+    data = make_simple_rdd_data(n_obs=100)
+    x_cols = [f"x{i}" for i in range(data["X"].shape[1])]
+    df = pd.DataFrame(np.column_stack((data["Y"], data["D"], data["score"], data["X"])), columns=["y", "d", "score"] + x_cols)
+
+    dml_data = DoubleMLRDDData(df, "y", "d", score_col="score")
+    assert dml_data.x_cols == x_cols
+    assert np.array_equal(dml_data.score, df["score"].values)
+
+    msg = r"Invalid score variable score_col. s is no data column."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLRDDData(df, "y", "d", score_col="s")
 
 
 @pytest.mark.ci
