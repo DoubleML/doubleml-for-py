@@ -1285,9 +1285,15 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         if store_predictions:
             self._initialize_predictions_and_targets()
+        else:
+            # predictions and targets of a previous fit don't belong to this fit
+            self._predictions = None
+            self._nuisance_targets = None
 
         if store_models:
             self._initialize_models()
+        else:
+            self._models = None
 
         if self._sensitivity_implemented:
             self._sensitivity_elements = self._initialize_sensitivity_elements(self._score_dim)
@@ -1459,7 +1465,11 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         if all(learner in self.params_names for learner in learners):
             if self.nuisance_targets is None:
-                raise ValueError("Apply fit() before evaluate_learners().")
+                if self._framework is None:
+                    raise ValueError("Apply fit() before evaluate_learners().")
+                raise ValueError(
+                    "Nuisance predictions were not stored. Call fit(store_predictions=True) before evaluate_learners()."
+                )
             else:
                 dist = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in learners}
             for learner in learners:
