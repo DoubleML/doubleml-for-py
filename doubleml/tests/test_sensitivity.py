@@ -148,3 +148,25 @@ def test_dml_sensitivity_external_predictions(test_dml_benchmark_fixture):
     assert np.allclose(
         test_dml_benchmark_fixture["default_benchmark"], test_dml_benchmark_fixture["external_benchmark"], rtol=1e-9, atol=1e-4
     )
+
+
+@pytest.mark.ci
+def test_doubleml_sensitivity_nu2_reestimation_centered():
+    """After the nu2 re-estimation fallback, psi_nu2 is centered and psi_max_bias has mean zero."""
+    np.random.seed(3141)
+    n_obs = 500
+    dml_data = make_irm_data(theta=0.5, n_obs=n_obs, dim_x=5)
+    # a poor external propensity score makes the estimated nu2 non-positive, which triggers the re-estimation
+    m_ext = np.full(n_obs, 0.5)
+    m_ext[np.where(dml_data.d == 0)[0][:20]] = 0.97
+    dml_irm = dml.DoubleMLIRM(dml_data, LinearRegression(), LogisticRegression(), n_folds=2, n_rep=2)
+    msg = r"The estimated nu2 for d is not positive. Re-estimation based on riesz representer \(non-orthogonal\)."
+    with pytest.warns(UserWarning, match=msg):
+        dml_irm.fit(external_predictions={"d": {"ml_m": np.column_stack([m_ext, m_ext])}})
+
+    riesz_rep = dml_irm.sensitivity_elements["riesz_rep"]
+    nu2 = np.mean(np.square(riesz_rep), axis=0, keepdims=True)
+    np.testing.assert_allclose(dml_irm.sensitivity_elements["nu2"], nu2, rtol=1e-9)
+    np.testing.assert_allclose(dml_irm.sensitivity_elements["psi_nu2"], np.square(riesz_rep) - nu2, rtol=1e-9, atol=1e-9)
+    psi_max_bias = dml_irm.framework.sensitivity_elements["psi_max_bias"]
+    np.testing.assert_allclose(np.mean(psi_max_bias, axis=0), 0.0, atol=1e-10)
