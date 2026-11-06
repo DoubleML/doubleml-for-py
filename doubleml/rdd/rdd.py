@@ -366,7 +366,7 @@ class RDFlex:
                         b = None
 
                     rdd_res = self._fit_rdd(h=h, b=b)
-                    self._set_coefs(rdd_res, h)
+                    self._set_coefs(rdd_res)
 
         self.aggregate_over_splits()
 
@@ -476,8 +476,9 @@ class RDFlex:
             )
         return rdd_res
 
-    def _set_coefs(self, rdd_res, h):
-        self._h[self._i_rep] = h
+    def _set_coefs(self, rdd_res):
+        # bandwidth used by rdrobust, also if it was selected by rdrobust (n_iterations=1) or passed via kwargs
+        self._h[self._i_rep] = rdd_res.bws.loc["h"].max()
         self._all_coef[:, self._i_rep] = rdd_res.coef.values.flatten()
         self._all_se[:, self._i_rep] = rdd_res.se.values.flatten()
         self._all_ci[:, :, self._i_rep] = rdd_res.ci.values
