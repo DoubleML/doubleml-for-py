@@ -1,9 +1,12 @@
 import re
 
 import pytest
+from sklearn import config_context
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, StackingClassifier, StackingRegressor
-from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.linear_model import Lasso, LinearRegression, LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from doubleml.utils import GlobalClassifier, GlobalRegressor
 from doubleml.utils._checks import _check_supports_sample_weights
@@ -61,3 +64,30 @@ def test_check_supports_sample_weights_invalid(learner, learner_name):
     )
     with pytest.raises(ValueError, match=msg):
         _check_supports_sample_weights(learner, learner_name)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(
+    "learner, learner_name",
+    [
+        (make_pipeline(StandardScaler(), Lasso()), "ml_g"),
+        (make_pipeline(StandardScaler(), LogisticRegression()), "ml_m"),
+    ],
+)
+def test_check_supports_sample_weights_pipeline(learner, learner_name):
+    """A Pipeline is rejected: its fit() accepts **params, but no plain sample_weight without metadata routing."""
+    msg = re.escape(
+        f"The {learner_name} learner {str(learner)} does not support sample weights. "
+        "A Pipeline only accepts sample weights with metadata routing enabled "
+        "(sklearn.set_config(enable_metadata_routing=True)). "
+        "Please choose a learner that supports sample weights."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _check_supports_sample_weights(learner, learner_name)
+
+
+@pytest.mark.ci
+def test_check_supports_sample_weights_pipeline_metadata_routing():
+    """With metadata routing enabled, a Pipeline passes the check (sklearn routes sample_weight to its steps)."""
+    with config_context(enable_metadata_routing=True):
+        _check_supports_sample_weights(make_pipeline(StandardScaler(), Lasso()), "ml_g")

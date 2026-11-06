@@ -2,7 +2,9 @@ import inspect
 import warnings
 
 import numpy as np
+from sklearn import get_config
 from sklearn.base import is_classifier, is_regressor
+from sklearn.pipeline import Pipeline
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import has_fit_parameter
 
@@ -622,6 +624,14 @@ def _check_learner(learner, learner_name, regressor=True, classifier=True):
 
 
 def _check_supports_sample_weights(learner, learner_name):
+    # Pipeline.fit() takes **params, but only accepts a plain sample_weight with metadata routing enabled
+    if isinstance(learner, Pipeline) and not get_config()["enable_metadata_routing"]:
+        raise ValueError(
+            f"The {learner_name} learner {str(learner)} does not support sample weights. "
+            "A Pipeline only accepts sample weights with metadata routing enabled "
+            "(sklearn.set_config(enable_metadata_routing=True)). "
+            "Please choose a learner that supports sample weights."
+        )
     has_explicit = has_fit_parameter(learner, "sample_weight")
     has_var_keyword = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in inspect.signature(learner.fit).parameters.values())
     if not (has_explicit or has_var_keyword):

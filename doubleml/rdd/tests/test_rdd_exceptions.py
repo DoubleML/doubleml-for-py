@@ -5,6 +5,8 @@ import pandas as pd
 import pytest
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from doubleml import DoubleMLRDDData
 from doubleml.rdd import RDFlex
@@ -155,6 +157,9 @@ def test_rdd_exception_learner():
     )
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g=DummyRegressorNoSampleWeight(), ml_m=ml_m)
+    msg = r"The ml_g learner Pipeline\(.*\) does not support sample weights. A Pipeline only accepts sample weights"
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g=make_pipeline(StandardScaler(), Lasso()))
 
     # ml_m
     msg = r"Invalid learner provided for ml_m: Lasso\(\) has no method .predict_proba\(\)."
