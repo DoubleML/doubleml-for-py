@@ -61,6 +61,8 @@ def test_maketables_estimates(fitted_model):
     before = model.summary.copy(deep=True)
     table = get_extractor(model).coef_table(model)
     expected = before.rename(columns={"coef": "b", "std err": "se", "P>|t|": "p", "2.5 %": "ci95l", "97.5 %": "ci95u"})
+    estimand = {"DoubleMLIRM": "ATE", "DoubleMLPLIV": "PLIV"}.get(type(model).__name__, "PLR")
+    expected.index = [f"{name} ({estimand})" for name in expected.index]
     expected.index.name = "Coefficient"
     pd.testing.assert_frame_equal(table[expected.columns], expected)
     pd.testing.assert_frame_equal(model.summary, before)
@@ -74,7 +76,12 @@ def test_maketables_metadata(fitted_model):
     extractor = get_extractor(fitted_model)
     assert extractor.depvar(fitted_model) == "outcome"
     assert extractor.stat(fitted_model, "N") == 200
-    assert extractor.default_stat_keys(fitted_model) == ["N"]
+    assert extractor.default_stat_keys(fitted_model) == ["N", "se_type", "n_rep"]
+    expected_rep = 1 if fitted_model.n_rep == 1 else f"{fitted_model.n_rep} (median)"
+    assert extractor.stat(fitted_model, "n_rep") == expected_rep
+    assert extractor.stat(fitted_model, "n_folds") == 2
+    clustervar = ["cluster"] if fitted_model._is_cluster_data else None
+    assert extractor.vcov_info(fitted_model) == {"vcov_type": "robust", "clustervar": clustervar}
     assert extractor.stat(fitted_model, "r2") is None
     assert extractor.stat(fitted_model, "unknown") is None
 
@@ -84,7 +91,8 @@ def test_maketables_metadata(fitted_model):
 def test_maketables_render(fitted_model, output_format):
     """Actual exported tables contain estimates and pointwise confidence intervals."""
     model = fitted_model
-    table = ETable(model, coef_fmt="b:.6f (se:.6f) [ci95l:.6f, ci95u:.6f]", labels={"treatment_z": "Treatment"})
+    labels = {name: "Treatment" for name in model.__maketables_coef_table__.index if name.startswith("treatment_z")}
+    table = ETable(model, coef_fmt="b:.6f (se:.6f) [ci95l:.6f, ci95u:.6f]", labels=labels)
     output = table.make(output_format)
     assert "Treatment" in output
     assert "outcome" in output
@@ -128,3 +136,47 @@ def test_maketables_reset_and_refit(fitted_model):
         assert f"{value:.6f}" not in output
     model.fit()
     pd.testing.assert_frame_equal(model.__maketables_coef_table__, before)
+
+
+def _binary_treatment_data(n_obs=500):
+    np.random.seed(3141)
+    x = np.random.normal(size=(n_obs, 2))
+    d = (x[:, 0] + np.random.normal(size=n_obs) > 0).astype(float)
+    y = d + x[:, 1] + np.random.normal(size=n_obs)
+    return dml.DoubleMLData.from_arrays(x, y, d)
+
+
+@pytest.mark.ci
+def test_maketables_estimand_distinguishes_models():
+    """Models estimating different quantities get separate, named rows."""
+    data = _binary_treatment_data()
+    weights = np.random.uniform(0.5, 2, data.n_obs)
+    models = [
+        dml.DoubleMLIRM(data, LinearRegression(), LogisticRegression(), n_folds=2),
+        dml.DoubleMLIRM(data, LinearRegression(), LogisticRegression(), score="ATTE", n_folds=2),
+        dml.DoubleMLIRM(data, LinearRegression(), LogisticRegression(), weights=weights, n_folds=2),
+        dml.DoubleMLAPO(data, LinearRegression(), LogisticRegression(), treatment_level=1, n_folds=2),
+        dml.DoubleMLPQ(data, LogisticRegression(), LogisticRegression(), quantile=0.5, n_folds=2),
+    ]
+    expected = ["d (ATE)", "d (ATTE)", "d (Weighted ATE)", "d (APO(1))", "d (PQ(0.5, d=1))"]
+    for model in models:
+        model.fit()
+    assert [model.__maketables_coef_table__.index[0] for model in models] == expected
+    output = ETable(models, coef_fmt="b:.6f").make("tex")
+    for row, model in zip(expected, models):
+        assert f"{row} & " in output
+        assert output.count(f"{model.coef[0]:.6f}") == 1
+
+
+@pytest.mark.ci
+def test_maketables_joint_intervals_after_bootstrap(fitted_model):
+    """Joint intervals are offered only once the bootstrap has been run."""
+    if fitted_model._is_cluster_data:
+        pytest.skip("DoubleML does not implement the bootstrap with clustering.")
+    model = deepcopy(fitted_model)
+    assert "ci95l_joint" not in model.__maketables_coef_table__.columns
+    model.bootstrap(n_rep_boot=200)
+    table = model.__maketables_coef_table__
+    joint = model.confint(joint=True)
+    np.testing.assert_allclose(table[["ci95l_joint", "ci95u_joint"]].to_numpy(), joint.to_numpy())
+    np.testing.assert_allclose(table[["ci95l", "ci95u"]].to_numpy(), model.confint().to_numpy())
