@@ -7,6 +7,7 @@ _COEF_COLUMNS = ["b", "se", "t", "p", "ci95l", "ci95u"]
 
 _STAT_LABELS = {
     "N": "Observations",
+    "n_clusters": "Clusters",
     "se_type": "S.E. type",
     "n_folds": "Folds",
     "n_rep": "Sample-split repetitions",
@@ -73,9 +74,17 @@ class MakeTablesMixin:
         key : str
             Statistic identifier: ``'N'`` (unweighted count of observations in
             the data object, including those without an observed outcome in
-            sample selection models), ``'n_folds'``, or ``'n_rep'``
-            (sample-split repetitions; with more than one, estimates and
-            standard errors are medians across repetitions).
+            sample selection models), ``'n_clusters'`` (distinct clusters per
+            cluster variable, or ``None`` without clustering), ``'n_folds'``,
+            or ``'n_rep'`` (sample-split repetitions).
+
+        Notes
+        -----
+        With more than one repetition, the estimate is the median across
+        repetitions. The standard error is not the median standard error: it is
+        backed out from the median of the per-repetition upper bounds
+        :math:`\\hat\theta_r + 1.96\\,\\hat\\sigma_r`, so it also reflects how much
+        the estimate varies across sample splits.
 
         Returns
         -------
@@ -84,6 +93,11 @@ class MakeTablesMixin:
         """
         if key == "N":
             return self.n_obs
+        if key == "n_clusters":
+            if not self._is_cluster_data:
+                return None
+            counts = [len(np.unique(col)) for col in self._dml_data.cluster_vars.T]
+            return counts[0] if len(counts) == 1 else " × ".join(map(str, counts))
         if key == "n_folds":
             return self.n_folds
         if key == "n_rep":
@@ -108,13 +122,14 @@ class MakeTablesMixin:
         Returns
         -------
         dict
-            ``vcov_type`` is ``'robust'``: standard errors come from the
+            ``vcov_type`` is ``'hetero'``, the label pyfixest uses for
+            heteroskedasticity-robust standard errors: DoubleML's come from the
             variance of the estimated score, without assuming homoskedasticity.
             ``clustervar`` lists the cluster columns, or is ``None`` without
             clustering.
         """
         cluster_cols = self._dml_data.cluster_cols if self._is_cluster_data else None
-        return {"vcov_type": "robust", "clustervar": cluster_cols}
+        return {"vcov_type": "hetero", "clustervar": cluster_cols}
 
     @property
     def __maketables_stat_labels__(self) -> dict[str, str]:
@@ -128,10 +143,14 @@ class MakeTablesMixin:
         Returns
         -------
         list[str]
-            ``['N', 'se_type', 'n_rep']``. Users can override this
-            through ``ETable(model_stats=...)``.
+            ``['N', 'se_type', 'n_folds', 'n_rep']``, plus ``'n_clusters'`` for
+            clustered models. Users can override this through
+            ``ETable(model_stats=...)``.
         """
-        return ["N", "se_type", "n_rep"]
+        # MakeTables orders rows by first appearance across models, so a key only
+        # some models report goes last to keep its position stable in mixed tables.
+        clusters = ["n_clusters"] if self._is_cluster_data else []
+        return ["N", "se_type", "n_folds", "n_rep", *clusters]
 
     def _maketables_estimand(self) -> str:
         # Partially linear models have no named estimand, so the model is shown.

@@ -76,12 +76,15 @@ def test_maketables_metadata(fitted_model):
     extractor = get_extractor(fitted_model)
     assert extractor.depvar(fitted_model) == "outcome"
     assert extractor.stat(fitted_model, "N") == 200
-    assert extractor.default_stat_keys(fitted_model) == ["N", "se_type", "n_rep"]
+    clustered = fitted_model._is_cluster_data
+    expected_keys = ["N", "se_type", "n_folds", "n_rep", "n_clusters"] if clustered else ["N", "se_type", "n_folds", "n_rep"]
+    assert extractor.default_stat_keys(fitted_model) == expected_keys
+    assert extractor.stat(fitted_model, "n_clusters") == (40 if clustered else None)
     expected_rep = 1 if fitted_model.n_rep == 1 else f"{fitted_model.n_rep} (median)"
     assert extractor.stat(fitted_model, "n_rep") == expected_rep
     assert extractor.stat(fitted_model, "n_folds") == 2
     clustervar = ["cluster"] if fitted_model._is_cluster_data else None
-    assert extractor.vcov_info(fitted_model) == {"vcov_type": "robust", "clustervar": clustervar}
+    assert extractor.vcov_info(fitted_model) == {"vcov_type": "hetero", "clustervar": clustervar}
     assert extractor.stat(fitted_model, "r2") is None
     assert extractor.stat(fitted_model, "unknown") is None
 
@@ -180,3 +183,22 @@ def test_maketables_joint_intervals_after_bootstrap(fitted_model):
     joint = model.confint(joint=True)
     np.testing.assert_allclose(table[["ci95l_joint", "ci95u_joint"]].to_numpy(), joint.to_numpy())
     np.testing.assert_allclose(table[["ci95l", "ci95u"]].to_numpy(), model.confint().to_numpy())
+
+
+@pytest.mark.ci
+def test_maketables_settings_rows_render():
+    """Clustered and repeated-split settings appear as rows in the exported table."""
+    np.random.seed(3141)
+    frame = pd.DataFrame(np.random.normal(size=(200, 3)), columns=["x1", "x2", "y"])
+    frame["d"] = frame["x1"] + np.random.normal(size=200)
+    frame["school"] = np.repeat(np.arange(25), 8)
+    kwargs = {"y_col": "y", "d_cols": "d", "x_cols": ["x1", "x2"]}
+    clustered = dml.DoubleMLPLR(
+        dml.DoubleMLData(frame, cluster_cols="school", **kwargs), LinearRegression(), LinearRegression(), n_folds=3
+    ).fit()
+    repeated = dml.DoubleMLPLR(dml.DoubleMLData(frame, **kwargs), LinearRegression(), LinearRegression(), n_folds=4, n_rep=3)
+    output = ETable([clustered, repeated.fit()]).make("tex")
+    assert "Clusters & 25 & -" in output
+    assert "S.E. type & by: school & hetero" in output
+    assert "Folds & 3 & 4" in output
+    assert "Sample-split repetitions & 1 & 3 (median)" in output
