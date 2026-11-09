@@ -38,3 +38,15 @@ def test_rdd_bandwidth_user_given(dml_data, n_iterations):
     dml_rdflex.fit(n_iterations=n_iterations)
 
     np.testing.assert_allclose(dml_rdflex.h, [0.5, 0.5])
+
+
+@pytest.mark.ci_rdd
+@pytest.mark.parametrize("n_iterations", [1, 2])
+def test_rdd_bandwidth_asymmetric(dml_data, n_iterations):
+    """If the bandwidths left and right of the cutoff differ, the larger one is reported as `h`."""
+    np.random.seed(42)
+    with pytest.warns(UserWarning, match="Key-worded arguments contain"):
+        dml_rdflex = RDFlex(dml_data, ml_g=LinearRegression(), n_rep=2, h=[0.4, 0.7])
+    dml_rdflex.fit(n_iterations=n_iterations)
+
+    np.testing.assert_allclose(dml_rdflex.h, [0.7, 0.7])

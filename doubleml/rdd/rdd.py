@@ -245,6 +245,9 @@ class RDFlex:
     def h(self):
         """
         Array of final bandwidths in the last stage estimation (shape (``n_rep``,)).
+        This is the bandwidth ``h`` used by ``rdrobust`` in the final estimation, also if it was
+        selected by ``rdrobust`` (``n_iterations=1``) or passed via ``**kwargs``. If the bandwidths
+        left and right of the cutoff differ, the larger one is reported.
         """
         return self._h
 
