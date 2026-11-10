@@ -245,6 +245,9 @@ class RDFlex:
     def h(self):
         """
         Array of final bandwidths in the last stage estimation (shape (``n_rep``,)).
+        This is the bandwidth ``h`` used by ``rdrobust`` in the final estimation, also if it was
+        selected by ``rdrobust`` (``n_iterations=1``) or passed via ``**kwargs``. If the bandwidths
+        left and right of the cutoff differ, the larger one is reported.
         """
         return self._h
 
@@ -366,7 +369,7 @@ class RDFlex:
                         b = None
 
                     rdd_res = self._fit_rdd(h=h, b=b)
-                    self._set_coefs(rdd_res, h)
+                    self._set_coefs(rdd_res)
 
         self.aggregate_over_splits()
 
@@ -476,8 +479,9 @@ class RDFlex:
             )
         return rdd_res
 
-    def _set_coefs(self, rdd_res, h):
-        self._h[self._i_rep] = h
+    def _set_coefs(self, rdd_res):
+        # bandwidth used by rdrobust, also if it was selected by rdrobust (n_iterations=1) or passed via kwargs
+        self._h[self._i_rep] = rdd_res.bws.loc["h"].max()
         self._all_coef[:, self._i_rep] = rdd_res.coef.values.flatten()
         self._all_se[:, self._i_rep] = rdd_res.se.values.flatten()
         self._all_ci[:, :, self._i_rep] = rdd_res.ci.values
