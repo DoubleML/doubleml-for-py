@@ -132,7 +132,8 @@ def _valid_routing_learners():
     return [
         _pipe(request_weights=True),
         pipe_scaler_unweighted,
-        GridSearchCV(_pipe(request_weights=True), {"lasso__alpha": [0.1, 1.0]}),
+        # scikit-learn < 1.8 also routes sample_weight to the estimator's score() in GridSearchCV (scoring=None)
+        GridSearchCV(_pipe(request_weights=True).set_score_request(sample_weight=False), {"lasso__alpha": [0.1, 1.0]}),
         StackingRegressor([("pipe", _pipe(request_weights=True))]),
         TransformedTargetRegressor(regressor=_pipe(request_weights=True)),
     ]
