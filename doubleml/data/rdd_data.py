@@ -87,7 +87,7 @@ class DoubleMLRDDData(DoubleMLData):
         force_all_x_finite=True,
         force_all_d_finite=True,
     ):
-        # Set score column before calling parent constructor
+        # Needed by the parent constructor to exclude the score column from the default x_cols
         self.score_col = score_col
 
         # Call parent constructor
@@ -103,12 +103,8 @@ class DoubleMLRDDData(DoubleMLData):
             force_all_d_finite=force_all_d_finite,
         )
 
-        # The score column could not be validated before the data was loaded
-        if self.score_col not in self.all_variables:
-            raise ValueError(f"Invalid score variable score_col. {self.score_col} is no data column.")
-
-        # Set score variable array after data is loaded
-        self._set_score_var()
+        # Assign again now that the data is loaded, so the setter validates the column and sets the score array
+        self.score_col = score_col
 
     @classmethod
     def from_arrays(
@@ -218,10 +214,11 @@ class DoubleMLRDDData(DoubleMLData):
             )
         # Check if data exists (during initialization it might not)
         if hasattr(self, "_data") and value not in self.all_variables:
-            raise ValueError("Invalid score variable score_col. The score variable is no data column.")
+            raise ValueError(f"Invalid score variable score_col. {value} is no data column.")
         self._score_col = value
-        # Update score variable array if data is already loaded
+        # Check disjointness and update score variable array if data is already loaded
         if hasattr(self, "_data"):
+            self._check_disjoint_sets()
             self._set_score_var()
 
     @property
@@ -271,8 +268,7 @@ class DoubleMLRDDData(DoubleMLData):
 
     def _set_score_var(self):
         """Set the score variable array."""
-        if hasattr(self, "_data") and self.score_col in self.data.columns:
-            self._score = self.data.loc[:, self.score_col]
+        self._score = self.data.loc[:, self.score_col]
 
     def __str__(self):
         """String representation."""

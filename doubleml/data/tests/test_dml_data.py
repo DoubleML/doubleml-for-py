@@ -377,6 +377,27 @@ def test_rdd_data_score_col():
 
 
 @pytest.mark.ci
+def test_rdd_score_col_setter():
+    """The score_col setter validates the column and keeps it disjoint from the covariates."""
+    np.random.seed(3141)
+    data = make_simple_rdd_data(n_obs=100)
+    x_cols = [f"x{i}" for i in range(data["X"].shape[1])]
+    df = pd.DataFrame(np.column_stack((data["Y"], data["D"], data["score"], data["X"])), columns=["y", "d", "score"] + x_cols)
+    dml_data = DoubleMLRDDData(df, "y", "d", score_col="score", x_cols=x_cols[1:])
+
+    dml_data.score_col = "x0"
+    assert np.array_equal(dml_data.score, df["x0"].values)
+
+    msg = r"Invalid score variable score_col. s is no data column."
+    with pytest.raises(ValueError, match=msg):
+        dml_data.score_col = "s"
+
+    msg = r"At least one variable/column is set as covariate \(``x_cols``\) and score variable \(``score_col``\)."
+    with pytest.raises(ValueError, match=msg):
+        dml_data.score_col = "x1"
+
+
+@pytest.mark.ci
 def test_y_col_setter():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
