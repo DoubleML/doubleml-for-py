@@ -3,6 +3,7 @@ import copy
 import numpy as np
 import pandas as pd
 import pytest
+from sklearn import config_context
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.pipeline import make_pipeline
@@ -152,12 +153,13 @@ def test_rdd_exception_learner():
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g=LogisticRegression())
     msg = (
-        r"The ml_g learner DummyRegressorNoSampleWeight\(\) does not support sample weights. Please choose a learner"
-        " that supports sample weights."
+        r"The ml_g learner DummyRegressorNoSampleWeight\(\) does not support sample weights. "
+        r"DummyRegressorNoSampleWeight.fit\(\) has no sample_weight argument. "
+        "Please choose a learner that supports sample weights."
     )
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g=DummyRegressorNoSampleWeight(), ml_m=ml_m)
-    msg = r"The ml_g learner Pipeline\(.*\) does not support sample weights. A Pipeline only accepts sample weights"
+    msg = r"(?s)The ml_g learner Pipeline\(.*\) does not support sample weights. A Pipeline only passes sample weights"
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g=make_pipeline(StandardScaler(), Lasso()))
 
@@ -169,11 +171,15 @@ def test_rdd_exception_learner():
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g, fuzzy=True)
     msg = (
-        r"The ml_m learner DummyClassifierNoSampleWeight\(\) does not support sample weights. Please choose a learner"
-        " that supports sample weights."
+        r"The ml_m learner DummyClassifierNoSampleWeight\(\) does not support sample weights. "
+        r"DummyClassifierNoSampleWeight.fit\(\) has no sample_weight argument. "
+        "Please choose a learner that supports sample weights."
     )
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g, ml_m=DummyClassifierNoSampleWeight(), fuzzy=True)
+    msg = r"(?s)The ml_m learner Pipeline\(.*\) does not support sample weights. A Pipeline only passes sample weights"
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m=make_pipeline(StandardScaler(), LogisticRegression()), fuzzy=True)
 
     msg = (
         "A learner ml_m has been provided for for a sharp design but will be ignored. "
@@ -184,6 +190,17 @@ def test_rdd_exception_learner():
         tmp_dml_data._data["sharp_d"] = tmp_dml_data.score >= 0
         tmp_dml_data.d_cols = "sharp_d"
         _ = RDFlex(tmp_dml_data, ml_g, ml_m, fuzzy=False)
+
+
+@pytest.mark.ci_rdd
+def test_rdd_exception_metadata_routing_disabled_before_fit():
+    """A Pipeline set with metadata routing enabled is rejected in fit() if routing has been disabled since."""
+    with config_context(enable_metadata_routing=True):
+        pipe = make_pipeline(StandardScaler().set_fit_request(sample_weight=True), Lasso().set_fit_request(sample_weight=True))
+        rdd_model = RDFlex(dml_data, ml_g=pipe)
+    msg = r"(?s)The ml_g learner Pipeline\(.*\) does not support sample weights. A Pipeline only passes sample weights"
+    with pytest.raises(ValueError, match=msg):
+        rdd_model.fit()
 
 
 @pytest.mark.ci_rdd

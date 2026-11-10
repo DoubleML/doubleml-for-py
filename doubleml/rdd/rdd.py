@@ -337,6 +337,9 @@ class RDFlex:
         """
 
         self._check_iterations(n_iterations)
+        # re-check, as the metadata routing config may have changed since the learners were set
+        for learner_name, learner in self._learner.items():
+            _check_supports_sample_weights(learner, learner_name)
 
         # set variables for readablitity
         Y = self._dml_data.y

@@ -1,12 +1,22 @@
+"""Tests for the check whether a learner supports sample weights."""
+
 import re
 
 import pytest
 from sklearn import config_context
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, StackingClassifier, StackingRegressor
+from sklearn.compose import TransformedTargetRegressor
+from sklearn.ensemble import (
+    BaggingRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
+    StackingClassifier,
+    StackingRegressor,
+)
 from sklearn.linear_model import Lasso, LinearRegression, LogisticRegression
+from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
 from doubleml.utils import GlobalClassifier, GlobalRegressor
 from doubleml.utils._checks import _check_supports_sample_weights
@@ -60,34 +70,97 @@ def test_check_supports_sample_weights_valid(learner, learner_name):
 def test_check_supports_sample_weights_invalid(learner, learner_name):
     msg = re.escape(
         f"The {learner_name} learner {str(learner)} does not support sample weights. "
+        f"{type(learner).__name__}.fit() has no sample_weight argument. "
         "Please choose a learner that supports sample weights."
     )
     with pytest.raises(ValueError, match=msg):
         _check_supports_sample_weights(learner, learner_name)
+
+
+def _pipe(request_weights=False):
+    """Scaler + Lasso pipeline; optionally request sample weights on both steps (needs metadata routing)."""
+    pipe = make_pipeline(StandardScaler(), Lasso())
+    if request_weights:
+        for _, step in pipe.steps:
+            step.set_fit_request(sample_weight=True)
+    return pipe
 
 
 @pytest.mark.ci
 @pytest.mark.parametrize(
-    "learner, learner_name",
+    "learner",
     [
-        (make_pipeline(StandardScaler(), Lasso()), "ml_g"),
-        (make_pipeline(StandardScaler(), LogisticRegression()), "ml_m"),
+        GridSearchCV(Lasso(), {"alpha": [0.1, 1.0]}),
+        BaggingRegressor(_pipe()),
+        TransformedTargetRegressor(regressor=Lasso(), transformer=FunctionTransformer()),
+        GlobalRegressor(base_estimator=KNeighborsRegressor()),
     ],
 )
-def test_check_supports_sample_weights_pipeline(learner, learner_name):
-    """A Pipeline is rejected: its fit() accepts **params, but no plain sample_weight without metadata routing."""
-    msg = re.escape(
-        f"The {learner_name} learner {str(learner)} does not support sample weights. "
-        "A Pipeline only accepts sample weights with metadata routing enabled "
-        "(sklearn.set_config(enable_metadata_routing=True)). "
-        "Please choose a learner that supports sample weights."
-    )
-    with pytest.raises(ValueError, match=msg):
-        _check_supports_sample_weights(learner, learner_name)
+def test_check_supports_sample_weights_valid_meta_estimators(learner):
+    """Meta-estimators that handle the weights themselves or forward them to learners that accept them pass."""
+    _check_supports_sample_weights(learner, "ml_g")
 
 
 @pytest.mark.ci
-def test_check_supports_sample_weights_pipeline_metadata_routing():
-    """With metadata routing enabled, a Pipeline passes the check (sklearn routes sample_weight to its steps)."""
+@pytest.mark.parametrize(
+    "learner, reason",
+    [
+        (_pipe(), r"A Pipeline only passes sample weights to its steps with metadata routing enabled"),
+        (make_pipeline(StandardScaler(), LogisticRegression()), r"A Pipeline only passes sample weights"),
+        (GridSearchCV(_pipe(), {"lasso__alpha": [0.1, 1.0]}), r"The wrapped learner Pipeline\(.*\) does not support"),
+        (StackingRegressor([("pipe", _pipe())]), r"The wrapped learner Pipeline\(.*\) does not support"),
+        (StackingRegressor([("knn", KNeighborsRegressor())]), r"The wrapped learner KNeighborsRegressor\(\) does not"),
+        (TransformedTargetRegressor(regressor=_pipe()), r"The wrapped learner Pipeline\(.*\) does not support"),
+        (TransformedTargetRegressor(regressor=KNeighborsRegressor()), r"The wrapped learner KNeighborsRegressor\(\)"),
+        (
+            StackingRegressor([("lasso", Lasso())], final_estimator=KNeighborsRegressor()),
+            r"The wrapped learner KNeighborsRegressor\(\) does not",
+        ),
+    ],
+)
+def test_check_supports_sample_weights_invalid_meta_estimators(learner, reason):
+    """Pipelines (without metadata routing) and meta-estimators forwarding weights to unsupported learners fail."""
+    msg = r"(?s)The ml_g learner .* does not support sample weights\. " + reason
+    with pytest.raises(ValueError, match=msg):
+        _check_supports_sample_weights(learner, "ml_g")
+
+
+def _valid_routing_learners():
+    pipe_scaler_unweighted = make_pipeline(
+        StandardScaler().set_fit_request(sample_weight=False), Lasso().set_fit_request(sample_weight=True)
+    )
+    return [
+        _pipe(request_weights=True),
+        pipe_scaler_unweighted,
+        GridSearchCV(_pipe(request_weights=True), {"lasso__alpha": [0.1, 1.0]}),
+        StackingRegressor([("pipe", _pipe(request_weights=True))]),
+        TransformedTargetRegressor(regressor=_pipe(request_weights=True)),
+    ]
+
+
+def _invalid_routing_learners():
+    pipe_half_requested = make_pipeline(StandardScaler(), Lasso().set_fit_request(sample_weight=True))
+    return [
+        _pipe(),
+        GridSearchCV(Lasso(), {"alpha": [0.1, 1.0]}),
+        GridSearchCV(pipe_half_requested, {"lasso__alpha": [0.1, 1.0]}),
+        StackingRegressor([("pipe", _pipe())]),
+    ]
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("i_learner", range(5))
+def test_check_supports_sample_weights_metadata_routing_valid(i_learner):
+    """With metadata routing, learners whose (nested) steps request the weights pass."""
     with config_context(enable_metadata_routing=True):
-        _check_supports_sample_weights(make_pipeline(StandardScaler(), Lasso()), "ml_g")
+        _check_supports_sample_weights(_valid_routing_learners()[i_learner], "ml_g")
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("i_learner", range(4))
+def test_check_supports_sample_weights_metadata_routing_invalid(i_learner):
+    """With metadata routing, learners with (nested) steps that do not request the weights fail."""
+    msg = r"(?s)The ml_g learner .* does not support sample weights\. .*Metadata routing: \[sample_weight\] are passed but"
+    with config_context(enable_metadata_routing=True):
+        with pytest.raises(ValueError, match=msg):
+            _check_supports_sample_weights(_invalid_routing_learners()[i_learner], "ml_g")

@@ -1,12 +1,22 @@
 import inspect
 import warnings
+from collections.abc import Iterator
+from typing import Any
 
 import numpy as np
 from sklearn import get_config
 from sklearn.base import is_classifier, is_regressor
+from sklearn.exceptions import UnsetMetadataPassedError
 from sklearn.pipeline import Pipeline
+from sklearn.utils.metadata_routing import MetadataRouter, get_routing_for_object, process_routing
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import has_fit_parameter
+
+_PIPELINE_SAMPLE_WEIGHT_HINT = (
+    "A Pipeline only passes sample weights to its steps with metadata routing enabled: "
+    "call sklearn.set_config(enable_metadata_routing=True) and request the weights on the steps, "
+    "e.g. step.set_fit_request(sample_weight=True)."
+)
 
 
 def _check_in_zero_one(value, name, include_zero=True, include_one=True):
@@ -623,20 +633,60 @@ def _check_learner(learner, learner_name, regressor=True, classifier=True):
     return learner_is_classifier
 
 
-def _check_supports_sample_weights(learner, learner_name):
-    # Pipeline.fit() takes **params, but only accepts a plain sample_weight with metadata routing enabled
-    if isinstance(learner, Pipeline) and not get_config()["enable_metadata_routing"]:
+def _wrapped_predictors(learner: Any) -> Iterator[Any]:
+    """Yield the regressors and classifiers among a meta-estimator's parameters (incl. ``(name, est, ...)`` lists)."""
+    for value in learner.get_params(deep=False).values():
+        for item in value if isinstance(value, list) else [value]:
+            est = item[1] if isinstance(item, tuple) and len(item) > 1 else item
+            if hasattr(est, "fit") and (is_regressor(est) or is_classifier(est)):
+                yield est
+
+
+def _sample_weight_issue(learner: Any) -> str | None:
+    """
+    Check whether ``learner.fit(X, y, sample_weight=w)`` is supported, without fitting the learner.
+
+    Parameters
+    ----------
+    learner : estimator
+        A scikit-learn compatible learner (possibly a meta-estimator).
+
+    Returns
+    -------
+    str or None
+        ``None`` if sample weights are supported; otherwise the reason why not.
+
+    Notes
+    -----
+    A learner with an explicit ``sample_weight`` argument is trusted to handle the weights itself (e.g.
+    ``BaggingRegressor``). A learner that only accepts ``**fit_params`` forwards them to its wrapped regressors or
+    classifiers (e.g. ``StackingRegressor``, ``GridSearchCV``), which are then checked recursively. With metadata
+    routing enabled, scikit-learn validates the requests of a meta-estimator's direct children.
+    """
+    routing_enabled = get_config()["enable_metadata_routing"]
+    if isinstance(learner, Pipeline) and not routing_enabled:
+        return _PIPELINE_SAMPLE_WEIGHT_HINT
+    if routing_enabled and isinstance(get_routing_for_object(learner), MetadataRouter):
+        try:
+            process_routing(learner, "fit", sample_weight=np.ones(1))
+        except (TypeError, UnsetMetadataPassedError) as e:
+            return f"Metadata routing: {e}"
+    if has_fit_parameter(learner, "sample_weight"):
+        return None
+    fit_params = inspect.signature(learner.fit).parameters.values()
+    if not any(p.kind == inspect.Parameter.VAR_KEYWORD for p in fit_params):
+        return f"{type(learner).__name__}.fit() has no sample_weight argument."
+    for wrapped in _wrapped_predictors(learner):
+        issue = _sample_weight_issue(wrapped)
+        if issue is not None:
+            return f"The wrapped learner {str(wrapped)} does not support sample weights. {issue}"
+    return None
+
+
+def _check_supports_sample_weights(learner: Any, learner_name: str) -> None:
+    issue = _sample_weight_issue(learner)
+    if issue is not None:
         raise ValueError(
-            f"The {learner_name} learner {str(learner)} does not support sample weights. "
-            "A Pipeline only accepts sample weights with metadata routing enabled "
-            "(sklearn.set_config(enable_metadata_routing=True)). "
+            f"The {learner_name} learner {str(learner)} does not support sample weights. {issue} "
             "Please choose a learner that supports sample weights."
         )
-    has_explicit = has_fit_parameter(learner, "sample_weight")
-    has_var_keyword = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in inspect.signature(learner.fit).parameters.values())
-    if not (has_explicit or has_var_keyword):
-        raise ValueError(
-            f"The {learner_name} learner {str(learner)} does not support sample weights. "
-            "Please choose a learner that supports sample weights."
-        )
-    return
