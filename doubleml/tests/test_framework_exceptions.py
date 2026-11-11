@@ -163,6 +163,13 @@ def test_operation_exceptions():
     with pytest.raises(ValueError, match=msg):
         _ = dml_framework_obj_2 + dml_framework_obj_cluster
 
+    msg = "Addition of DoubleMLFramework objects not yet implemented with clustering."
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_framework_obj_cluster + dml_framework_obj_cluster
+    msg = "Subtraction of DoubleMLFramework objects not yet implemented with clustering."
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_framework_obj_cluster - dml_framework_obj_cluster
+
 
 @pytest.mark.ci
 def test_p_adjust_exceptions():
