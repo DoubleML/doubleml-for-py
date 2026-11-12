@@ -37,3 +37,4 @@ doubleml/_version.py
 # uv
 .venv/
 uv.lock
+doc/api/generated/

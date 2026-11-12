@@ -1,6 +1,17 @@
 Python API reference
 ====================
 
+Reproducibility diagnostics
+---------------------------
+
+.. currentmodule:: doubleml.utils
+
+.. autosummary::
+    :toctree: generated/
+
+    reproducibility_check
+    fit_until_reproducible
+
 Double machine learning data class
 ----------------------------------
 
