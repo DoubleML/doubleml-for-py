@@ -442,6 +442,9 @@ class DoubleMLFramework:
         if isinstance(other, DoubleMLFramework):
             # internal consistency check
             _check_framework_compatibility(self, other, check_treatments=True)
+            # the standard errors below don't account for clustering (both objects have the same cluster structure)
+            if self.is_cluster_data:
+                raise NotImplementedError("Addition of DoubleMLFramework objects not yet implemented with clustering.")
 
             all_thetas = self.all_thetas + other.all_thetas
             scaled_psi = self.scaled_psi + other.scaled_psi
@@ -486,6 +489,9 @@ class DoubleMLFramework:
         if isinstance(other, DoubleMLFramework):
             # internal consistency check
             _check_framework_compatibility(self, other, check_treatments=True)
+            # the standard errors below don't account for clustering (both objects have the same cluster structure)
+            if self.is_cluster_data:
+                raise NotImplementedError("Subtraction of DoubleMLFramework objects not yet implemented with clustering.")
 
             all_thetas = self.all_thetas - other.all_thetas
             scaled_psi = self.scaled_psi - other.scaled_psi

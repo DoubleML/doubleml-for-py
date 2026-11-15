@@ -333,3 +333,24 @@ def test_dml_plr_cluster_with_index_se(dml_plr_cluster_with_index):
     assert math.isclose(
         dml_plr_cluster_with_index["se"][0], dml_plr_cluster_with_index["se_ext_smpls"][0], rel_tol=1e-9, abs_tol=1e-4
     )
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("dml_data", [obj_dml_oneway_cluster_data, obj_dml_cluster_data], ids=["oneway", "twoway"])
+def test_dml_framework_operations_cluster(dml_data):
+    np.random.seed(3141)
+    dml_obj = dml.DoubleMLPLIV(dml_data, LinearRegression(), LinearRegression(), LinearRegression(), n_folds=2)
+    dml_obj.fit()
+    framework = dml_obj.framework
+
+    # scaling keeps the cluster robust standard errors
+    assert np.allclose((2.0 * framework).all_ses, 2.0 * framework.all_ses, rtol=1e-9, atol=1e-12)
+    assert np.allclose((-framework).all_ses, framework.all_ses, rtol=1e-9, atol=1e-12)
+
+    # addition and subtraction would compute the standard errors without the cluster structure
+    msg = "Addition of DoubleMLFramework objects not yet implemented with clustering."
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = framework + framework
+    msg = "Subtraction of DoubleMLFramework objects not yet implemented with clustering."
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = framework - 0.0 * framework
