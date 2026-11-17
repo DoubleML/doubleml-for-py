@@ -98,7 +98,7 @@ class DoubleMLPolicyTree:
         -------
         self : object
         """
-        bin_signal = (np.sign(self._orth_signal) + 1) / 2
+        bin_signal = (self._orth_signal > 0).astype(int)
         abs_signal = np.abs(self._orth_signal)
 
         # fit the tree with target binary score, sample weights absolute score and
