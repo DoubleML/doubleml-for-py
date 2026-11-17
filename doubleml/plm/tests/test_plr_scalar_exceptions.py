@@ -88,6 +88,18 @@ def test_plr_scalar_exception_estimate_causal_without_predictions():
 
 
 @pytest.mark.ci
+def test_plr_scalar_exception_zero_psi_a():
+    """Treatment residuals that are exactly zero (E[psi_a] = 0) raise ValueError."""
+    dml_obj = PLR(obj_dml_data)
+    dml_obj.set_learners(ml_l=ml_l, ml_m=ml_m)
+    dml_obj.draw_sample_splitting(n_folds=2)
+    m_hat = obj_dml_data.d.reshape(-1, 1)  # predicts d perfectly
+    msg = r"Division by near-zero detected in linear score estimation"
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.fit(external_predictions={"ml_m": m_hat})
+
+
+@pytest.mark.ci
 def test_plr_scalar_warning_ml_g_partialling_out():
     dml_obj = PLR(obj_dml_data, score="partialling out")
     with pytest.warns(UserWarning, match="not required for score.*ignored"):
