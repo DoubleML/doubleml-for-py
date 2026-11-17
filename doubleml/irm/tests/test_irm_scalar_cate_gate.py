@@ -105,6 +105,19 @@ def test_gate_dummy_coded(fitted_irm_single_rep):
 
 
 @pytest.mark.ci
+def test_gate_int_dummy_coded(fitted_irm_single_rep):
+    """gate() accepts int dummy-coded groups, with the same result as bool groups."""
+    model, _ = fitted_irm_single_rep
+    x1 = model._dml_data.data["X1"]
+    groups = pd.DataFrame({"Group 1": x1 <= x1.median(), "Group 2": x1 > x1.median()})
+    gate_bool = model.gate(groups)
+    gate_int = model.gate(groups.astype(int))
+    assert all(gate_int.confint().index == groups.columns.to_list())
+    np.testing.assert_allclose(gate_int.coef, gate_bool.coef, rtol=1e-9)
+    np.testing.assert_allclose(gate_int.se, gate_bool.se, rtol=1e-9)
+
+
+@pytest.mark.ci
 def test_gate_single_column_string(fitted_irm_single_rep):
     """A single-column string DataFrame is auto-converted to dummies."""
     model, _ = fitted_irm_single_rep
