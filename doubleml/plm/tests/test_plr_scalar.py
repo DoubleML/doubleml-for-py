@@ -3,6 +3,7 @@ import pytest
 from sklearn.base import clone
 from sklearn.linear_model import Lasso, LinearRegression
 
+from doubleml import DoubleMLData
 from doubleml.plm.datasets import make_plr_CCDDHNR2018
 from doubleml.plm.plr_scalar import PLR
 
@@ -89,3 +90,31 @@ def test_dml_plr_scalar_rep_shapes(dml_plr_scalar_rep_fixture):
     n_rep = dml_plr_scalar_rep_fixture["n_rep"]
     assert dml_obj.all_thetas.shape == (1, n_rep)
     assert dml_obj.all_ses.shape == (1, n_rep)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("score", ["partialling out", "IV-type"])
+def test_dml_plr_scalar_small_scale_treatment(score):
+    """Rescaling the treatment rescales coef and se, also when E[psi_a] is tiny in absolute terms."""
+    scale = 1e-7  # E[psi_a] is about -1e-14 for the rescaled treatment
+    np.random.seed(3141)
+    df = make_plr_CCDDHNR2018(n_obs=500, dim_x=5, alpha=0.5, return_type="DataFrame")
+    x_cols = [c for c in df.columns if c.startswith("X")]
+
+    models = []
+    for d_scale in [1.0, scale]:
+        dml_data = DoubleMLData(df.assign(d=df["d"] * d_scale), y_col="y", d_cols="d", x_cols=x_cols)
+        dml_obj = PLR(dml_data, score=score)
+        if score == "IV-type":
+            dml_obj.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression(), ml_g=LinearRegression())
+        else:
+            dml_obj.set_learners(ml_l=LinearRegression(), ml_m=LinearRegression())
+        if models:
+            dml_obj.set_sample_splitting(models[0].smpls)
+        else:
+            dml_obj.draw_sample_splitting(n_folds=5)
+        dml_obj.fit()
+        models.append(dml_obj)
+
+    np.testing.assert_allclose(models[1].coef * scale, models[0].coef, rtol=1e-9)
+    np.testing.assert_allclose(models[1].se * scale, models[0].se, rtol=1e-9)
