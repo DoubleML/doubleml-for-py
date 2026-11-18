@@ -127,13 +127,18 @@ $ uv run pytest .   # or, without uv: pytest .
 - [x] Check whether your changes adhere to the **PEP8 standards**.
 For the check you can use the following code
 ```bash
-$ git diff upstream/main -u -- "*.py" | uv run ruff check --diff   # or: ... | ruff check --diff
+$ uv run ruff check .   # or, without uv: ruff check .
 ```
 
 - [x] Check whether the code formatting adheres to the **Black code style**
 by running
 ```bash
 $ uv run black . --check --diff   # or, without uv: black . --check --diff
+```
+
+- [x] Alternatively, run all formatting and linting checks with the exact versions used in CI
+```bash
+$ uv run pre-commit run --all-files   # or, without uv: pre-commit run --all-files
 ```
 
 If your PR is still **work in progress**, please consider marking it a **draft PR**
