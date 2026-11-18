@@ -52,7 +52,7 @@ def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, clipping_t
     n_rep_boot = 499
 
     # collect data
-    (x, y, d) = generate_data_irm
+    x, y, d = generate_data_irm
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])

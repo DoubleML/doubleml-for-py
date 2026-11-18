@@ -47,7 +47,7 @@ def dml_apo_classifier_fixture(generate_data_irm_binary, learner, normalize_ipw,
     score = "APO"
 
     # collect data
-    (x, y, d) = generate_data_irm_binary
+    x, y, d = generate_data_irm_binary
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
 

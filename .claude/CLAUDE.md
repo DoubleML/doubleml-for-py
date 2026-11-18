@@ -58,7 +58,7 @@ doubleml/
 **Core**: numpy>=2.0.0, pandas>=2.0.0, scipy>=1.7.0, scikit-learn>=1.6.0, statsmodels>=0.14.0
 **ML/Tuning**: optuna>=4.6.0, joblib>=1.2.0
 **Visualization**: matplotlib>=3.9.0, seaborn>=0.13, plotly>=5.0.0
-**Dev**: pytest>=8.3.0, black>=25.1.0, ruff>=0.11.1, mypy>=1.18.0, xgboost>=2.1.0, lightgbm>=4.6.0
+**Dev**: pytest>=8.3.0, black>=26.1.0,<27, ruff>=0.17,<0.18, mypy>=1.18.0, xgboost>=2.1.0, lightgbm>=4.6.0
 
 ## Git Workflow
 
@@ -74,6 +74,8 @@ ruff check --fix .         # Lint
 mypy                       # Type check (allowlist: [tool.mypy] files in pyproject.toml)
 pytest -m ci               # Tests
 ```
+
+`pre-commit run --all-files` runs black and ruff with the exact versions CI uses.
 
 ## Coding Standards
 

@@ -75,7 +75,7 @@ def old_vs_weighted_score_fixture(generate_data_irm, learner, score, normalize_i
     n_folds = 2
 
     # collect data
-    (x, y, d) = generate_data_irm
+    x, y, d = generate_data_irm
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
 
     # Set machine learning methods for m & g

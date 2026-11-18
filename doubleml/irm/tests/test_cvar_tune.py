@@ -54,7 +54,7 @@ def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner_g, le
     n_folds = 2
 
     # collect data
-    (x, y, d) = generate_data_quantiles
+    x, y, d = generate_data_quantiles
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
     np.random.seed(42)
     n_obs = len(y)

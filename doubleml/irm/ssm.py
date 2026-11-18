@@ -230,11 +230,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                              Instrumental variables will not be used in estimation."
             )
         if obj_dml_data.z_cols is None and self._score == "nonignorable":
-            raise ValueError(
-                "Sample selection by nonignorable nonresponse was set but instrumental variable \
+            raise ValueError("Sample selection by nonignorable nonresponse was set but instrumental variable \
                              is None. To estimate treatment effect under nonignorable nonresponse, \
-                             specify an instrument for the selection variable."
-            )
+                             specify an instrument for the selection variable.")
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):

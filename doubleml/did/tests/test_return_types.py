@@ -34,7 +34,7 @@ datasets["did"] = make_did_SZ2020(n_obs=N_OBS)
 datasets["did_cs"] = make_did_SZ2020(n_obs=N_OBS, cross_sectional_data=True)
 
 # Binary outcome
-(x, y, d, t) = make_did_SZ2020(n_obs=N_OBS, cross_sectional_data=True, return_type="array")
+x, y, d, t = make_did_SZ2020(n_obs=N_OBS, cross_sectional_data=True, return_type="array")
 binary_outcome = np.random.binomial(n=1, p=0.5, size=N_OBS)
 
 datasets["did_binary_outcome"] = DoubleMLDIDData.from_arrays(x, binary_outcome, d)

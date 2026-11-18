@@ -49,7 +49,7 @@ def dml_irm_classifier_fixture(generate_data_irm_binary, learner, score, normali
     n_rep_boot = 499
 
     # collect data
-    (x, y, d) = generate_data_irm_binary
+    x, y, d = generate_data_irm_binary
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
 

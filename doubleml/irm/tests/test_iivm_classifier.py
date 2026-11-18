@@ -45,7 +45,7 @@ def dml_iivm_classifier_fixture(generate_data_iivm_binary, learner, score, norma
     n_rep_boot = 491
 
     # collect data
-    (x, y, d, z) = generate_data_iivm_binary
+    x, y, d, z = generate_data_iivm_binary
 
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d + 2 * z)

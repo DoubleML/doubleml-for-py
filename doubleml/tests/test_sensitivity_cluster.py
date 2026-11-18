@@ -16,10 +16,10 @@ M = 25  # number of observations (second dimension)
 dim_x = 10  # dimension of x
 
 
-(x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x, return_type="array")
+x, y, d, cluster_vars, z = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x, return_type="array")
 obj_dml_cluster_data = dml.DoubleMLData.from_arrays(x, y, d, cluster_vars=cluster_vars)
 
-(x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(
+x, y, d, cluster_vars, z = make_pliv_multiway_cluster_CKMS2021(
     N,
     M,
     dim_x,

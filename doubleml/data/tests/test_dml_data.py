@@ -560,7 +560,7 @@ def test_dml_datatype():
 
 @pytest.mark.ci
 def test_dml_data_w_missings(generate_data_irm_w_missings):
-    (x, y, d) = generate_data_irm_w_missings
+    x, y, d = generate_data_irm_w_missings
 
     dml_data = DoubleMLData.from_arrays(x, y, d, force_all_x_finite=False)
 

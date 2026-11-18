@@ -57,7 +57,7 @@ def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, in_sam
     n_rep_boot = 499
 
     # collect data
-    (x, y, d, t) = generate_data_did_cs
+    x, y, d, t = generate_data_did_cs
 
     # Set machine learning methods for m & g
     ml_g = clone(learner_g)

@@ -49,7 +49,7 @@ def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normaliza
     n_rep_boot = 499
 
     # collect data
-    (x, y, d, t) = generate_data_did_cs
+    x, y, d, t = generate_data_did_cs
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
@@ -178,7 +178,7 @@ def test_dml_did_cs_sensitivity_rho0(dml_did_cs_fixture):
 @pytest.mark.ci
 def test_dml_did_cs_experimental(generate_data_did_cs, in_sample_normalization, learner):
     # collect data
-    (x, y, d, t) = generate_data_did_cs
+    x, y, d, t = generate_data_did_cs
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])

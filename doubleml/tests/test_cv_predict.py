@@ -22,7 +22,7 @@ def params(request):
 def cv_predict_fixture(generate_data_cv_predict, cross_fit, params):
     n_folds = 4
     # collect data
-    (x, y, classifier) = generate_data_cv_predict
+    x, y, classifier = generate_data_cv_predict
 
     if classifier:
         method = "predict_proba"

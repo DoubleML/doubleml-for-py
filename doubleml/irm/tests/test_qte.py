@@ -43,7 +43,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
     n_rep_boot = 2
 
     # collect data
-    (x, y, d) = generate_data_quantiles
+    x, y, d = generate_data_quantiles
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
 
     # Set machine learning methods for g & m
@@ -162,7 +162,7 @@ def test_dml_qte_ci(dml_qte_fixture):
 @pytest.mark.ci
 def test_doubleml_qte_exceptions():
     np.random.seed(42)
-    (x, y, d) = make_irm_data(1000, 5, 2, return_type="array")
+    x, y, d = make_irm_data(1000, 5, 2, return_type="array")
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
     ml_g = RandomForestClassifier(n_estimators=20)
     ml_m = RandomForestClassifier(n_estimators=20)

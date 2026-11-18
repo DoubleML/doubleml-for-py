@@ -57,7 +57,7 @@ def dml_apo_tune_fixture(generate_data_irm, learner_g, learner_m, score, normali
     treatment_level = 0
 
     # collect data
-    (x, y, d) = generate_data_irm
+    x, y, d = generate_data_irm
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
 

@@ -63,9 +63,9 @@ def dml_ssm_fixture(
     # collect data
     np.random.seed(42)
     if score == "missing-at-random":
-        (x, y, d, z, s) = generate_data_selection_mar
+        x, y, d, z, s = generate_data_selection_mar
     else:
-        (x, y, d, z, s) = generate_data_selection_nonignorable
+        x, y, d, z, s = generate_data_selection_nonignorable
 
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds)

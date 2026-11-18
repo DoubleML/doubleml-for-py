@@ -44,7 +44,7 @@ def clipping_threshold(request):
 def dml_irm_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, clipping_threshold):
 
     # collect data
-    (x, y, d) = generate_data_irm
+    x, y, d = generate_data_irm
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
 
     # Set machine learning methods for m & g
@@ -163,7 +163,7 @@ def test_apos_vs_irm_sensitivity(dml_irm_apos_fixture):
 def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_ipw, clipping_threshold):
 
     # collect data
-    (x, y, d) = generate_data_irm
+    x, y, d = generate_data_irm
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
 
     # Set machine learning methods for m & g

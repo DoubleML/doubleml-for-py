@@ -55,7 +55,7 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
     n_folds = 2
 
     # collect data
-    (x, y, d, z) = generate_data_local_quantiles
+    x, y, d, z = generate_data_local_quantiles
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z)
     np.random.seed(42)
     n_obs = len(y)

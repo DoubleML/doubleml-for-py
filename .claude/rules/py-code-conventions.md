@@ -6,10 +6,13 @@
 
 | Tool | Config | Command |
 |------|--------|---------|
-| **black** | line-length=127, preview=true, target py310-313 | `black .` |
-| **ruff** | rules E,F,W,I; ignores E721; target py312 | `ruff check .` / `ruff check --fix .` |
+| **black** | line-length=127, stable style (no preview), `required-version = "26"`, targets inferred from `requires-python` (py310+) | `black .` |
+| **ruff** | rules E,F,W,I; ignores E721; target inferred from `requires-python` (py310) | `ruff check .` / `ruff check --fix .` |
 | **mypy** | `files` allowlist, `follow_imports=silent`, `disallow_untyped_defs=true`, `no_implicit_optional=true`, excludes tests | `mypy` |
-| **pre-commit** | black + ruff + trailing whitespace + debug statements | `pre-commit run --all-files` |
+| **pre-commit** | black + ruff + trailing whitespace + debug statements; pins the black/ruff versions CI uses | `pre-commit run --all-files` |
+
+Black and ruff versions are pinned in `.pre-commit-config.yaml` (black via `psf/black-pre-commit-mirror`), and the dev dependency ranges in `pyproject.toml` match them.
+When bumping black or ruff, update both places in the same PR.
 
 mypy is adopted incrementally: it only reports errors for the modules listed in `[tool.mypy] files` in `pyproject.toml`.
 Add a module to that list once it passes cleanly (every new scalar model must be added).
