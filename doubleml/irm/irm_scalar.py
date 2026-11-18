@@ -407,8 +407,8 @@ class IRM(LinearScoreMixin):
         ----------
         groups : :class:`pandas.DataFrame`
             The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
-            Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
-            and ``d`` is the number of groups, or ``(n_obs, 1)`` containing the corresponding groups (as str).
+            Has to be dummy coded (bool or integer dtype) with shape ``(n_obs, d)``, where ``n_obs`` is the number of
+            observations and ``d`` is the number of groups, or ``(n_obs, 1)`` containing the corresponding groups (as str).
         **kwargs : dict
             Additional keyword arguments passed to :meth:`statsmodels.regression.linear_model.OLS.fit`,
             e.g. ``cov_type``.
@@ -422,7 +422,8 @@ class IRM(LinearScoreMixin):
         if not isinstance(groups, pd.DataFrame):
             raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
 
-        if not (all(groups.dtypes == bool) or all(groups.dtypes == int)):
+        is_dummy_coded = all(isinstance(dt, np.dtype) and dt.kind in "biu" for dt in groups.dtypes)
+        if not is_dummy_coded:
             if groups.shape[1] == 1:
                 groups = pd.get_dummies(groups, prefix="Group", prefix_sep="_")
             else:

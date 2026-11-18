@@ -100,27 +100,18 @@ def test_cate_multi_rep_shapes(fitted_plr_multi_rep):
 
 
 @pytest.mark.ci
-def test_gate_dummy_coded(fitted_plr_single_rep):
-    """gate() accepts a pre-dummy-coded boolean DataFrame."""
+@pytest.mark.parametrize("dtype", [bool, "int64", "int32", "uint8"])
+def test_gate_dummy_coded(fitted_plr_single_rep, dtype):
+    """gate() accepts bool and integer dummy-coded groups with identical results."""
     model, _ = fitted_plr_single_rep
     x1 = model._dml_data.x[:, 0]
     groups = pd.DataFrame({"low": x1 <= np.median(x1), "high": x1 > np.median(x1)})
-    gate = model.gate(groups)
+    gate_ref = model.gate(groups)
+    gate = model.gate(groups.astype(dtype))
     assert isinstance(gate, DoubleMLBLP)
     assert all(gate.confint().index == groups.columns.to_list())
-
-
-@pytest.mark.ci
-def test_gate_int_dummy_coded(fitted_plr_single_rep):
-    """gate() accepts int dummy-coded groups, with the same result as bool groups."""
-    model, _ = fitted_plr_single_rep
-    x1 = model._dml_data.x[:, 0]
-    groups = pd.DataFrame({"low": x1 <= np.median(x1), "high": x1 > np.median(x1)})
-    gate_bool = model.gate(groups)
-    gate_int = model.gate(groups.astype(int))
-    assert all(gate_int.confint().index == groups.columns.to_list())
-    np.testing.assert_allclose(gate_int.coef, gate_bool.coef, rtol=1e-9)
-    np.testing.assert_allclose(gate_int.se, gate_bool.se, rtol=1e-9)
+    np.testing.assert_allclose(gate.coef, gate_ref.coef, rtol=1e-9)
+    np.testing.assert_allclose(gate.se, gate_ref.se, rtol=1e-9)
 
 
 @pytest.mark.ci
@@ -169,15 +160,12 @@ def test_gate_exception_not_dataframe(fitted_plr_single_rep):
 
 
 @pytest.mark.ci
-def test_gate_exception_bad_dtype(fitted_plr_single_rep):
-    """gate() with multi-column non-bool/int data raises TypeError."""
+@pytest.mark.parametrize("dtype", [float, "Int64"])
+def test_gate_exception_bad_dtype(fitted_plr_single_rep, dtype):
+    """gate() with multi-column non-NumPy-bool/int data raises TypeError."""
     model, _ = fitted_plr_single_rep
-    groups = pd.DataFrame(
-        {
-            "g1": np.random.normal(0, 1, N_OBS),
-            "g2": np.random.normal(0, 1, N_OBS),
-        }
-    )
+    is_even = np.arange(N_OBS) % 2 == 0
+    groups = pd.DataFrame({"g1": is_even, "g2": ~is_even}).astype(dtype)
     with pytest.raises(TypeError, match=r"bool type or int type"):
         model.gate(groups)
 
