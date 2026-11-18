@@ -451,7 +451,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             drawn yet, defaults to 5. If sample splitting already exists and
             ``n_folds`` differs from ``self.n_folds``, the splits are re-drawn
             (discarding existing splits and fit state) and a :class:`UserWarning`
-            is emitted. Default is ``None``.
+            is emitted. For cluster data, ``n_folds`` is the number of folds per
+            cluster variable, as in :meth:`draw_sample_splitting`, and is compared
+            with that of the existing splits. Default is ``None``.
         n_rep : int or None, optional
             Number of repetitions for sample splitting. If sample splitting has
             not been drawn yet, defaults to 1. If sample splitting already exists
@@ -481,7 +483,9 @@ class DoubleMLScalar(DoubleMLBase, ABC):
                 n_rep=1 if n_rep is None else n_rep,
             )
         else:
-            current_n_folds = self.n_folds
+            # For cluster data, n_folds is the number of folds per cluster variable (as in draw_sample_splitting),
+            # while self.n_folds is the total number of folds (n_folds ** n_cluster_vars)
+            current_n_folds = self._n_folds_per_cluster if self._n_folds_per_cluster is not None else self.n_folds
             current_n_rep = self.n_rep
             n_folds_conflict = n_folds is not None and n_folds != current_n_folds
             n_rep_conflict = n_rep is not None and n_rep != current_n_rep
