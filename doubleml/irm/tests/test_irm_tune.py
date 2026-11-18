@@ -56,7 +56,7 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, normalize_ip
     n_rep_boot = 499
 
     # collect data
-    (x, y, d) = generate_data_irm
+    x, y, d = generate_data_irm
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
 

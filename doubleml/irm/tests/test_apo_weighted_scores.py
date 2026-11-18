@@ -54,7 +54,7 @@ def weighted_apo_score_fixture(generate_data_irm, learner, score, n_rep, normali
     n_folds = 2
 
     # collect data
-    (x, y, d) = generate_data_irm
+    x, y, d = generate_data_irm
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)

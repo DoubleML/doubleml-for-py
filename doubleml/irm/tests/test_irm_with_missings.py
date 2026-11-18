@@ -55,7 +55,7 @@ def dml_irm_w_missing_fixture(generate_data_irm_w_missings, learner_xgboost, sco
     n_rep_boot = 499
 
     # collect data
-    (x, y, d) = generate_data_irm_w_missings
+    x, y, d = generate_data_irm_w_missings
 
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
@@ -153,7 +153,7 @@ def test_dml_irm_w_missing_boot(dml_irm_w_missing_fixture):
 @pytest.mark.ci
 def test_irm_exception_with_missings(generate_data_irm_w_missings, learner_sklearn):
     # collect data
-    (x, y, d) = generate_data_irm_w_missings
+    x, y, d = generate_data_irm_w_missings
 
     # Set machine learning methods for m & g
     ml_g = clone(learner_sklearn[0])

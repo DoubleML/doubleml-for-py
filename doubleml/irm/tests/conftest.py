@@ -92,7 +92,7 @@ def generate_data_irm_w_missings(request):
     theta = 0.5
 
     # generating data
-    (x, y, d) = make_irm_data(n, p, theta, return_type="array")
+    x, y, d = make_irm_data(n, p, theta, return_type="array")
 
     # randomly set some entries to np.nan
     ind = np.random.choice(np.arange(x.size), replace=False, size=int(x.size * 0.05))
