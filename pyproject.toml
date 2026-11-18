@@ -48,8 +48,8 @@ dev = [
     "pytest-cov>=6.0.0",
     "xgboost>=2.1.0",
     "lightgbm>=4.6.0",
-    "black>=25.1.0",
-    "ruff>=0.11.1",
+    "black>=26.1.0,<27",
+    "ruff>=0.17,<0.18",
     "pre-commit>=4.2.0",
     "mypy>=1.18.0",
 ]
@@ -94,24 +94,17 @@ doctest_optionflags = [
 
 [tool.black]
 line-length = 127
-target-version = ['py310', 'py311', 'py312', 'py313']
-preview = true
-exclude = '''
-/(
-    \.eggs         # exclude a few common directories in the
-  | \.git          # root of the project
-  | \.mypy_cache
-  | \.vscode
-  | build
-  | dist
-  | doc/_build
-)/
-'''
+# Target versions are inferred from project.requires-python.
+# Stable style only (no preview): it changes once per year, with black's YY.1.0 release.
+# Keep the major version in sync with the black rev in .pre-commit-config.yaml.
+required-version = "26"
+# Extends black's default excludes (.git, .venv, build, dist, ...).
+extend-exclude = '^/doc/_build/'
 
 [tool.ruff]
 # max line length for black
 line-length = 127
-target-version = "py312"
+# Target version is inferred from project.requires-python.
 
 
 [tool.ruff.lint]
