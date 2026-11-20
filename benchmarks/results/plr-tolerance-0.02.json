@@ -1,0 +1,44 @@
+{
+  "pairs": 1000,
+  "data_seed": 412,
+  "tolerance": 0.02,
+  "error_rate": 0.05,
+  "min_reps": 20,
+  "max_reps": 1000,
+  "exceedance_rate": 0.06,
+  "exceedance_interval_95": [
+    0.04689647267593195,
+    0.07647107479135656
+  ],
+  "mean_repetitions": 29.953,
+  "budget_exhaustion_rate": 0.0,
+  "total_nuisance_fits": 359436,
+  "elapsed_seconds": 150.95566583398613,
+  "mean_run_seconds": 0.20873066854466743,
+  "fixed": {
+    "10": {
+      "runs": 20,
+      "mean_mcse": 0.011677262580110271,
+      "mean_run_seconds": 0.052713906348799355,
+      "nuisance_fits_per_run": 60
+    },
+    "50": {
+      "runs": 20,
+      "mean_mcse": 0.0055360289057134245,
+      "mean_run_seconds": 0.33320674165443054,
+      "nuisance_fits_per_run": 300
+    },
+    "100": {
+      "runs": 20,
+      "mean_mcse": 0.0039995503298418085,
+      "mean_run_seconds": 0.6555121250465163,
+      "nuisance_fits_per_run": 600
+    },
+    "500": {
+      "runs": 20,
+      "mean_mcse": 0.001794004054532988,
+      "mean_run_seconds": 3.975092010544904,
+      "nuisance_fits_per_run": 3000
+    }
+  }
+}
