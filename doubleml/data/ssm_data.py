@@ -76,7 +76,7 @@ class DoubleMLSSMData(DoubleMLData):
         self,
         data,
         y_col,
-        d_cols,
+        d_cols=None,
         x_cols=None,
         z_cols=None,
         s_col=None,
@@ -87,15 +87,29 @@ class DoubleMLSSMData(DoubleMLData):
     ):
         # Initialize _s_col to None first to avoid AttributeError during parent init
         self._s_col = None
+        self._no_treatment = d_cols is None
 
         # Store whether x_cols was originally None to reset it later
         x_cols_was_none = x_cols is None
+
+        if self._no_treatment:
+            # The parent class requires d_cols to be a non-empty list and calls
+            # set_x_d(d_cols[0]) at the end of __init__.  When there is no treatment
+            # variable (as in DoubleMLSSCF), we pass s_col as a temporary dummy so
+            # that the parent's validation succeeds.  We keep _d pointing at the
+            # selection indicator so that the base-class machinery (fit loops,
+            # n_treat == 1) continues to work without modification.
+            if s_col is None:
+                raise ValueError("Either d_cols or s_col must be provided. " "Both are None.")
+            d_cols_for_parent = s_col
+        else:
+            d_cols_for_parent = d_cols
 
         # Call parent constructor
         super().__init__(
             data=data,
             y_col=y_col,
-            d_cols=d_cols,
+            d_cols=d_cols_for_parent,
             x_cols=x_cols,
             z_cols=z_cols,
             cluster_cols=cluster_cols,
@@ -271,7 +285,9 @@ class DoubleMLSSMData(DoubleMLData):
         s_col_set = {self.s_col}
         y_col_set = {self.y_col}
         x_cols_set = set(self.x_cols)
-        d_cols_set = set(self.d_cols)
+        # When d_cols is the dummy placeholder for s_col (no-treatment case), skip the
+        # d_cols vs s_col disjointness check — the overlap is intentional.
+        d_cols_set = set() if getattr(self, "_no_treatment", False) else set(self.d_cols)
         z_cols_set = set(self.z_cols or [])
         cluster_cols_set = set(self.cluster_cols or [])
 
