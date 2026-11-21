@@ -12,7 +12,7 @@ authors = [
     {name = "Bach, P., Chernozhukov, V., Klaassen, S., Kurz, M. S., and Spindler, M."}
 ]
 maintainers = [
-    {name = "Sven Klaassen", email = "sven.klaassen@uni-hamburg.de"}
+    {name = "Sven Klaassen", email = "s.klaassen@stat-econ.uni-kiel.de"}
 ]
 requires-python = ">=3.10"
 dependencies = [
