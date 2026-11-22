@@ -631,6 +631,12 @@ def test_dml_data_w_missing_d(generate_data1):
         "y": data["y"].values,
         "d": data["d"].values,
     }
+    for force_all_d_finite in ["allow-nan", False]:
+        dml_data_from_arrays = DoubleMLData.from_arrays(force_all_d_finite=force_all_d_finite, **np_args)
+        dml_data_from_constructor = DoubleMLData(force_all_d_finite=force_all_d_finite, **pd_args)
+        assert np.array_equal(dml_data_from_arrays.d, dml_data_from_constructor.d, equal_nan=True)
+        assert np.array_equal(dml_data_from_arrays.binary_treats, dml_data_from_constructor.binary_treats)
+
     msg = r"Input contains NaN."
     with pytest.raises(ValueError, match=msg):
         dml_data2 = DoubleMLData(force_all_d_finite=False, **pd_args)
