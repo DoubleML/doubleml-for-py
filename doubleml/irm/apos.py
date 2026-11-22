@@ -1,5 +1,4 @@
 import copy
-import warnings
 from collections.abc import Iterable
 from typing import Optional
 
@@ -70,14 +69,6 @@ class DoubleMLAPOS(SampleSplittingMixin):
         Indicates whether the inverse probability weights are normalized.
         Default is ``False``.
 
-    trimming_rule : str, optional, deprecated
-        (DEPRECATED) A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Use ``ps_processor_config`` instead. Will be removed in a future version.
-
-    trimming_threshold : float, optional, deprecated
-        (DEPRECATED) The threshold used for trimming.
-        Use ``ps_processor_config`` instead. Will be removed in a future version.
-
     ps_processor_config : PSProcessorConfig, optional
         Configuration for propensity score processing (clipping, calibration, etc.).
 
@@ -97,8 +88,6 @@ class DoubleMLAPOS(SampleSplittingMixin):
         score="APO",
         weights=None,
         normalize_ipw=False,
-        trimming_rule="truncate",  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-        trimming_threshold=1e-2,  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
         ps_processor_config: Optional[PSProcessorConfig] = None,
         draw_sample_splitting=True,
     ):
@@ -125,12 +114,7 @@ class DoubleMLAPOS(SampleSplittingMixin):
         # initialize framework which is constructed after the fit method is called
         self._framework = None
 
-        # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-        self._ps_processor_config, self._ps_processor = init_ps_processor(
-            ps_processor_config, trimming_rule, trimming_threshold
-        )
-        self._trimming_rule = trimming_rule
-        self._trimming_threshold = self._ps_processor.clipping_threshold
+        self._ps_processor_config, self._ps_processor = init_ps_processor(ps_processor_config)
 
         if not isinstance(self.normalize_ipw, bool):
             raise TypeError(
@@ -213,31 +197,6 @@ class DoubleMLAPOS(SampleSplittingMixin):
         Propensity score processor.
         """
         return self._ps_processor
-
-    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-    @property
-    def trimming_rule(self):
-        """
-        Specifies the used trimming rule.
-        """
-        warnings.warn(
-            "'trimming_rule' is deprecated and will be removed in a future version. ", DeprecationWarning, stacklevel=2
-        )
-        return self._trimming_rule
-
-    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
-    @property
-    def trimming_threshold(self):
-        """
-        Specifies the used trimming threshold.
-        """
-        warnings.warn(
-            "'trimming_threshold' is deprecated and will be removed in a future version. "
-            "Use 'ps_processor_config.clipping_threshold' or 'ps_processor.clipping_threshold' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._ps_processor.clipping_threshold
 
     @property
     def weights(self):

@@ -30,18 +30,19 @@ def n_rep(request):
 
 
 @pytest.fixture(scope="module", params=[0.01, 0.05])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_irm_eval_learner_fixture(learner, trimming_threshold, n_rep):
+def dml_irm_eval_learner_fixture(learner, clipping_threshold, n_rep):
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
     ml_m = clone(learner[1])
 
     np.random.seed(3141)
-    dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m, n_folds=2, n_rep=n_rep, trimming_threshold=trimming_threshold)
+    ps_processor_config = dml.utils.PSProcessorConfig(clipping_threshold=clipping_threshold)
+    dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m, n_folds=2, n_rep=n_rep, ps_processor_config=ps_processor_config)
     dml_irm_obj.fit()
     res_manual = dml_irm_obj.evaluate_learners(learners=["ml_g0", "ml_g1"])
     res_manual["ml_m"] = dml_irm_obj.evaluate_learners(learners=["ml_m"], metric=_logloss)["ml_m"]

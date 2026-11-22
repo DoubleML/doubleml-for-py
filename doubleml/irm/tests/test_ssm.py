@@ -93,7 +93,6 @@ def dml_selection_fixture(
         clone(learner[1]),
         all_smpls,
         score,
-        trimming_rule="truncate",
         clipping_threshold=clipping_threshold,
         normalize_ipw=normalize_ipw,
     )

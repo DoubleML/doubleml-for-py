@@ -4,6 +4,7 @@ from sklearn.base import clone
 from ...data.base_data import DoubleMLData
 from ...tests._utils_boot import draw_weights
 from ...utils._estimation import _default_kde
+from ...utils.propensity_score_processing import PSProcessorConfig
 from ..pq import DoubleMLPQ
 
 
@@ -16,8 +17,7 @@ def fit_qte(
     learner_m,
     all_smpls,
     n_rep=1,
-    trimming_rule="truncate",
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
     kde=_default_kde,
     normalize_ipw=True,
     draw_sample_splitting=True,
@@ -43,8 +43,7 @@ def fit_qte(
             treatment=0,
             n_folds=n_folds,
             n_rep=n_rep,
-            trimming_rule=trimming_rule,
-            trimming_threshold=trimming_threshold,
+            ps_processor_config=PSProcessorConfig(clipping_threshold=clipping_threshold),
             kde=kde,
             normalize_ipw=normalize_ipw,
             draw_sample_splitting=False,
@@ -57,8 +56,7 @@ def fit_qte(
             treatment=1,
             n_folds=n_folds,
             n_rep=n_rep,
-            trimming_rule=trimming_rule,
-            trimming_threshold=trimming_threshold,
+            ps_processor_config=PSProcessorConfig(clipping_threshold=clipping_threshold),
             kde=kde,
             normalize_ipw=normalize_ipw,
             draw_sample_splitting=False,

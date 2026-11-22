@@ -55,7 +55,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
         "n_folds": n_folds,
         "n_rep": n_rep,
         "normalize_ipw": normalize_ipw,
-        "trimming_threshold": 1e-12,
+        "ps_processor_config": dml.utils.PSProcessorConfig(clipping_threshold=1e-12),
         "kde": kde,
     }
 
@@ -84,8 +84,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
         all_smpls,
         n_rep=n_rep,
         normalize_ipw=normalize_ipw,
-        trimming_rule="truncate",
-        trimming_threshold=1e-12,
+        clipping_threshold=1e-12,
         kde=kde,
         draw_sample_splitting=True,
     )
