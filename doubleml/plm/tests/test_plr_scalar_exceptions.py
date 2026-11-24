@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.linear_model import Lasso, LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.plm.datasets import make_plr_CCDDHNR2018
@@ -88,15 +88,38 @@ def test_plr_scalar_exception_estimate_causal_without_predictions():
 
 
 @pytest.mark.ci
-def test_plr_scalar_exception_zero_psi_a():
-    """Treatment residuals that are exactly zero (E[psi_a] = 0) raise ValueError."""
-    dml_obj = PLR(obj_dml_data)
-    dml_obj.set_learners(ml_l=ml_l, ml_m=ml_m)
+@pytest.mark.parametrize("score", ["partialling out", "IV-type"])
+def test_plr_scalar_exception_zero_treatment_residuals(score):
+    """External ml_m predictions equal to d (treatment residuals exactly zero) raise ValueError."""
+    dml_obj = PLR(obj_dml_data, score=score)
+    learners = {"ml_l": ml_l, "ml_m": ml_m}
+    if score == "IV-type":
+        learners["ml_g"] = ml_g
+    dml_obj.set_learners(**learners)
     dml_obj.draw_sample_splitting(n_folds=2)
     m_hat = obj_dml_data.d.reshape(-1, 1)  # predicts d perfectly
-    msg = r"Division by near-zero detected in linear score estimation"
+    msg = r"Treatment residuals d - m_hat\(X\) are numerically zero"
     with pytest.raises(ValueError, match=msg):
         dml_obj.fit(external_predictions={"ml_m": m_hat})
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("score", ["partialling out", "IV-type"])
+@pytest.mark.parametrize("d_scale", [1.0, 1e12])
+def test_plr_scalar_exception_unidentified_treatment(score, d_scale):
+    """A treatment that is an exact linear function of X (ml_m reproduces it up to rounding) raises ValueError."""
+    df_unid = obj_dml_data.data.copy()
+    df_unid["d"] = d_scale * (df_unid[x_cols].to_numpy() @ np.linspace(1.0, 0.1, len(x_cols)) + 3.0)
+    dml_data_unid = dml.DoubleMLData(df_unid, y_col="y", d_cols="d", x_cols=x_cols)
+    dml_obj = PLR(dml_data_unid, score=score)
+    learners = {"ml_l": LinearRegression(), "ml_m": LinearRegression()}
+    if score == "IV-type":
+        learners["ml_g"] = LinearRegression()
+    dml_obj.set_learners(**learners)
+    dml_obj.draw_sample_splitting(n_folds=5)
+    msg = r"Treatment residuals d - m_hat\(X\) are numerically zero"
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.fit()
 
 
 @pytest.mark.ci

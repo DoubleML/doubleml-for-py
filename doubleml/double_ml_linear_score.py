@@ -84,8 +84,7 @@ class LinearScoreMixin(DoubleMLScalar):
         mean_psi_a = np.mean(psi_a, axis=0)  # (n_rep,)
         mean_psi_b = np.mean(psi_b, axis=0)  # (n_rep,)
 
-        # Check for zero denominator, relative to the magnitude of psi_a: E[psi_a] scales with the units
-        # of the treatment (e.g. psi_a = -(d - m(x))^2 for the PLR), so an absolute threshold rejects valid data
+        # Generic guard against cancellation in mean(psi_a), relative to its magnitude (scale-free)
         if np.any(np.abs(mean_psi_a) <= 1e-12 * np.mean(np.abs(psi_a), axis=0)):
             raise ValueError(
                 "Division by near-zero detected in linear score estimation. "

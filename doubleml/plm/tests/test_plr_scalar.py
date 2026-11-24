@@ -94,9 +94,9 @@ def test_dml_plr_scalar_rep_shapes(dml_plr_scalar_rep_fixture):
 
 @pytest.mark.ci
 @pytest.mark.parametrize("score", ["partialling out", "IV-type"])
-def test_dml_plr_scalar_small_scale_treatment(score):
-    """Rescaling the treatment rescales coef and se, also when E[psi_a] is tiny in absolute terms."""
-    scale = 1e-7  # E[psi_a] is about -1e-14 for the rescaled treatment
+@pytest.mark.parametrize("scale", [1e-7, 1e8])  # for 1e-7, E[psi_a] is about -1e-14
+def test_dml_plr_scalar_small_scale_treatment(score, scale):
+    """Rescaling the treatment rescales coef and se, also when E[psi_a] is tiny or huge in absolute terms."""
     np.random.seed(3141)
     df = make_plr_CCDDHNR2018(n_obs=500, dim_x=5, alpha=0.5, return_type="DataFrame")
     x_cols = [c for c in df.columns if c.startswith("X")]
