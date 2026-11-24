@@ -398,6 +398,60 @@ def test_rdd_score_col_setter():
 
 
 @pytest.mark.ci
+@pytest.mark.parametrize(
+    ("data_class", "variable_name", "data_key", "n_data", "n_variable"),
+    [
+        (DoubleMLRDDData, "score", "score", 50, 40),
+        (DoubleMLRDDData, "score", "score", 40, 50),
+        (DoubleMLSSMData, "s", "D", 50, 40),
+        (DoubleMLSSMData, "s", "D", 40, 50),
+    ],
+)
+def test_rdd_ssm_from_arrays_inconsistent_lengths(data_class, variable_name, data_key, n_data, n_variable):
+    """RDD and SSM from_arrays reject shorter and longer score or selection arrays."""
+    np.random.seed(3141)
+    data = make_simple_rdd_data(n_obs=50)
+    kwargs = {
+        "x": data["X"][:n_data],
+        "y": data["Y"][:n_data],
+        "d": data["D"][:n_data],
+        variable_name: data[data_key][:n_variable],
+    }
+
+    msg = r"Found input variables with inconsistent numbers of samples"
+    with pytest.raises(ValueError, match=msg):
+        data_class.from_arrays(**kwargs)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(("invalid_score", "msg"), [(np.nan, "Input contains NaN"), (np.inf, "Input contains infinity")])
+def test_rdd_data_invalid_score(invalid_score, msg):
+    """RDD data rejects non-finite score values at construction."""
+    np.random.seed(3141)
+    data = make_simple_rdd_data(n_obs=100)
+    x_cols = [f"x{i}" for i in range(data["X"].shape[1])]
+    df = pd.DataFrame(np.column_stack((data["Y"], data["D"], data["score"], data["X"])), columns=["y", "d", "score"] + x_cols)
+    df.loc[0, "score"] = invalid_score
+
+    with pytest.raises(ValueError, match=msg):
+        DoubleMLRDDData(df, "y", "d", score_col="score")
+
+
+@pytest.mark.ci
+def test_rdd_score_col_setter_invalid_score():
+    """The RDD score_col setter rejects a column with a non-finite value."""
+    np.random.seed(3141)
+    data = make_simple_rdd_data(n_obs=100)
+    x_cols = [f"x{i}" for i in range(data["X"].shape[1])]
+    df = pd.DataFrame(np.column_stack((data["Y"], data["D"], data["score"], data["X"])), columns=["y", "d", "score"] + x_cols)
+    df.loc[0, "x0"] = np.nan
+    dml_data = DoubleMLRDDData(df, "y", "d", score_col="score", x_cols=x_cols[1:])
+
+    with pytest.raises(ValueError, match="Input contains NaN"):
+        dml_data.score_col = "x0"
+
+
+@pytest.mark.ci
 def test_y_col_setter():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)

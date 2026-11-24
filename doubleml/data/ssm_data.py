@@ -2,7 +2,7 @@ import io
 
 import pandas as pd
 from sklearn.utils import assert_all_finite
-from sklearn.utils.validation import check_array
+from sklearn.utils.validation import check_array, check_consistent_length
 
 from doubleml.data.base_data import DoubleMLData
 from doubleml.utils._estimation import _assure_2d_array
@@ -194,6 +194,7 @@ class DoubleMLSSMData(DoubleMLData):
         s = _assure_2d_array(s)
         if s.shape[1] != 1:
             raise ValueError("s must be a single column.")
+        check_consistent_length(x, y, d, s)
         s_col = "s"
 
         # Create base data using parent class method
