@@ -47,6 +47,10 @@ class PLR(LinearScoreMixin):
         "ml_g": LearnerSpec("ml_g", allow_regressor=True, allow_classifier=False),
     }
 
+    # Tolerance on E[(d - m_hat)^2] / E[d^2]: at 1e-12, |d - m_hat| ~ 1e-6 * |d| still leaves ~10 correct digits,
+    # while a treatment that ml_m reproduces up to rounding error gives a ratio of about 1e-31
+    _RESIDUAL_REL_TOL: ClassVar[float] = 1e-12
+
     def __init__(
         self,
         obj_dml_data: DoubleMLData,
@@ -207,6 +211,41 @@ class PLR(LinearScoreMixin):
                         self._dml_data.d_cols[0],
                     )
 
+        # Applies to fitted and external ml_m predictions alike (uses only data and predictions)
+        self._check_treatment_residuals(self.predictions["ml_m"])
+
+    def _check_treatment_residuals(self, m_hat: np.ndarray) -> None:
+        """
+        Check that the treatment residuals ``d - m_hat`` are not numerically zero.
+
+        If ``ml_m`` reproduces the treatment (almost) exactly, ``d - m_hat`` is a difference of nearly equal
+        numbers and only carries rounding error of order ``eps * |d|``. The resulting score elements look
+        like those of a valid treatment on a tiny scale, so this cannot be detected from ``psi_a`` alone and
+        is checked here, relative to the magnitude of the treatment (scale-free).
+
+        Parameters
+        ----------
+        m_hat : np.ndarray
+            Predictions of ``ml_m`` with shape ``(n_obs,)`` or ``(n_obs, n_rep)``.
+
+        Raises
+        ------
+        ValueError
+            If ``E[(d - m_hat)^2] <= _RESIDUAL_REL_TOL * E[d^2]`` for any repetition.
+        """
+        d = self._dml_data.d
+        d_col = d[:, np.newaxis] if m_hat.ndim == 2 else d
+        mean_v2 = np.mean((d_col - m_hat) ** 2, axis=0)
+        mean_d2 = np.mean(d**2)
+        if np.any(mean_v2 <= self._RESIDUAL_REL_TOL * mean_d2):
+            ratio = np.min(mean_v2) / mean_d2 if mean_d2 > 0 else 0.0
+            raise ValueError(
+                "Treatment residuals d - m_hat(X) are numerically zero relative to the treatment "
+                f"(E[(d - m_hat)^2] / E[d^2] = {ratio:.1e}). ml_m predicts the treatment (almost) exactly "
+                "given X, so the treatment effect is not identified and the estimate would be dominated "
+                "by rounding error."
+            )
+
     def _nuisance_est(
         self,
         train_idx: np.ndarray,
@@ -253,6 +292,7 @@ class PLR(LinearScoreMixin):
             # Compute initial theta from full cross-fitted predictions
             l_hat = self.predictions["ml_l"][:, i_rep]
             m_hat = self.predictions["ml_m"][:, i_rep]
+            self._check_treatment_residuals(m_hat)
             psi_a = -(d - m_hat) * (d - m_hat)
             psi_b = (d - m_hat) * (y - l_hat)
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
@@ -337,6 +377,7 @@ class PLR(LinearScoreMixin):
             else:
                 m_hat = cross_val_predict(m_est, x, d, cv=cv)
 
+            self._check_treatment_residuals(m_hat)
             psi_a = -((d - m_hat) ** 2)
             psi_b = (d - m_hat) * (y - l_hat)
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
