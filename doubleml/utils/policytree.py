@@ -151,6 +151,7 @@ class DoubleMLPolicyTree:
                 f"The features must have the keys {self._features.keys()}. Features with keys {features.keys()} were passed."
             )
 
-        predictions = self.policy_tree.predict(features)
+        # the tree was fitted with the column order of the original covariates
+        predictions = self.policy_tree.predict(features[self._features.columns])
 
         return features.assign(pred_treatment=predictions.astype(int))
