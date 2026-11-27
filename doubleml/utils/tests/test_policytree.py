@@ -108,3 +108,19 @@ def test_doubleml_exception_policytree():
     msg = "Policy Tree not yet fitted. Call fit before plot_tree."
     with pytest.raises(NotFittedError, match=msg):
         dml_policytree_plot.plot_tree()
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("columns", [["a", "b", "c"], [0, 1, 2]])
+def test_dml_policytree_predict_column_order(columns):
+    np.random.seed(42)
+    features = pd.DataFrame(np.random.normal(0, 1, size=(100, 3)), columns=columns)
+    signal = features.iloc[:, 0].to_numpy() + 0.1 * np.random.normal(0, 1, size=(100,))
+    policy_tree = dml.DoubleMLPolicyTree(signal, features, depth=2).fit()
+
+    reordered = features[columns[::-1]]
+    pred = policy_tree.predict(features)
+    pred_reordered = policy_tree.predict(reordered)
+
+    assert list(pred_reordered.columns) == columns[::-1] + ["pred_treatment"]
+    np.testing.assert_array_equal(pred_reordered["pred_treatment"], pred["pred_treatment"])
