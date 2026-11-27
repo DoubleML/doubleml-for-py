@@ -843,12 +843,13 @@ class DoubleMLDIDMulti:
         grid_size=100,
     ):
         """
-        Contour plot of the sensivity with respect to latent/confounding variables.
+        Contour plot of the sensitivity with respect to latent/confounding variables.
 
         Parameters
         ----------
-        idx_gt_atte : int
-            Index of the treatment to perform the sensitivity analysis.
+        idx_treatment : int
+            Index of the group-time average treatment effect (position in ``gt_combinations`` / ``gt_labels``)
+            for which the sensitivity contours are plotted. Has to be in ``[0, n_gt_atts - 1]``.
             Default is ``0``.
         value : str
             Determines which contours to plot. Valid values are ``'theta'`` (refers to the bounds)
