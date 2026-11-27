@@ -219,10 +219,23 @@ class DoubleMLPanelData(DoubleMLData):
             )
         if value not in self.all_variables:
             raise ValueError("Invalid id variable id_col. " f"{value} is no data column.")
-        self._id_col = value
+        if not reset_value:
+            self._id_col = value
+        else:
+            previous_value = self._id_col
+            self._id_col = value
+            try:
+                self._check_disjoint_sets()
+            except ValueError:
+                self._id_col = previous_value
+                raise
+
         if reset_value:
-            self._check_disjoint_sets()
-            self._set_id_var()
+            try:
+                self._set_id_var()
+            except ValueError:
+                self._id_col = previous_value
+                raise
 
     @property
     def id_var(self):
@@ -283,6 +296,7 @@ class DoubleMLPanelData(DoubleMLData):
 
     @t_col.setter
     def t_col(self, value):
+        reset_value = hasattr(self, "_t_col")
         if value is None:
             raise TypeError("Invalid time variable t_col. Time variable required for panel data.")
         if not isinstance(value, str):
@@ -292,10 +306,25 @@ class DoubleMLPanelData(DoubleMLData):
         # Check if data exists (during initialization it might not)
         if hasattr(self, "_data") and value not in self.all_variables:
             raise ValueError(f"Invalid time variable t_col. {value} is no data column.")
-        self._t_col = value
+        if not reset_value:
+            self._t_col = value
+        else:
+            previous_value = self._t_col
+            self._t_col = value
+            try:
+                self._check_disjoint_sets()
+            except ValueError:
+                self._t_col = previous_value
+                raise
+
         # Update time variable array if data is already loaded
         if hasattr(self, "_data"):
-            self._set_time_var()
+            try:
+                self._set_time_var()
+            except ValueError:
+                if reset_value:
+                    self._t_col = previous_value
+                raise
         if hasattr(self, "_t_values"):
             self._t_values = np.sort(np.unique(self.t))  # update unique values of t
 

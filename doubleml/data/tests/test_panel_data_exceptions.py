@@ -100,6 +100,143 @@ def test_overlapping_variables_exception(sample_data):
 
 
 @pytest.mark.ci
+@pytest.mark.parametrize(
+    ("t_col", "msg"),
+    [
+        ("y", r"At least one variable/column is set as outcome variable \(``y_col``\) and time variable \(``t_col``\)."),
+        (
+            "treatment",
+            r"At least one variable/column is set as treatment variable \(``d_cols``\) and time variable \(``t_col``\).",
+        ),
+        ("x1", r"At least one variable/column is set as covariate \(``x_cols``\) and time variable \(``t_col``\)."),
+        (
+            "z",
+            r"At least one variable/column is set as instrumental variable \(``z_cols``\) and time variable \(``t_col``\).",
+        ),
+        (
+            "id",
+            r"At least one variable/column is set as time variable \(``t_col``\) and identifier variable \(``id_col``\).",
+        ),
+    ],
+)
+def test_t_col_reassignment_disjoint_sets(sample_data, t_col, msg):
+    dml_data = DoubleMLPanelData(
+        data=sample_data,
+        y_col="y",
+        d_cols="treatment",
+        t_col="time",
+        id_col="id",
+        x_cols=["x1", "x2"],
+        z_cols="z",
+    )
+    expected_t = dml_data.t.copy()
+
+    with pytest.raises(ValueError, match=msg):
+        dml_data.t_col = t_col
+
+    assert dml_data.t_col == "time"
+    np.testing.assert_array_equal(dml_data.t, expected_t)
+
+
+@pytest.mark.ci
+def test_t_col_reassignment_invalid_data_type(sample_data):
+    data = sample_data.copy()
+    data["invalid_time"] = data["time"].astype(str)
+    dml_data = DoubleMLPanelData(
+        data=data,
+        y_col="y",
+        d_cols="treatment",
+        t_col="time",
+        id_col="id",
+        x_cols=["x1", "x2"],
+    )
+    expected_t = dml_data.t.copy()
+    expected_t_values = dml_data.t_values.copy()
+    msg = (
+        r"Invalid data type for time variable: expected one of \(<class 'numpy.integer'>, <class 'numpy.floating'>, "
+        r"<class 'numpy.datetime64'>\)"
+    )
+
+    with pytest.raises(ValueError, match=msg):
+        dml_data.t_col = "invalid_time"
+
+    assert dml_data.t_col == "time"
+    np.testing.assert_array_equal(dml_data.t, expected_t)
+    np.testing.assert_array_equal(dml_data.t_values, expected_t_values)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(
+    ("id_col", "msg"),
+    [
+        (
+            "x1",
+            r"At least one variable/column is set as covariate \(``x_cols``\) and identifier variable \(``id_col``\).",
+        ),
+        (
+            "time",
+            r"At least one variable/column is set as time variable \(``t_col``\) and identifier variable \(``id_col``\).",
+        ),
+        (
+            "treatment",
+            r"At least one variable/column is set as treatment variable \(``d_cols``\) and identifier variable "
+            r"\(``id_col``\).",
+        ),
+        (
+            "y",
+            r"At least one variable/column is set as outcome variable \(``y_col``\) and identifier variable \(``id_col``\).",
+        ),
+        (
+            "z",
+            r"At least one variable/column is set as instrumental variable \(``z_cols``\) and identifier variable "
+            r"\(``id_col``\).",
+        ),
+    ],
+)
+def test_id_col_reassignment_disjoint_sets(sample_data, id_col, msg):
+    dml_data = DoubleMLPanelData(
+        data=sample_data,
+        y_col="y",
+        d_cols="treatment",
+        t_col="time",
+        id_col="id",
+        x_cols=["x1", "x2"],
+        z_cols="z",
+    )
+    expected_id_var = dml_data.id_var.copy()
+
+    with pytest.raises(ValueError, match=msg):
+        dml_data.id_col = id_col
+
+    assert dml_data.id_col == "id"
+    np.testing.assert_array_equal(dml_data.id_var, expected_id_var)
+
+
+@pytest.mark.ci
+def test_id_col_reassignment_non_finite(sample_data):
+    data = sample_data.copy()
+    data["invalid_id"] = np.arange(len(data), dtype=float)
+    data.loc[0, "invalid_id"] = np.nan
+    dml_data = DoubleMLPanelData(
+        data=data,
+        y_col="y",
+        d_cols="treatment",
+        t_col="time",
+        id_col="id",
+        x_cols=["x1", "x2"],
+    )
+    expected_id_var = dml_data.id_var.copy()
+    expected_id_var_unique = dml_data.id_var_unique.copy()
+
+    with pytest.raises(ValueError, match="Input contains NaN."):
+        dml_data.id_col = "invalid_id"
+
+    assert dml_data.id_col == "id"
+    np.testing.assert_array_equal(dml_data.id_var, expected_id_var)
+    np.testing.assert_array_equal(dml_data.id_var_unique, expected_id_var_unique)
+
+
+@pytest.mark.ci
 def test_from_arrays_not_implemented():
     # Test that from_arrays raises NotImplementedError
     with pytest.raises(NotImplementedError, match="from_arrays is not implemented for DoubleMLPanelData"):
