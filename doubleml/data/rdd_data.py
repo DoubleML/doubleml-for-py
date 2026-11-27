@@ -217,11 +217,18 @@ class DoubleMLRDDData(DoubleMLData):
         # Check if data exists (during initialization it might not)
         if hasattr(self, "_data") and value not in self.all_variables:
             raise ValueError(f"Invalid score variable score_col. {value} is no data column.")
+        if not hasattr(self, "_data"):
+            self._score_col = value
+            return
+        # Check disjointness and update score variable array; restore the previous column if a check fails
+        old_value = self._score_col
         self._score_col = value
-        # Check disjointness and update score variable array if data is already loaded
-        if hasattr(self, "_data"):
+        try:
             self._check_disjoint_sets()
             self._set_score_var()
+        except (TypeError, ValueError):
+            self._score_col = old_value
+            raise
 
     @property
     def score(self):
