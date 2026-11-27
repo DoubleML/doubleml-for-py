@@ -397,6 +397,77 @@ def test_rdd_score_col_setter():
         dml_data.score_col = "x1"
 
 
+def _make_rdd_df(n_obs=100):
+    """Build an RDD DataFrame with columns ``y``, ``d``, ``score`` and covariates ``x0, x1, ...``."""
+    np.random.seed(3141)
+    data = make_simple_rdd_data(n_obs=n_obs)
+    x_cols = [f"x{i}" for i in range(data["X"].shape[1])]
+    df = pd.DataFrame(np.column_stack((data["Y"], data["D"], data["score"], data["X"])), columns=["y", "d", "score"] + x_cols)
+    return df, x_cols
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(("n_data", "n_score"), [(50, 40), (40, 50)])
+def test_rdd_from_arrays_inconsistent_lengths(n_data, n_score):
+    """RDD from_arrays rejects a score array that is shorter or longer than x, y and d."""
+    np.random.seed(3141)
+    data = make_simple_rdd_data(n_obs=50)
+
+    msg = rf"Found input variables with inconsistent numbers of samples: \[{n_data}, {n_data}, {n_data}, {n_score}\]"
+    with pytest.raises(ValueError, match=msg):
+        DoubleMLRDDData.from_arrays(data["X"][:n_data], data["Y"][:n_data], data["D"][:n_data], score=data["score"][:n_score])
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(("n_data", "n_s"), [(50, 40), (40, 50)])
+def test_ssm_from_arrays_inconsistent_lengths(n_data, n_s):
+    """SSM from_arrays rejects a selection array that is shorter or longer than x, y and d."""
+    np.random.seed(3141)
+    x, y, d, _, s = make_ssm_data(n_obs=50, dim_x=5, return_type="array")
+
+    msg = rf"Found input variables with inconsistent numbers of samples: \[{n_data}, {n_data}, {n_data}, {n_s}\]"
+    with pytest.raises(ValueError, match=msg):
+        DoubleMLSSMData.from_arrays(x[:n_data], y[:n_data], d[:n_data], s=s[:n_s])
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(("invalid_score", "msg"), [(np.nan, "Input contains NaN"), (np.inf, "Input contains infinity")])
+def test_rdd_data_invalid_score(invalid_score, msg):
+    """RDD data rejects non-finite score values at construction."""
+    df, _ = _make_rdd_df()
+    df.loc[0, "score"] = invalid_score
+
+    with pytest.raises(ValueError, match=msg):
+        DoubleMLRDDData(df, "y", "d", score_col="score")
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(("invalid_value", "msg"), [(np.nan, "Input contains NaN"), (np.inf, "Input contains infinity")])
+def test_rdd_score_col_setter_invalid_score(invalid_value, msg):
+    """The RDD score_col setter rejects a non-finite column and keeps the previous score variable."""
+    df, x_cols = _make_rdd_df()
+    df.loc[0, "x0"] = invalid_value
+    dml_data = DoubleMLRDDData(df, "y", "d", score_col="score", x_cols=x_cols[1:])
+
+    with pytest.raises(ValueError, match=msg):
+        dml_data.score_col = "x0"
+    assert dml_data.score_col == "score"
+    assert np.array_equal(dml_data.score, df["score"].values)
+
+
+@pytest.mark.ci
+def test_rdd_score_col_setter_overlap_keeps_previous_score():
+    """A score_col that overlaps the covariates raises and keeps the previous score variable."""
+    df, x_cols = _make_rdd_df()
+    dml_data = DoubleMLRDDData(df, "y", "d", score_col="score", x_cols=x_cols)
+
+    msg = r"At least one variable/column is set as covariate \(``x_cols``\) and score variable \(``score_col``\)."
+    with pytest.raises(ValueError, match=msg):
+        dml_data.score_col = "x0"
+    assert dml_data.score_col == "score"
+    assert np.array_equal(dml_data.score, df["score"].values)
+
+
 @pytest.mark.ci
 def test_y_col_setter():
     np.random.seed(3141)

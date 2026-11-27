@@ -1,7 +1,8 @@
 import io
 
 import pandas as pd
-from sklearn.utils.validation import check_array
+from sklearn.utils import assert_all_finite
+from sklearn.utils.validation import check_array, check_consistent_length
 
 from doubleml.data.base_data import DoubleMLData
 from doubleml.utils._estimation import _assure_2d_array
@@ -176,6 +177,7 @@ class DoubleMLRDDData(DoubleMLData):
         score = _assure_2d_array(score)
         if score.shape[1] != 1:
             raise ValueError("score must be a single column.")
+        check_consistent_length(x, y, d, score)
         score_col = "score"
 
         # Create base data using parent class method
@@ -215,11 +217,18 @@ class DoubleMLRDDData(DoubleMLData):
         # Check if data exists (during initialization it might not)
         if hasattr(self, "_data") and value not in self.all_variables:
             raise ValueError(f"Invalid score variable score_col. {value} is no data column.")
+        if not hasattr(self, "_data"):
+            self._score_col = value
+            return
+        # Check disjointness and update score variable array; restore the previous column if a check fails
+        old_value = self._score_col
         self._score_col = value
-        # Check disjointness and update score variable array if data is already loaded
-        if hasattr(self, "_data"):
+        try:
             self._check_disjoint_sets()
             self._set_score_var()
+        except (TypeError, ValueError):
+            self._score_col = old_value
+            raise
 
     @property
     def score(self):
@@ -268,6 +277,7 @@ class DoubleMLRDDData(DoubleMLData):
 
     def _set_score_var(self):
         """Set the score variable array."""
+        assert_all_finite(self.data.loc[:, self.score_col])
         self._score = self.data.loc[:, self.score_col]
 
     def __str__(self):
