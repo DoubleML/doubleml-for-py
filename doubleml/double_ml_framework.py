@@ -475,8 +475,13 @@ class DoubleMLFramework:
                 }
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
+            treatment_names = (
+                list(self.treatment_names)
+                if self.treatment_names is not None and self.treatment_names == other.treatment_names
+                else None
+            )
             dml_core = DoubleMLCore(**doubleml_dict)
-            new_obj = DoubleMLFramework(dml_core)
+            new_obj = DoubleMLFramework(dml_core, treatment_names=treatment_names)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
 
@@ -524,8 +529,13 @@ class DoubleMLFramework:
                 }
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
+            treatment_names = (
+                list(self.treatment_names)
+                if self.treatment_names is not None and self.treatment_names == other.treatment_names
+                else None
+            )
             dml_core = DoubleMLCore(**doubleml_dict)
-            new_obj = DoubleMLFramework(dml_core=dml_core)
+            new_obj = DoubleMLFramework(dml_core=dml_core, treatment_names=treatment_names)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
 
@@ -569,8 +579,9 @@ class DoubleMLFramework:
                     )
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
+            treatment_names = list(self.treatment_names) if self.treatment_names is not None else None
             dml_core = DoubleMLCore(**doubleml_dict)
-            new_obj = DoubleMLFramework(dml_core=dml_core)
+            new_obj = DoubleMLFramework(dml_core=dml_core, treatment_names=treatment_names)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
 
@@ -1166,7 +1177,12 @@ def concat(objs):
 
         doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
+    treatment_names = None
+    if all(obj.treatment_names is not None for obj in objs):
+        joined_treatment_names = [treatment_name for obj in objs for treatment_name in obj.treatment_names]
+        if len(joined_treatment_names) == len(set(joined_treatment_names)):
+            treatment_names = joined_treatment_names
     dml_core = DoubleMLCore(**doubleml_dict)
-    new_obj = DoubleMLFramework(dml_core=dml_core)
+    new_obj = DoubleMLFramework(dml_core=dml_core, treatment_names=treatment_names)
 
     return new_obj
