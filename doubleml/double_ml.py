@@ -1745,7 +1745,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         grid_size=100,
     ):
         """
-        Contour plot of the sensivity with respect to latent/confounding variables.
+        Contour plot of the sensitivity with respect to latent/confounding variables.
 
         Parameters
         ----------
