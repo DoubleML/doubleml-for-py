@@ -336,3 +336,113 @@ def test_dml_framework_from_doubleml_neg(dml_framework_from_doubleml_fixture):
         assert np.allclose(params_neg[key]["upper"], -params[key]["lower"])
     assert np.allclose(params_neg["rv"], params["rv"], atol=1e-6)
     assert np.allclose(params_neg["rva"], params["rva"], atol=1e-6)
+
+
+def _make_named_framework(treatment_names, seed):
+    rng = np.random.default_rng(seed)
+    n_thetas = len(treatment_names) if treatment_names is not None else 2
+    psi_a = np.ones(shape=(20, n_thetas, 1))
+    psi_b = rng.normal(size=(20, n_thetas, 1))
+    dml_core = DoubleMLCore(**generate_dml_dict(psi_a, psi_b))
+    return DoubleMLFramework(dml_core=dml_core, treatment_names=treatment_names)
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(
+    "op",
+    [lambda fw: 2 * fw, lambda fw: fw * 2, lambda fw: -fw, lambda fw: fw * -2.5],
+    ids=["rmul", "mul", "neg", "negative_mul"],
+)
+def test_dml_framework_scalar_arithmetic_preserves_treatment_names(op):
+    treatment_names = ["dose_a", "dose_b"]
+    dml_framework_obj = _make_named_framework(treatment_names, seed=42)
+
+    result = op(dml_framework_obj)
+
+    assert result.treatment_names == treatment_names
+    assert result.summary.index.tolist() == treatment_names
+    assert result.treatment_names is not dml_framework_obj.treatment_names
+    result.treatment_names[0] = "changed"
+    assert dml_framework_obj.treatment_names == treatment_names
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("op", [lambda left, right: left + right, lambda left, right: left - right], ids=["add", "sub"])
+def test_dml_framework_arithmetic_preserves_equal_treatment_names(op):
+    treatment_names = ["dose_a", "dose_b"]
+    left = _make_named_framework(list(treatment_names), seed=43)
+    right = _make_named_framework(list(treatment_names), seed=44)
+
+    result = op(left, right)
+
+    assert result.treatment_names == treatment_names
+    assert result.summary.index.tolist() == treatment_names
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("op", [lambda left, right: left + right, lambda left, right: left - right], ids=["add", "sub"])
+@pytest.mark.parametrize(
+    "left_names, right_names",
+    [
+        (["dose_a", "dose_b"], ["other_a", "other_b"]),
+        (["dose_a", "dose_b"], None),
+        (None, ["dose_a", "dose_b"]),
+    ],
+    ids=["different", "right_unnamed", "left_unnamed"],
+)
+def test_dml_framework_arithmetic_drops_nonmatching_treatment_names(op, left_names, right_names):
+    left = _make_named_framework(left_names, seed=45)
+    right = _make_named_framework(right_names, seed=46)
+
+    result = op(left, right)
+
+    assert result.treatment_names is None
+
+
+@pytest.mark.ci
+def test_concat_preserves_all_treatment_names():
+    left_names = ["dose_a", "dose_b"]
+    right_names = ["other_a", "other_b"]
+    left = _make_named_framework(left_names, seed=47)
+    right = _make_named_framework(right_names, seed=48)
+
+    result = concat([left, right])
+
+    expected_names = left_names + right_names
+    assert result.treatment_names == expected_names
+    assert result.summary.index.tolist() == expected_names
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize(
+    "left_names, right_names",
+    [(["d"], ["d"]), (["a", "b"], ["b", "c"])],
+    ids=["duplicate", "partial_overlap"],
+)
+def test_concat_drops_duplicate_treatment_names(left_names, right_names):
+    left = _make_named_framework(left_names, seed=49)
+    right = _make_named_framework(right_names, seed=50)
+
+    result = concat([left, right])
+
+    assert result.treatment_names is None
+
+
+@pytest.mark.ci
+@pytest.mark.parametrize("unnamed_first", [False, True], ids=["unnamed_last", "unnamed_first"])
+def test_concat_drops_treatment_names_if_any_object_is_unnamed(unnamed_first):
+    named = _make_named_framework(["dose_a", "dose_b"], seed=51)
+    unnamed = _make_named_framework(None, seed=52)
+    objs = [unnamed, named] if unnamed_first else [named, unnamed]
+
+    result = concat(objs)
+
+    assert result.treatment_names is None
+
+
+@pytest.mark.ci
+def test_dml_framework_scalar_arithmetic_without_treatment_names():
+    dml_framework_obj = _make_named_framework(None, seed=53)
+
+    assert (2 * dml_framework_obj).treatment_names is None
+    assert (-dml_framework_obj).treatment_names is None
