@@ -847,7 +847,7 @@ class DoubleMLDIDMulti:
 
         Parameters
         ----------
-        idx_gt_atte : int
+        idx_treatment : int
             Index of the treatment to perform the sensitivity analysis.
             Default is ``0``.
         value : str
