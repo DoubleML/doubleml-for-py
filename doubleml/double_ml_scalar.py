@@ -449,11 +449,12 @@ class DoubleMLScalar(DoubleMLBase, ABC):
         n_folds : int or None, optional
             Number of folds for cross-fitting. If sample splitting has not been
             drawn yet, defaults to 5. If sample splitting already exists and
-            ``n_folds`` differs from ``self.n_folds``, the splits are re-drawn
-            (discarding existing splits and fit state) and a :class:`UserWarning`
-            is emitted. For cluster data, ``n_folds`` is the number of folds per
-            cluster variable, as in :meth:`draw_sample_splitting`, and is compared
-            with that of the existing splits. Default is ``None``.
+            ``n_folds`` differs from the number of folds of the existing splits,
+            the splits are re-drawn (discarding existing splits and fit state) and
+            a :class:`UserWarning` is emitted. For cluster data, ``n_folds`` is the
+            number of folds per cluster variable, as in :meth:`draw_sample_splitting`,
+            and ``self.n_folds`` is then ``n_folds ** n_cluster_vars``.
+            Default is ``None``.
         n_rep : int or None, optional
             Number of repetitions for sample splitting. If sample splitting has
             not been drawn yet, defaults to 1. If sample splitting already exists
