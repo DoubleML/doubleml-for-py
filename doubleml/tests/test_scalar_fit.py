@@ -105,10 +105,13 @@ def test_fit_draws_explicit_splits_when_none_set():
 
 
 @pytest.mark.ci
-def test_fit_multiway_cluster_no_warning_when_consistent():
-    """With two-way clustering, fit(n_folds=k) with the k used for the existing splits keeps them."""
+@pytest.mark.parametrize("use_set_sample_splitting", [False, True])
+def test_fit_multiway_cluster_no_warning_when_consistent(use_set_sample_splitting):
+    """With two-way clustering, fit(n_folds=k) with the k of the drawn or set splits keeps them."""
     dml_obj = _build_unfitted_plr_multiway_cluster()
     dml_obj.draw_sample_splitting(n_folds=2, n_rep=1)
+    if use_set_sample_splitting:
+        dml_obj.set_sample_splitting(dml_obj.smpls, dml_obj.smpls_cluster)
     original_smpls = dml_obj.smpls
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
@@ -118,16 +121,17 @@ def test_fit_multiway_cluster_no_warning_when_consistent():
 
 
 @pytest.mark.ci
-def test_fit_multiway_cluster_redraw_keeps_folds_per_cluster_var():
-    """With two-way clustering, fit(n_rep=...) re-draws with the same number of folds per cluster variable."""
+@pytest.mark.parametrize("fit_kwargs, k_new, n_rep_new", [({"n_rep": 2}, 2, 2), ({"n_folds": 3}, 3, 1)])
+def test_fit_multiway_cluster_redraw(fit_kwargs, k_new, n_rep_new):
+    """With two-way clustering, fit() re-draws with n_folds interpreted per cluster variable."""
     dml_obj = _build_unfitted_plr_multiway_cluster()
     dml_obj.draw_sample_splitting(n_folds=2, n_rep=1)
     msg = (
         r"Re-drawing sample splitting \(was n_folds=2 per cluster variable, n_rep=1; "
-        r"now n_folds=2 per cluster variable, n_rep=2\)"
+        rf"now n_folds={k_new} per cluster variable, n_rep={n_rep_new}\)"
     )
     with pytest.warns(UserWarning, match=msg):
-        dml_obj.fit(n_rep=2)
-    assert dml_obj.n_rep == 2
-    assert dml_obj.n_folds == 4
-    assert all(len(smpl) == 4 for smpl in dml_obj.smpls)
+        dml_obj.fit(**fit_kwargs)
+    assert dml_obj.n_rep == n_rep_new
+    assert dml_obj.n_folds == k_new**2
+    assert all(len(smpl) == k_new**2 for smpl in dml_obj.smpls)
