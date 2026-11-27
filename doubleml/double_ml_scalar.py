@@ -493,9 +493,10 @@ class DoubleMLScalar(DoubleMLBase, ABC):
             if n_folds_conflict or n_rep_conflict:
                 new_n_folds = n_folds if (n_folds is not None and n_folds_conflict) else current_n_folds
                 new_n_rep = n_rep if (n_rep is not None and n_rep_conflict) else current_n_rep
+                per_cluster = " per cluster variable" if self._n_folds_per_cluster is not None else ""
                 warnings.warn(
-                    f"Re-drawing sample splitting (was n_folds={current_n_folds}, n_rep={current_n_rep}; "
-                    f"now n_folds={new_n_folds}, n_rep={new_n_rep}). "
+                    f"Re-drawing sample splitting (was n_folds={current_n_folds}{per_cluster}, n_rep={current_n_rep}; "
+                    f"now n_folds={new_n_folds}{per_cluster}, n_rep={new_n_rep}). "
                     "Existing splits and fit state are discarded.",
                     UserWarning,
                     stacklevel=2,

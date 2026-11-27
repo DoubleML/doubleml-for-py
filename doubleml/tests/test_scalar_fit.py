@@ -122,7 +122,10 @@ def test_fit_multiway_cluster_redraw_keeps_folds_per_cluster_var():
     """With two-way clustering, fit(n_rep=...) re-draws with the same number of folds per cluster variable."""
     dml_obj = _build_unfitted_plr_multiway_cluster()
     dml_obj.draw_sample_splitting(n_folds=2, n_rep=1)
-    msg = r"Re-drawing sample splitting \(was n_folds=2, n_rep=1; now n_folds=2, n_rep=2\)"
+    msg = (
+        r"Re-drawing sample splitting \(was n_folds=2 per cluster variable, n_rep=1; "
+        r"now n_folds=2 per cluster variable, n_rep=2\)"
+    )
     with pytest.warns(UserWarning, match=msg):
         dml_obj.fit(n_rep=2)
     assert dml_obj.n_rep == 2
