@@ -391,6 +391,9 @@ class DoubleMLData(DoubleMLBaseData):
     @cluster_cols.setter
     def cluster_cols(self, value):
         reset_value = hasattr(self, "_cluster_cols")
+        if reset_value:
+            previous_value = self._cluster_cols
+            previous_is_cluster_data = self._is_cluster_data
         if value is not None:
             if isinstance(value, str):
                 value = [value]
@@ -410,9 +413,14 @@ class DoubleMLData(DoubleMLBaseData):
         self._is_cluster_data = self._cluster_cols is not None
 
         if reset_value:
-            self._check_disjoint_sets()
-            if self.cluster_cols is not None:
-                self._set_cluster_vars()
+            try:
+                self._check_disjoint_sets()
+                if self.cluster_cols is not None:
+                    self._set_cluster_vars()
+            except (TypeError, ValueError):
+                self._cluster_cols = previous_value
+                self._is_cluster_data = previous_is_cluster_data
+                raise
 
     @property
     def n_treat(self):

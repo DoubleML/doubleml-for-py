@@ -339,12 +339,31 @@ def test_s_col_setter():
     np.random.seed(3141)
     df = make_ssm_data(n_obs=100, return_type=pd.DataFrame)
     df["s_new"] = np.ones(shape=(100,))
+    df["s_nan"] = np.ones(shape=(100,))
+    df.loc[0, "s_nan"] = np.nan
     dml_data = DoubleMLSSMData(df, "y", "d", x_cols=[f"X{i + 1}" for i in np.arange(4)], s_col="s")
 
     # check that after changing s_col, the s array gets updated
     s_comp = dml_data.data["s_new"].values
     dml_data.s_col = "s_new"
     assert np.array_equal(dml_data.s, s_comp)
+
+    previous_s_col = dml_data.s_col
+
+    with pytest.raises(ValueError, match="Input contains NaN"):
+        dml_data.s_col = "s_nan"
+    assert dml_data.s_col == previous_s_col
+    assert np.array_equal(dml_data.s, dml_data.data[dml_data.s_col].values)
+
+    msg = r"At least one variable/column is set as outcome variable \(``y_col``\) and selection variable \(``s_col``\)\."
+    with pytest.raises(ValueError, match=msg):
+        dml_data.s_col = "y"
+    assert dml_data.s_col == previous_s_col
+    assert np.array_equal(dml_data.s, dml_data.data[dml_data.s_col].values)
+
+    new_x_cols = dml_data.x_cols[::-1]
+    dml_data.x_cols = new_x_cols
+    assert dml_data.x_cols == new_x_cols
 
     msg = r"Invalid selection variable s_col. a13 is no data column."
     with pytest.raises(ValueError, match=msg):

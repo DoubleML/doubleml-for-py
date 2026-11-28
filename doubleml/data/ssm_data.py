@@ -238,6 +238,8 @@ class DoubleMLSSMData(DoubleMLData):
     @s_col.setter
     def s_col(self, value):
         reset_value = hasattr(self, "_s_col")
+        if reset_value:
+            previous_value = self._s_col
         if value is not None:
             if not isinstance(value, str):
                 raise TypeError(
@@ -250,8 +252,12 @@ class DoubleMLSSMData(DoubleMLData):
         else:
             self._s_col = None
         if reset_value:
-            self._check_disjoint_sets()
-            self._set_y_z_s()
+            try:
+                self._check_disjoint_sets()
+                self._set_y_z_s()
+            except (TypeError, ValueError):
+                self._s_col = previous_value
+                raise
 
     def _get_optional_col_sets(self):
         """Get optional column sets including selection column."""
