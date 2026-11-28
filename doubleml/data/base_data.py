@@ -403,16 +403,23 @@ class DoubleMLData(DoubleMLBaseData):
                 raise ValueError("Invalid cluster variable(s) cluster_cols: Contains duplicate values.")
             if not set(value).issubset(set(self.all_variables)):
                 raise ValueError("Invalid cluster variable(s) cluster_cols. At least one cluster variable is no data column.")
+
+        if not reset_value:
             self._cluster_cols = value
+            self._is_cluster_data = self._cluster_cols is not None
         else:
-            self._cluster_cols = None
-
-        self._is_cluster_data = self._cluster_cols is not None
-
-        if reset_value:
-            self._check_disjoint_sets()
-            if self.cluster_cols is not None:
-                self._set_cluster_vars()
+            previous_value = self._cluster_cols
+            previous_is_cluster_data = self._is_cluster_data
+            self._cluster_cols = value
+            self._is_cluster_data = self._cluster_cols is not None
+            try:
+                self._check_disjoint_sets()
+                if self.cluster_cols is not None:
+                    self._set_cluster_vars()
+            except (TypeError, ValueError):
+                self._cluster_cols = previous_value
+                self._is_cluster_data = previous_is_cluster_data
+                raise
 
     @property
     def n_treat(self):

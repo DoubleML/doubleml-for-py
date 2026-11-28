@@ -78,6 +78,8 @@ def test_cluster_cols_setter():
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     df = dml_data.data.copy().iloc[:, :10]
     df.columns = [f"X{i + 1}" for i in np.arange(7)] + ["y", "d1", "d2"]
+    df["cluster_nan"] = 1.0
+    df.loc[0, "cluster_nan"] = np.nan
     dml_data = DoubleMLData(
         df, "y", ["d1", "d2"], cluster_cols=[f"X{i + 1}" for i in [5, 6]], x_cols=[f"X{i + 1}" for i in np.arange(5)]
     )
@@ -90,6 +92,28 @@ def test_cluster_cols_setter():
     cluster_vars = df[["X7", "X6"]].values
     dml_data.cluster_cols = ["X7", "X6"]
     assert np.array_equal(dml_data.cluster_vars, cluster_vars)
+
+    previous_cluster_cols = dml_data.cluster_cols
+
+    with pytest.raises(ValueError, match="Input contains NaN"):
+        dml_data.cluster_cols = "cluster_nan"
+    assert dml_data.cluster_cols == previous_cluster_cols
+    assert np.array_equal(dml_data.cluster_vars, dml_data.data[dml_data.cluster_cols].values)
+
+    msg = (
+        r"At least one variable/column is set as treatment variable \(``d_cols``\) "
+        r"and cluster variable\(s\) \(``cluster_cols``\)\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        dml_data.cluster_cols = "d1"
+    assert dml_data.cluster_cols == previous_cluster_cols
+    assert np.array_equal(dml_data.cluster_vars, dml_data.data[dml_data.cluster_cols].values)
+
+    non_cluster_data = DoubleMLData(df, "y", ["d1", "d2"], x_cols=[f"X{i + 1}" for i in np.arange(7)])
+    with pytest.raises(ValueError, match=msg):
+        non_cluster_data.cluster_cols = "d1"
+    assert non_cluster_data.cluster_cols is None
+    assert not non_cluster_data.is_cluster_data
 
     msg = r"Invalid cluster variable\(s\) cluster_cols. At least one cluster variable is no data column."
     with pytest.raises(ValueError, match=msg):
